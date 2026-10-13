@@ -1,0 +1,39 @@
+{
+  "paper_name": "The Daily Die",
+  "edition_dir": "05-for-agents/daily-brief",
+  "stories_per_desk": 5,
+  "reserve_per_desk": 3,
+
+  "selection": {
+    "epsilon": 0.25,
+    "a50_days": 7.0,
+    "slope": 1.0,
+    "age_floor_days": 0.25,
+    "explore_gamma": 0.3,
+    "shown_decay": 0.1,
+    "rejected_decay": 0.3,
+    "archive_after_days": 7.0
+  },
+
+  "pool": {
+    "max_age_days": 120
+  },
+
+  "fetch": {
+    "timeout_s": 20,
+    "cache_ttl_hours": 6,
+    "arxiv_delay_s": 3.1,
+    "hn_lookback_days": 45,
+    "user_agent": "daily-brief/1.0 (personal Obsidian vault; stdlib urllib)"
+  },
+
+  "llm": {
+    "model": "openrouter/free",
+    "temperature": 0.3,
+    "max_tokens": 5000,
+    "timeout_s": 150,
+    "retries": 2,
+    "max_requests_per_run": 6,
+    "min_remaining_daily": 3
+  }
+}

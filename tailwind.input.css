@@ -1,0 +1,19 @@
+/* Source for tailwind.css. Rebuild ONLY when you add or change utility classes in templates/ or
+   brief.py:   powershell -File build_css.ps1
+   Normal daily runs never touch this. */
+@import "tailwindcss";
+@source "./templates";
+@source "./brief.py";
+
+/* Class-based dark mode, with an OS-preference fallback when no .light/.dark class is set.
+   Home.md's iframe sets <html class="dark|light"> to mirror Obsidian's theme. */
+@custom-variant dark {
+  &:where(.dark, .dark *) { @slot; }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not(.light, .light *)) { @slot; }
+  }
+}
+
+@theme {
+  --font-paper: Literata, "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
+}
