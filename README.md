@@ -159,6 +159,8 @@ Then, we can edit the feedback loop to add weights favoring specific interest ve
 
 Interest vectors have two sources of weight: the number of notes that contribute to this interest, and the user feedback. User feedback likely has to have more weight, else interest vectors will have 
 
+See [notes](notes.md) for more on this.
+
 ## Other TODO
 
 - Proper logging file in `daily-brief/logs`
