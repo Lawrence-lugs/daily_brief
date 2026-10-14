@@ -74,8 +74,8 @@ def save_json_atomic(path: Path, obj) -> None:
 class Fetcher:
     def __init__(self, cfg: dict):
         self.cfg = cfg
+        self._last_semanticscholar = 0.0
         CACHE.mkdir(parents=True, exist_ok=True)
-        self._last_arxiv = 0.0
 
     def get(self, url: str, use_cache: bool = True, headers: dict | None = None) -> str:
         cache_file = CACHE / (hashlib.sha1(url.encode()).hexdigest() + ".txt")
@@ -91,11 +91,15 @@ class Fetcher:
         cache_file.write_text(text, encoding="utf-8")
         return text
 
-    def arxiv_throttle(self) -> None:
-        wait = self._last_arxiv + self.cfg["arxiv_delay_s"] - time.time()
+    def semanticscholar_throttle(self) -> None:
+        wait = (
+            self._last_semanticscholar
+            + self.cfg["semanticscholar_delay_s"]
+            - time.time()
+        )
         if wait > 0:
             time.sleep(wait)
-        self._last_arxiv = time.time()
+        self._last_semanticscholar = time.time()
 
 
 def strip_html(s: str) -> str:
@@ -174,16 +178,6 @@ def parse_feed(xml_text: str, name: str, weight: float, hint: str | None) -> lis
     return out
 
 
-def fetch_arxiv(f: Fetcher, spec: dict) -> list[dict]:
-    q = urllib.parse.quote(spec["query"])
-    url = (f"https://export.arxiv.org/api/query?search_query={q}"
-           f"&sortBy=submittedDate&sortOrder=descending&start=0&max_results={spec['max']}")
-    cache_file = CACHE / (hashlib.sha1(url.encode()).hexdigest() + ".txt")
-    if not (cache_file.exists() and time.time() - cache_file.stat().st_mtime < f.cfg["cache_ttl_hours"] * 3600):
-        f.arxiv_throttle()
-    return parse_feed(f.get(url), spec["name"], spec["weight"], spec["subtopic"])
-
-
 def fetch_hn(f: Fetcher, spec: dict) -> list[dict]:
     since = int(time.time() - f.cfg["hn_lookback_days"] * 86400)
     qs = urllib.parse.urlencode({
@@ -203,6 +197,61 @@ def fetch_hn(f: Fetcher, spec: dict) -> list[dict]:
     return out
 
 
+def fetch_semanticscholar(
+    f: Fetcher, spec: dict
+) -> list[dict]:
+    limit = spec.get("limit", 12)
+
+    params = urllib.parse.urlencode({
+        "query": spec["query"],
+        "limit": limit,
+        "fields": (
+            "title,abstract,url,publicationDate,"
+            "year,externalIds"
+        ),
+    })
+
+    endpoint = (
+        "https://api.semanticscholar.org/graph/v1/"
+        f"paper/search?{params}"
+    )
+    f.semanticscholar_throttle()
+    data = json.loads(f.get(endpoint))
+
+    out = []
+    for item in data.get("data", []):
+        title = item.get("title", "")
+        if not title:
+            continue
+
+        ids = item.get("externalIds") or {}
+        arxiv_id = ids.get("ArXiv")
+
+        if arxiv_id:
+            url = f"https://arxiv.org/abs/{arxiv_id}"
+        else:
+            url = item.get("url") or (
+                "https://www.semanticscholar.org/paper/"
+                f"{item.get('paperId')}"
+            )
+
+        date = parse_date(
+            item.get("publicationDate")
+            or str(item.get("year", ""))
+        )
+
+        out.append(make_item(
+            url,
+            title,
+            item.get("abstract") or "",
+            date,
+            "Semantic Scholar",
+            spec["subtopic"],
+            spec["weight"],
+        ))
+
+    return out
+
 def fetch_rss(f: Fetcher, spec: dict) -> list[dict]:
     return parse_feed(f.get(spec["url"]), spec["name"], spec["weight"], spec["default_subtopic"])
 
@@ -219,17 +268,17 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
         except Exception as e:  # one broken source must never sink the edition
             return label, [], f"{type(e).__name__}: {e}"
 
-    def arxiv_serial():
-        return [run(s["name"], fetch_arxiv, s) for s in src["arxiv"]]
-
     jobs = []
     with cf.ThreadPoolExecutor(max_workers=8) as ex:
-        arx = ex.submit(arxiv_serial)
-        for s in src["hn"]:
-            jobs.append(ex.submit(run, f"HN:{s['query']}", fetch_hn, s))
-        for s in src["rss"]:
+        for s in src.get("arxiv", []):
             jobs.append(ex.submit(run, s["name"], fetch_rss, s))
-        results = arx.result() + [j.result() for j in jobs]
+        for s in src.get("semanticscholar", []):
+            jobs.append(ex.submit(run, s["name"], fetch_semanticscholar, s))
+        for s in src.get("hn", []):
+            jobs.append(ex.submit(run, f"HN:{s['query']}", fetch_hn, s))
+        for s in src.get("rss", []):
+            jobs.append(ex.submit(run, s["name"], fetch_rss, s))
+        results = [j.result() for j in jobs]
     for label, got, err in results:
         if err:
             warn(f"source {label} failed ({err})")
