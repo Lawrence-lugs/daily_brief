@@ -5,7 +5,7 @@ Real items are fetched by Python; a free OpenRouter model only **ranks and summa
 output is a self-contained Tailwind HTML file per day.
 
 ```
-98-Scripts/daily_brief/
+daily_brief/
   brief.py             orchestrator (stdlib only)
   selection.py         epsilon-greedy + soft staleness (pure functions)
   config.json          every tunable (epsilon, a50, slope, desk sizes, model, limits)
@@ -17,7 +17,7 @@ output is a self-contained Tailwind HTML file per day.
   state.json           pool of items + what has been shown (gitignored, Syncthing-synced)
   test_selection.py    assertions + simulation   test_brief.py  parser/render tests
   examples/            example how to embed daily brief into obsidian
-05-for-agents/daily-brief/YYYY-MM-DD.html     the editions (newest one is displayed)
+`edition_dir`/YYYY-MM-DD.html     the editions (newest one is displayed)
 ~/.config/openrouter.key                      API key (outside the vault)
 ~/.cache/daily_brief/                         HTTP cache, 6 h TTL (outside the vault)
 ```
@@ -149,17 +149,20 @@ you actually care about. Planned, in order of effort:
 4. **Bandit view.** Treat each subtopic as an arm with a click-through reward and replace the fixed round-robin by Thompson sampling, keeping a minimum quota per desk.
 5. **Sidecar output.** Emit a `.md` list of the day's links so picks can flow into the Tasks `#reading` list and the Daily Board plan.
 
-## TODO: embedding model
+## TODO: embedding model-based rel scores
 
 Similar to the embedding model used in Obsidian Smart Connections, we can use an embedding model to replace keyword relevance `rel` scores.
 
-However, we need to investigate the following:
+This also means we can use K-means clustering on the obsidian notes in order to get candidate "interest vectors".
 
-- In practice, do embedding models dominate recommendation systems or are simple keywords still best?
-- What embedding model exactly is used.
-- How good are embedding models at differentiating similar topics like DSE vs Accelerators?
+Then, we can edit the feedback loop to add weights favoring specific interest vectors over others.
 
-This could also be helpful, because if these embedding models are anything like hypervectors, we can simply bundle the embeddings of the vault notes and use these to score relevance.
+Interest vectors have two sources of weight: the number of notes that contribute to this interest, and the user feedback. User feedback likely has to have more weight, else interest vectors will have 
+
+## Other TODO
+
+- Proper logging file in `daily-brief/logs`
+- Performance benchmarking (`test_perf.py`)
 
 ## Limits, caveats, operations
 
