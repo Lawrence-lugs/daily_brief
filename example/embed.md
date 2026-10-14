@@ -15,6 +15,15 @@ root.empty();
 const bar = root.createDiv({ cls: "daily-brief-bar" });
 const status = bar.createSpan();
 const btn = bar.createEl("button", { text: "Generate brief" });
+const logBtn = bar.createEl("button", { text: "Logs" });
+const logPopup = root.createDiv();
+logPopup.style.cssText = "display:none;position:fixed;right:1rem;bottom:1rem;z-index:9999;width:min(48rem,90vw);max-height:55vh;padding:0.75rem;background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:8px;box-shadow:0 4px 24px #0005;";
+const logText = logPopup.createEl("pre");
+logText.style.cssText = "max-height:calc(55vh - 2rem);overflow:auto;white-space:pre-wrap;font-size:0.75rem;";
+logText.setText("Logs appear here while a brief is being generated.");
+logBtn.onclick = () => {
+  logPopup.style.display = logPopup.style.display === "none" ? "" : "none";
+};
 const frame = root.createEl("iframe");
 frame.setAttribute("sandbox", "allow-same-origin"); // no scripts run inside; we can still set its theme
 frame.style.cssText = "width:100%;height:600px;border:0;border-radius:12px;";
@@ -53,7 +62,34 @@ const mo = new MutationObserver(applyTheme);
 mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
 const ro = new ResizeObserver(resize);
 ro.observe(root);
-dv.component.register(() => { mo.disconnect(); ro.disconnect(); });
+let logTimer = null;
+let logPath = null;
+let lastLogText = "";
+let generationFinished = false;
+let logDeadline = 0;
+function readLogs() {
+  if (!logPath) return;
+  try {
+    lastLogText = fs.readFileSync(logPath, "utf8");
+    logText.setText(lastLogText || "Waiting for generator output...");
+    logText.scrollTop = logText.scrollHeight;
+    const backgroundStarted = lastLogText.includes("Semantic Scholar background refresh started");
+    const backgroundFinished = lastLogText.includes("Semantic Scholar background refresh complete");
+    if (generationFinished && (!backgroundStarted || backgroundFinished || Date.now() >= logDeadline)) {
+      clearInterval(logTimer);
+      logTimer = null;
+      try { fs.unlinkSync(logPath); } catch (e) { console.warn("Could not remove temporary brief log", e); }
+      logPath = null;
+    }
+  } catch (e) {
+    if (e.code !== "ENOENT") console.error("Could not read temporary brief log", e);
+  }
+}
+dv.component.register(() => {
+  mo.disconnect();
+  ro.disconnect();
+  if (logTimer) clearInterval(logTimer);
+});
 
 async function load() {
   let latest = null;
@@ -77,30 +113,46 @@ async function load() {
 }
 
 let cp = null;
-try { cp = window.require("child_process"); } catch (e) { /* mobile */ }
+let fs = null, os = null, path = null;
+try {
+  cp = window.require("child_process");
+  fs = window.require("fs");
+  os = window.require("os");
+  path = window.require("path");
+} catch (e) { /* mobile */ }
 if (!cp || app.isMobile) {
   btn.style.display = "none"; // generation is desktop-only; mobile just displays the synced file
+  logBtn.style.display = "none";
 } else {
   btn.onclick = () => {
     btn.disabled = true;
     btn.setText("Generating...");
     status.style.color = "";
     status.setText("Fetching feeds and asking the model (about a minute)...");
-    cp.execFile(PYTHON, [SCRIPT], { cwd: ad.getBasePath(), timeout: 600000, windowsHide: true, maxBuffer: 1 << 24 },
+    logPath = path.join(os.tmpdir(), `daily-brief-${Date.now()}-${Math.random().toString(16).slice(2)}.log`);
+    fs.writeFileSync(logPath, "", "utf8");
+    lastLogText = "";
+    generationFinished = false;
+    logDeadline = Date.now() + 15 * 60 * 1000;
+    logText.setText("Waiting for generator output...");
+    if (logTimer) clearInterval(logTimer);
+    logTimer = setInterval(readLogs, 500);
+    cp.execFile(PYTHON, [SCRIPT, "--log-file", logPath], { cwd: ad.getBasePath(), timeout: 600000, windowsHide: true, maxBuffer: 1 << 24 },
       async (err, stdout, stderr) => {
         btn.disabled = false;
         btn.setText("Regenerate");
+        generationFinished = true;
+        readLogs();
         await load();
         if (err) {
           const tail = (stderr || err.message).trim().split("\n").slice(-2).join(" ");
           status.setText("Generation failed: " + tail);
           status.style.color = "var(--text-error)";
         }
+        readLogs();
       });
   };
 }
 await load();
 if (frame.style.display !== "none") btn.setText("Regenerate");
 ```
-
-

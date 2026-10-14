@@ -22,11 +22,9 @@ Possible action:
     - Hdbscan, hierarchical thresholded similarity clustering, dp-means clustering are all candidates for this.
     - Thresholded similarity might be best, since we get to keep the smaller clusters.
 
-
 ## Performance and Framework
 
 We should probably move to something like node so that we can call without python. 
-
 
 ## Distributed recommendation
 
@@ -37,3 +35,18 @@ Initially aim for:
 
 - 2 from strongest interest.
 - 3 from lower scoring interests slotted to 1 each.
+
+## Editor Stress
+
+Currently we only give the editor the 5 + 3 reserve desk items.
+
+This looks conservative.
+
+We need to maximize the context length and the outputs of the editor... and we're likely more limited by the output.
+
+Given more desk items, the editor can apply its own softer relevance scoring to the items that isn't just based on the token hits scoring.
+
+## Decouple freshness and relevance
+
+Freshness and relevance are currently stored in the sources together. This makes it impossible to decouple or update them. We need to store them separately in case we change the computation weights.
+

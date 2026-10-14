@@ -26,7 +26,7 @@ daily_brief/
 
 | What | How |
 |---|---|
-| From Obsidian | Home.md, "Generate brief" / "Regenerate" button (desktop only) |
+| From Obsidian | Home.md, "Generate brief" / "Regenerate" button (desktop only); open **Logs** to view the live run log |
 | From a shell | `python 98-Scripts/daily_brief/brief.py` |
 | No network LLM | `--no-llm` (raw items, no OpenRouter calls) |
 | Reuse the pool | `--no-fetch` |
@@ -36,7 +36,7 @@ daily_brief/
 
 ## Pipeline
 
-1. **Fetch** about 26 sources in parallel (arXiv is serialized with a 3.1 s gap, per arXiv's API etiquette). One failing source is a warning, never an error.
+1. **Fetch** RSS, arXiv, and Hacker News sources in parallel (arXiv is serialized with a 3.1 s gap, per arXiv's API etiquette). Semantic Scholar refreshes run in a detached background process with its own throttle; its HTTP cache is picked up by later runs. One failing source is a warning, never an error.
 2. **Classify.** Each item is scored against the keyword lists in `sources.json`
    (title hit = 2, body hit = 1). The best subtopic wins; the source's own hint adds a mild prior.
    Untargeted feeds (IEEE Spectrum, Physics World, ...) need at least 2 hits or the item is dropped.
@@ -44,8 +44,8 @@ daily_brief/
 3. **Merge into the persistent pool** (`state.json`). Items stay for `pool.max_age_days` (120).
    The pool is what lets a quiet day show something from last week: RSS feeds only expose a few
    days, the pool remembers.
-4. **Select** with epsilon-greedy (next section): 5 stories per desk, plus 3 reserves per desk.
-5. **Edit.** One LLM call per desk (`openrouter/free`, JSON mode). The model returns headline,
+4. **Select** with epsilon-greedy (next section): 5 stories per desk, plus 3 reserves per desk. When available, each desk gets at least one newslike candidate before the editor ranks the set.
+5. **Edit.** One LLM call per desk, with configured model fallbacks in order (JSON mode). The model returns headline,
    2 to 3 sentence blurb, a "why you'd care" line, tags, significance, and a lead. URLs and ids
    always come from our candidates, never from the model.
 6. **Render** into the Tailwind templates with `html.escape` on every value, inline the compiled
@@ -169,11 +169,14 @@ See [notes](notes.md) for more on this.
 ## Limits, caveats, operations
 
 - **Free tier:** 20 requests/min and 50/day (1000/day after buying 10 credits). A normal run uses
-  2 requests; retries are capped by `llm.max_requests_per_run` (6). The script reads
+  2 successful requests normally; model fallbacks and retries are capped by
+  `llm.max_requests_per_run` (24). The script reads
   `GET /api/v1/key` first and skips the LLM when fewer than `min_remaining_daily` remain.
-- **Model quality varies.** `openrouter/free` routes to whichever free model is available,
-  including very small ones. The parser salvages valid items from malformed JSON, retries with a
-  correction, and finally falls back to raw items. The footer lists which model(s) wrote the page.
+- **Model quality varies.** The configured Nemotron models are attempted in order, followed by
+  `openrouter/free`. The parser salvages valid items from malformed JSON, retries with a correction,
+  and finally falls back to raw items. The footer lists which model(s) wrote the page.
+- **Logs are temporary.** The Obsidian embed's Logs popup shows live generator output. Its temporary
+  log is removed when both the edition and background Semantic Scholar refresh finish.
 - **Privacy:** only public feed text is sent to the model, never vault notes.
 - **Untrusted text:** feed content is escaped before rendering, only http(s) URLs are linked, and
   the prompt tells the model to ignore instructions embedded in items.

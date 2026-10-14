@@ -61,6 +61,24 @@ def test_subtopic_balance_and_empty_subtopic():
     assert len(S.pick_desk(pool[:1], ["a", "b"], 5, cfg, random.Random(0))) == 1
 
 
+def test_minimum_source_type_coverage_and_reserves():
+    cfg = {**CFG, "epsilon": 0.0}
+    candidates = [
+        {"id": "research", "rel": 1.0, "age_days": 0, "subtopic": "a",
+         "source_type": "researchlike"},
+        {"id": "news", "rel": 0.1, "age_days": 0, "subtopic": "a",
+         "source_type": "newslike"},
+        {"id": "commentary", "rel": 0.8, "age_days": 0, "subtopic": "a",
+         "source_type": "commentary"},
+    ]
+    picks = S.pick_desk(candidates, ["a"], 1, cfg, random.Random(0),
+                        minimum_types={"newslike": 1})
+    assert picks[0][0]["source_type"] == "newslike"
+    reserves = S.pick_reserves(candidates, {"research", "commentary"},
+                               1, cfg, minimum_types={"newslike": 1})
+    assert len(reserves) == 1 and reserves[0]["source_type"] == "newslike"
+
+
 SPARSE = {"dse": 0.5, "accel": 3, "fab": 3, "gr": 0.4, "qft": 0.4, "oshw": 0.8, "condmat": 1.2, "neuro": 1.2}
 RICH = {"dse": 2, "accel": 5, "fab": 5, "gr": 2, "qft": 2, "oshw": 2, "condmat": 3, "neuro": 3}
 

@@ -26,7 +26,9 @@ import math
 import os
 import random
 import re
+import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -46,10 +48,15 @@ TEMPLATES = HERE / "templates"
 
 UTC = dt.timezone.utc
 WARNINGS: list[str] = []
+LOG_FILE: Path | None = None
 
 
 def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
+    if LOG_FILE:
+        with LOG_FILE.open("a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+            f.flush()
 
 
 def warn(msg: str) -> None:
@@ -75,6 +82,7 @@ class Fetcher:
     def __init__(self, cfg: dict):
         self.cfg = cfg
         self._last_semanticscholar = 0.0
+        self._semanticscholar_lock = threading.Lock()
         CACHE.mkdir(parents=True, exist_ok=True)
 
     def get(self, url: str, use_cache: bool = True, headers: dict | None = None) -> str:
@@ -92,14 +100,15 @@ class Fetcher:
         return text
 
     def semanticscholar_throttle(self) -> None:
-        wait = (
-            self._last_semanticscholar
-            + self.cfg["semanticscholar_delay_s"]
-            - time.time()
-        )
-        if wait > 0:
-            time.sleep(wait)
-        self._last_semanticscholar = time.time()
+        with self._semanticscholar_lock:
+            wait = (
+                self._last_semanticscholar
+                + self.cfg["semanticscholar_delay_s"]
+                - time.time()
+            )
+            if wait > 0:
+                time.sleep(wait)
+            self._last_semanticscholar = time.time()
 
 
 def strip_html(s: str) -> str:
@@ -137,7 +146,10 @@ def canonical_url(url: str) -> str:
                                     urllib.parse.urlencode(q), ""))
 
 
-def make_item(url, title, snippet, published, source, hint_sub, weight, extra_rel=1.0):
+def make_item(
+    url, title, snippet, published, source, hint_sub, weight, extra_rel=1.0,
+    source_type="researchlike",
+):
     url = canonical_url(url)
     return {
         "id": hashlib.sha1(url.encode()).hexdigest()[:12],
@@ -146,6 +158,7 @@ def make_item(url, title, snippet, published, source, hint_sub, weight, extra_re
         "snippet": (snippet or "").strip()[:900],
         "published": published.isoformat() if published else None,
         "source": source,
+        "source_type": source_type,
         "hint": hint_sub,
         "weight": weight * extra_rel,
     }
@@ -155,7 +168,10 @@ def local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
-def parse_feed(xml_text: str, name: str, weight: float, hint: str | None) -> list[dict]:
+def parse_feed(
+    xml_text: str, name: str, weight: float, hint: str | None,
+    source_type: str = "researchlike",
+) -> list[dict]:
     root = ET.fromstring(xml_text)
     out = []
     for node in root.iter():
@@ -174,7 +190,8 @@ def parse_feed(xml_text: str, name: str, weight: float, hint: str | None) -> lis
         body = strip_html(f.get("encoded") or f.get("content") or f.get("description") or f.get("summary") or "")
         date = parse_date(f.get("pubDate") or f.get("published") or f.get("updated") or f.get("date"))
         if title and link.startswith("http"):
-            out.append(make_item(link, title, body, date, name, hint, weight))
+            out.append(make_item(link, title, body, date, name, hint, weight,
+                                 source_type=source_type))
     return out
 
 
@@ -193,7 +210,8 @@ def fetch_hn(f: Fetcher, spec: dict) -> list[dict]:
             f"Hacker News discussion: {pts} points, {h.get('num_comments', 0)} comments.")
         boost = min(1.0, max(0.6, 0.6 + 0.2 * math.log10(max(pts, 1))))
         out.append(make_item(url, h.get("title", ""), snippet, parse_date(h.get("created_at")),
-                             "Hacker News", spec["subtopic"], spec["weight"], boost))
+                             "Hacker News", spec["subtopic"], spec["weight"], boost,
+                             spec.get("type", "commentary")))
     return out
 
 
@@ -248,14 +266,19 @@ def fetch_semanticscholar(
             "Semantic Scholar",
             spec["subtopic"],
             spec["weight"],
+            source_type=spec.get("type", "researchlike"),
         ))
 
     return out
 
 def fetch_rss(f: Fetcher, spec: dict) -> list[dict]:
-    return parse_feed(f.get(spec["url"]), spec["name"], spec["weight"], spec["default_subtopic"])
+    return parse_feed(
+        f.get(spec["url"]), spec["name"], spec["weight"], spec["default_subtopic"],
+        spec.get("type", "newslike"),
+    )
 
-
+# Having semanticscholar specific things in this function is bad.
+# We should be agnostic and kick that off into a clean separate source processor.
 def fetch_all(cfg: dict, src: dict) -> list[dict]:
     f = Fetcher(cfg["fetch"])
     items: list[dict] = []
@@ -268,12 +291,28 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
         except Exception as e:  # one broken source must never sink the edition
             return label, [], f"{type(e).__name__}: {e}"
 
+    refresh = [sys.executable, str(HERE / "brief.py"), "--refresh-s2"]
+    if LOG_FILE:
+        refresh.extend(("--log-file", str(LOG_FILE)))
+    try:
+        options = {
+            "cwd": HERE,
+            "stdin": subprocess.DEVNULL,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+            "close_fds": True,
+        }
+        if os.name == "nt":
+            options["creationflags"] = subprocess.DETACHED_PROCESS
+        subprocess.Popen(refresh, **options)
+        log(f"Semantic Scholar background refresh started ({len(src.get('semanticscholar', []))} queries)")
+    except OSError as e:
+        warn(f"could not start Semantic Scholar background refresh ({type(e).__name__}: {e})")
+
     jobs = []
     with cf.ThreadPoolExecutor(max_workers=8) as ex:
         for s in src.get("arxiv", []):
             jobs.append(ex.submit(run, s["name"], fetch_rss, s))
-        for s in src.get("semanticscholar", []):
-            jobs.append(ex.submit(run, s["name"], fetch_semanticscholar, s))
         for s in src.get("hn", []):
             jobs.append(ex.submit(run, f"HN:{s['query']}", fetch_hn, s))
         for s in src.get("rss", []):
@@ -286,6 +325,17 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
         items.extend(got)
     log("fetched: " + ", ".join(f"{k}={v}" for k, v in stats.items()))
     return items
+
+
+def refresh_semanticscholar(cfg: dict, src: dict) -> None:
+    fetcher = Fetcher(cfg["fetch"])
+    for spec in src.get("semanticscholar", []):
+        try:
+            items = fetch_semanticscholar(fetcher, spec)
+            log(f"Semantic Scholar refreshed {spec['name']}: {len(items)} items")
+        except Exception as e:
+            warn(f"Semantic Scholar source {spec['name']} failed ({type(e).__name__}: {e})")
+    log("Semantic Scholar background refresh complete")
 
 
 # --------------------------------------------------------------------------- classification
@@ -354,12 +404,13 @@ def merge_pool(state: dict, fresh: list[dict], now: dt.datetime, max_age: float,
         if old:
             # Re-fetched items are reclassified so keyword fixes take effect on existing pool entries.
             old["rel"], old["subtopic"], old["desk"] = it["rel"], it["subtopic"], it["desk"]
+            old["source_type"] = it.get("source_type", "commentary")
             if not old.get("snippet") and it["snippet"]:
                 old["snippet"] = it["snippet"]
             continue
         pool[it["id"]] = {
             **{k: it[k] for k in ("id", "url", "title", "snippet", "published", "source",
-                                  "subtopic", "desk", "rel")},
+                                  "source_type", "subtopic", "desk", "rel")},
             "first_seen": now.isoformat(), "times_shown": 0, "rejected": 0, "last_shown": None,
         }
         added += 1
@@ -427,40 +478,67 @@ class LLM:
             return None
 
     def chat(self, system: str, user: str) -> dict:
-        """One JSON-object completion, with bounded retries. Raises LLMUnavailable if exhausted."""
+        """Try configured models in order, retrying each before using its fallback."""
         c = self.cfg
-        body = {"model": c["model"], "temperature": c["temperature"], "max_tokens": c["max_tokens"],
-                "response_format": {"type": "json_object"},
-                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+        models = c.get("models") or [c.get("model")]
+        models = [model for model in models if model]
+        if not models:
+            raise LLMUnavailable("no models configured")
         last = "unknown"
-        for attempt in range(c["retries"] + 1):
-            if self.requests >= c["max_requests_per_run"]:
-                raise LLMUnavailable("per-run request cap reached")
-            self.requests += 1
-            try:
-                resp, _ = self._http("https://openrouter.ai/api/v1/chat/completions", body, c["timeout_s"])
-                content = (resp["choices"][0]["message"].get("content") or "").strip()
-                if not content:
-                    raise ValueError("empty content")
-                parsed = extract_json(content)
-                if parsed.get("_salvaged"):
-                    warn(f"model {resp.get('model', '?')} returned malformed JSON; recovered "
-                         f"{len(parsed['items'])} items")
-                self.models.append(resp.get("model", "?"))
-                return parsed
-            except urllib.error.HTTPError as e:
-                last = f"HTTP {e.code}"
-                if e.code in (401, 402, 403):
-                    raise LLMUnavailable(last)
-                wait = int(e.headers.get("Retry-After", "0") or 0) if e.code == 429 else 0
-                time.sleep(min(max(wait, 5), 30))
-            except (urllib.error.URLError, TimeoutError, ValueError, KeyError, json.JSONDecodeError) as e:
-                last = f"{type(e).__name__}: {e}"
-                body["messages"][-1]["content"] = user + (
-                    "\n\nIMPORTANT: your previous reply was not valid JSON. Reply with ONE valid JSON "
-                    "object only, no prose. Keep each blurb to two short sentences.")
-                time.sleep(3)
-        raise LLMUnavailable(f"no valid response ({last})")
+        for model in models:
+            body = {"model": model, "temperature": c["temperature"], "max_tokens": c["max_tokens"],
+                    "response_format": {"type": "json_object"},
+                    "messages": [{"role": "system", "content": system},
+                                 {"role": "user", "content": user}]}
+            for attempt in range(c["retries"] + 1):
+                if self.requests >= c["max_requests_per_run"]:
+                    raise LLMUnavailable(f"per-run request cap reached ({last})")
+                self.requests += 1
+                try:
+                    resp, _ = self._http(
+                        "https://openrouter.ai/api/v1/chat/completions", body, c["timeout_s"]
+                    )
+                    choices = resp.get("choices") or []
+                    if not choices:
+                        raise ValueError(
+                            f"response has no choices (response_id={resp.get('id', '?')}, "
+                            f"model={resp.get('model', model)}, keys={sorted(resp.keys())})"
+                        )
+                    choice = choices[0]
+                    message = choice.get("message") or {}
+                    content = (message.get("content") or "").strip()
+                    if not content:
+                        raise ValueError(
+                            f"empty content (response_id={resp.get('id', '?')}, "
+                            f"model={resp.get('model', model)}, "
+                            f"finish_reason={choice.get('finish_reason')!r}, "
+                            f"refusal={message.get('refusal')!r}, usage={resp.get('usage')!r})"
+                        )
+                    parsed = extract_json(content)
+                    if parsed.get("_salvaged"):
+                        warn(f"model {resp.get('model', model)} returned malformed JSON; recovered "
+                             f"{len(parsed['items'])} items")
+                    self.models.append(resp.get("model", model))
+                    return parsed
+                except urllib.error.HTTPError as e:
+                    detail = e.read(500).decode("utf-8", errors="replace").strip()
+                    last = f"HTTP {e.code}" + (f": {detail}" if detail else "")
+                    warn(f"model {model} attempt {attempt + 1}/{c['retries'] + 1} failed: {last}")
+                    if e.code == 401:  # bad key: no model can work
+                        raise LLMUnavailable(last) from e
+                    if e.code in (400, 402, 403, 404):  # this model is unusable; try the next
+                        break
+                    wait = int(e.headers.get("Retry-After", "0") or 0) if e.code == 429 else 0
+                    time.sleep(min(max(wait, 5), 30) if wait else 3)
+                except (urllib.error.URLError, TimeoutError, ValueError, KeyError,
+                        json.JSONDecodeError) as e:
+                    last = f"{type(e).__name__}: {e}"
+                    warn(f"model {model} attempt {attempt + 1}/{c['retries'] + 1} failed: {last}")
+                    body["messages"][-1]["content"] = user + (
+                        "\n\nIMPORTANT: your previous reply was not valid JSON. Reply with ONE valid JSON "
+                        "object only, no prose. Keep each blurb to two short sentences.")
+                    time.sleep(3)
+        raise LLMUnavailable(f"all configured models failed ({last})")
 
 
 def _balanced_objects(text: str):
@@ -521,10 +599,12 @@ def extract_json(text: str) -> dict:
 
 def build_user_message(desk_title: str, n: int, cands: list[dict], today: str) -> str:
     slim = [{"id": c["id"], "kind": c["kind"], "subtopic": c["subtopic"], "source": c["source"],
+             "source_type": c.get("source_type", "commentary"),
              "age_days": round(c["age_days"], 1), "title": c["title"][:220],
              "snippet": c["snippet"][:600]} for c in cands]
     return (f"Today is {today}. Desk: {desk_title}.\n"
             f"Keep at most {n} of the candidates below, best first, and write them up per the schema. "
+            "Include at least one newslike candidate when one is available. "
             f"Candidates are listed in the editor's suggested order but you may reorder by importance.\n\n"
             f"CANDIDATES:\n{json.dumps(slim, ensure_ascii=False, indent=1)}")
 
@@ -659,10 +739,17 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int)
     ap.add_argument("--out", help="override output path")
+    ap.add_argument("--refresh-s2", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--log-file", type=Path, help=argparse.SUPPRESS)
     args = ap.parse_args()
+    global LOG_FILE
+    LOG_FILE = args.log_file
 
     cfg = load_json(HERE / "config.json")
     src = load_json(HERE / "sources.json")
+    if args.refresh_s2:
+        refresh_semanticscholar(cfg, src)
+        return 0
     if not (HERE / "tailwind.css").exists():
         log("tailwind.css missing. Run build_css.ps1 once (see README).")
         return 1
@@ -674,6 +761,17 @@ def main() -> int:
 
     state = load_state()
     rollback_same_day(state, date_key)
+
+    source_types = {
+        spec["name"]: spec.get("type", default_type)
+        for key, default_type in (("arxiv", "researchlike"), ("semanticscholar", "researchlike"),
+                                  ("hn", "commentary"), ("rss", "newslike"))
+        for spec in src.get(key, [])
+    }
+    source_types["Hacker News"] = "commentary"
+    source_types["Semantic Scholar"] = "researchlike"
+    for item in state["items"].values():
+        item.setdefault("source_type", source_types.get(item["source"], "commentary"))
 
     # 1. fetch + classify + merge
     if args.no_fetch:
@@ -703,11 +801,15 @@ def main() -> int:
     modes = {"explore": 0, "greedy": 0}
     for desk, spec in src["desks"].items():
         cands_all = [p for p in pool if p["subtopic"] in spec["subtopics"]]
-        picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng)
+        picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng,
+                              minimum_types={"newslike": 1})
         for item, mode in picks:
             modes[mode] += 1
         chosen = [dict(i, mode=m) for i, m in picks]
-        reserve = [dict(i, mode="reserve") for i in sel.pick_reserves(cands_all, {i["id"] for i, _ in picks}, k, scfg)]
+        reserve = [dict(i, mode="reserve") for i in sel.pick_reserves(
+            cands_all, {i["id"] for i, _ in picks}, k, scfg,
+            minimum_types={"newslike": 1},
+        )]
         selected[desk] = chosen + reserve
         for c in selected[desk]:
             c["kind"] = sel.kind_of(c, scfg)
@@ -734,7 +836,7 @@ def main() -> int:
                 result = llm.chat(system, build_user_message(spec["title"], n, selected[desk], today_s))
             except LLMUnavailable as e:
                 warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
-                if "cap" in str(e) or "HTTP 40" in str(e):
+                if "cap" in str(e) or "HTTP 401" in str(e):
                     llm = None
         stories, rejected, deck = apply_editor(selected[desk], result, n)
         desks_out[desk] = {"title": spec["title"], "stories": stories,

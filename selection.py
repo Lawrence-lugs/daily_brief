@@ -66,6 +66,7 @@ def pick_desk(
     n: int,
     cfg: dict,
     rng: random.Random,
+    minimum_types: dict[str, int] | None = None,
 ) -> list[tuple[dict, str]]:
     """Choose up to n items for one desk.
 
@@ -78,13 +79,22 @@ def pick_desk(
     """
     remaining = [c for c in candidates if c["subtopic"] in subtopics]
     counts = {s: 0 for s in subtopics}
+    type_counts: dict[str, int] = {}
     picks: list[tuple[dict, str]] = []
 
     while remaining and len(picks) < n:
         order = sorted(subtopics, key=lambda s: (counts[s], rng.random()))
         pool: list[dict] = []
+        needed_types = {
+            kind for kind, minimum in (minimum_types or {}).items()
+            if type_counts.get(kind, 0) < minimum
+            and any(c.get("source_type") == kind for c in remaining)
+        }
         for s in order:
-            pool = [c for c in remaining if c["subtopic"] == s]
+            pool = [
+                c for c in remaining
+                if c["subtopic"] == s and (not needed_types or c.get("source_type") in needed_types)
+            ]
             if pool:
                 break
         if not pool:
@@ -92,17 +102,32 @@ def pick_desk(
         item, mode = _draw(pool, cfg, rng)
         remaining.remove(item)
         counts[item["subtopic"]] += 1
+        item_type = item.get("source_type")
+        if item_type:
+            type_counts[item_type] = type_counts.get(item_type, 0) + 1
         picks.append((item, mode))
     return picks
 
 
 def pick_reserves(
-    candidates: list[dict], taken_ids: set[str], k: int, cfg: dict
+    candidates: list[dict],
+    taken_ids: set[str],
+    k: int,
+    cfg: dict,
+    minimum_types: dict[str, int] | None = None,
 ) -> list[dict]:
-    """Top-k greedy leftovers, used to backfill when the LLM editor rejects items."""
+    """Top-k greedy leftovers, with optional source-type coverage for editor backfill."""
     left = [c for c in candidates if c["id"] not in taken_ids]
     left.sort(key=lambda i: greedy_score(i, cfg), reverse=True)
-    return left[:k]
+    reserves: list[dict] = []
+    for kind, minimum in (minimum_types or {}).items():
+        matching = [c for c in left if c.get("source_type") == kind]
+        for item in matching[:minimum]:
+            if len(reserves) >= k:
+                break
+            reserves.append(item)
+            left.remove(item)
+    return (reserves + left)[:k]
 
 
 def kind_of(item: dict, cfg: dict) -> str:
