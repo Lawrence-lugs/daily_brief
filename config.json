@@ -2,7 +2,7 @@
   "paper_name": "The Daily Die",
   "edition_dir": "05-for-agents/daily-brief",
   "stories_per_desk": 5,
-  "reserve_per_desk": 3,
+  "reserve_per_desk": 25,
 
   "selection": {
     "epsilon": 0.25,

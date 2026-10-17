@@ -829,7 +829,7 @@ def main() -> int:
     for desk, spec in src["desks"].items():
         cands_all = [p for p in pool if p["subtopic"] in spec["subtopics"]]
         picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng,
-                              minimum_types={"newslike": 1})
+                              minimum_types={"newslike": 1, "paperlike":2})
         for item, mode in picks:
             modes[mode] += 1
         chosen = [dict(i, mode=m) for i, m in picks]
