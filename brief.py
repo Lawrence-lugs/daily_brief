@@ -486,10 +486,23 @@ class LLM:
             raise LLMUnavailable("no models configured")
         last = "unknown"
         for model in models:
-            body = {"model": model, "temperature": c["temperature"], "max_tokens": c["max_tokens"],
-                    "response_format": {"type": "json_object"},
-                    "messages": [{"role": "system", "content": system},
-                                 {"role": "user", "content": user}]}
+            body = {
+                "model": model, 
+                "temperature": c["temperature"], 
+                "max_tokens": c["max_tokens"],
+                "response_format": {
+                        "type": "json_object"
+                },
+                "reasoning": {
+                        "effort": c["effort"],
+                },
+                "messages": [{   
+                        "role": "system", 
+                        "content": system 
+                },{     
+                        "role": "user", 
+                        "content": user
+                }]}
             for attempt in range(c["retries"] + 1):
                 if self.requests >= c["max_requests_per_run"]:
                     raise LLMUnavailable(f"per-run request cap reached ({last})")
