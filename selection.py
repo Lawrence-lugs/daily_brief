@@ -22,9 +22,10 @@ DEFAULTS = {
     "slope": 1.0,
     "age_floor_days": 0.25,
     "explore_gamma": 0.3,
-    "shown_decay": 0.1,
+    "shown_decay": 0.05,
     "rejected_decay": 0.3,
     "archive_after_days": 7.0,
+    "skip_exhausted_subtopics": True,
 }
 
 
@@ -75,30 +76,46 @@ def pick_desk(
     subtopic that still has candidates. An empty subtopic is skipped, so a quiet field never
     leaves a hole in the page.
 
+    Repeat damping (soft cap): when `skip_exhausted_subtopics` is set, a subtopic whose *entire*
+    candidate pool has already been shown (every candidate has times_shown >= 1) is passed over
+    while any other subtopic still has an unseen candidate. Slow/sparse fields therefore go quiet
+    instead of recycling the same old items day after day. If *every* subtopic is exhausted the
+    restriction is lifted and selection falls back to the normal greedy/explore draw, so nothing
+    is ever excluded outright.
+
     Returns [(item, mode)] in pick order, mode in {"greedy", "explore"}.
     """
+    skip_exhausted = bool(cfg.get("skip_exhausted_subtopics", True))
     remaining = [c for c in candidates if c["subtopic"] in subtopics]
     counts = {s: 0 for s in subtopics}
     type_counts: dict[str, int] = {}
     picks: list[tuple[dict, str]] = []
 
     while remaining and len(picks) < n:
-        order = sorted(subtopics, key=lambda s: (counts[s], rng.random()))
-        pool: list[dict] = []
         needed_types = {
             kind for kind, minimum in (minimum_types or {}).items()
             if type_counts.get(kind, 0) < minimum
             and any(c.get("source_type") == kind for c in remaining)
         }
-        for s in order:
-            pool = [
+        pools: dict[str, list[dict]] = {}
+        for s in subtopics:
+            pools[s] = [
                 c for c in remaining
                 if c["subtopic"] == s and (not needed_types or c.get("source_type") in needed_types)
             ]
-            if pool:
-                break
-        if not pool:
+        nonempty = [s for s in subtopics if pools[s]]
+        if not nonempty:
             break
+        if skip_exhausted:
+            fresh = [
+                s for s in nonempty
+                if any(c.get("times_shown", 0) == 0 for c in pools[s])
+            ]
+            order_pool = fresh if fresh else nonempty  # soft cap: fall back if all exhausted
+        else:
+            order_pool = nonempty
+        order = sorted(order_pool, key=lambda s: (counts[s], rng.random()))
+        pool = pools[order[0]]
         item, mode = _draw(pool, cfg, rng)
         remaining.remove(item)
         counts[item["subtopic"]] += 1

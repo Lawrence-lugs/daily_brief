@@ -6,8 +6,12 @@ output is a self-contained Tailwind HTML file per day.
 
 ```
 daily_brief/
-  brief.py             orchestrator (stdlib only)
+  brief.py             thin orchestrator: state/pool, classify, render, CLI (stdlib only)
   selection.py         epsilon-greedy + soft staleness (pure functions)
+  util.py              shared logging/warnings state
+  fetcher.py           Fetcher base class, HTTP cache, generic throttler, feed parsers, fetch_all
+  semanticscholar.py   SemanticScholarFetcher(Fetcher) for the Semantic Scholar Graph API
+  agent.py             LLM chat loop, JSON salvage (extract_json), editor (apply_editor)
   config.json          every tunable (epsilon, a50, slope, desk sizes, model, limits)
   sources.json         arXiv queries, HN queries, RSS feeds, subtopic keyword lists
   prompt_system.md     the editor prompt (interests + rules + JSON schema)
@@ -91,8 +95,10 @@ explore_weight = rel * f(age)^gamma * penalty
 ```
 
 - `rel` is the topical relevance from classification (source weight and keyword hits).
-- `shown_decay = 0.1`: an item already shown is worth 10x less per previous appearance. This is
-  deliberately harsh. With 0.25, a high-scoring yesterday-item (0.88 x 0.25 = 0.22) can typically still beat an unseen month-old item (0.19) and the item will repeat a lot.
+- `shown_decay = 0.05`: an item already shown is worth 20x less per previous appearance. This is
+  deliberately harsh: once an item has appeared, unseen items (even weeks old) typically outscore it,
+  so the selector moves to new material instead of re-showing. With 0.25, a high-scoring yesterday-item
+  (0.88 x 0.25 = 0.22) can typically still beat an unseen month-old item (0.19) and will repeat a lot.
 - `rejected_decay = 0.3`: items the LLM editor threw out are demoted, not banned.
 - `gamma = 0.3` flattens freshness for exploration: the 30-day weight is 0.19^0.3 = 0.61 instead of 0.19, so old items get a real chance when exploring.
 
@@ -126,7 +132,14 @@ Epsilon-greedy therefore operates *within* a subtopic, and the rotation guarante
 
 ### 6. What the simulation shows
 
-`python test_selection.py --sim` runs 150 synthetic days (first 30 discarded) with the real selector and config. With rich feeds (2 to 5 relevant items a day per subtopic): about 58% of picks are under a day old, 75% under 3 days, about 11% older than 30 days, about 25% are explore draws and about 2% are repeats. With sparse feeds (under 1 item a day for `gr`, `qft`, `dse`) the page leans on older material and about a third of slots are repeats, because consumption exceeds arrival. That is the signal to add sources for those subtopics, not to loosen the selector.
+`python test_selection.py --sim` runs 150 synthetic days (first 30 discarded) with the real selector and config. With rich feeds (2 to 5 relevant items a day per subtopic): about 58% of picks are under a day old, 75% under 3 days, about 11% older than 30 days, about 25% are explore draws and about 2% are repeats. This part of the behavior is deliberately unchanged by the repeat-damping work below.
+
+With sparse feeds (under 1 item a day for `gr`, `qft`, `dse`) consumption exceeds arrival: after a few weeks a subtopic's unseen stock is exhausted and every further draw would be a repeat of something already shown. Two changes keep the page from degenerating into repeats on quiet days:
+
+- `skip_exhausted_subtopics = true` (`selection.py`, `config.json`): `pick_desk` passes over a subtopic whose *entire* candidate pool has already been shown while any other subtopic still has an unseen candidate. The slow field goes quiet instead of recycling old items, and its next new arrival jumps to the front of the rotation (fewest-count-first). If *every* subtopic is exhausted the restriction lifts and selection falls back to the normal greedy/explore draw — nothing is ever excluded outright.
+- `shown_decay = 0.05` (was 0.1): a shown item is worth 20x less per previous appearance, so when a subtopic still has unseen candidates, greedy almost never re-shows an old one over them.
+
+Simulation result: sparse-feed repeat rate drops from about 33% to about 20% (mean age 9.6d -> 7.8d, share of under-a-day picks 41% -> 58%), while rich feeds are essentially unaffected (repeat ~2%, mean age ~10d).
 
 ### Tuning
 
@@ -135,7 +148,7 @@ Epsilon-greedy therefore operates *within* a subtopic, and the rotation guarante
 | More surprise / more old items | raise `epsilon` (0.25 to 0.4) or `explore_gamma` toward 0 |
 | Fresher front page | lower `a50_days` (7 to 3) or `epsilon` |
 | Sharper day/week/month cliff | lower `slope` (1 to 0.6) |
-| Fewer repeats | lower `shown_decay` |
+| Fewer repeats | lower `shown_decay` (default 0.05); also set `skip_exhausted_subtopics: true` so a slow subtopic whose whole pool has already shown is passed over while other fields still have unseen items |
 | Fewer "archive" labels | raise `archive_after_days` |
 
 ## TODO: feedback loop (not implemented)

@@ -3,6 +3,7 @@
   "edition_dir": "05-for-agents/daily-brief",
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
+  "max_agent_output_items_per_desk": 5,
 
   "selection": {
     "epsilon": 0.25,
@@ -10,9 +11,10 @@
     "slope": 1.0,
     "age_floor_days": 0.25,
     "explore_gamma": 0.3,
-    "shown_decay": 0.1,
+    "shown_decay": 0.05,
     "rejected_decay": 0.3,
-    "archive_after_days": 7.0
+    "archive_after_days": 7.0,
+    "skip_exhausted_subtopics": true
   },
 
   "pool": {
