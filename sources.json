@@ -6,7 +6,7 @@
     },
     "science": {
       "title": "Science Desk",
-      "subtopics": ["gr", "qft", "oshw", "condmat", "neuro"]
+      "subtopics": ["gr", "qft", "condmat", "neuro"]
     }
   },
   "keywords": {
@@ -15,8 +15,7 @@
     "fab": ["semiconductor", "foundry", "tsmc", "samsung foundry", "intel foundry", "intel 18a", "imec", "gaa", "gate-all-around", "nanosheet", "backside power", "euv", "high-na", "lithography", "hybrid bonding", "advanced packaging", "cowos", "hot chips", "hotchips", "isscc", "vlsi symposium", "iedm", "2nm", "3nm", "a14", "n2", "yield", "wafer", "tsv", "glass substrate", "co-packaged optics", "process node"],
     "gr": ["general relativity", "numerical relativity", "gravitational wave", "gravitational-wave", "black hole", "binary merger", "ligo", "lisa", "einstein equations", "spacetime", "cosmolog", "post-newtonian", "gr simulation", "bssn", "event horizon", "neutron star"],
     "qft": ["quantum field theory", "qft", "lattice qcd", "lattice gauge", "scattering amplitude", "renormalization", "conformal field theory", "cft", "gauge theory", "yang-mills", "holograph", "ads/cft", "effective field theory", "bootstrap", "anomal", "topological field", "quantum gravity", "string theory", "hep-th"],
-    "oshw": ["open source hardware", "open-source hardware", "risc-v", "riscv", "openroad", "open pdk", "skywater", "chips alliance", "openlane", "chisel", "open-source chip", "open source chip", "tiny tapeout", "caravel", "fpga open", "yosys", "verilator", "opentitan", "open silicon", "gf180", "ihp"],
-    "condmat": ["condensed matter", "memristor", "ferroelectric", "2d material", "two-dimensional material", "van der waals", "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "mott", "moire", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],
+    "condmat": ["condensed matter", "memristor", "magnetic", "ferroelectric", "2d material", "coupled", "coupling",  "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],
     "neuro": ["neuroscience", "neuron", "cortex", "cortical", "hippocamp", "connectome", "brain", "organoid", "wetware", "biological neural", "synaptic", "plasticity", "cognitive", "computational neuroscience", "spiking", "neural coding", "dendrit", "cerebell", "neuropixels"]
   },
   "arxiv": [
