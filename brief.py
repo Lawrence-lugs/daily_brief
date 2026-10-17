@@ -277,7 +277,16 @@ def fetch_rss(f: Fetcher, spec: dict) -> list[dict]:
         spec.get("type", "newslike"),
     )
 
-# Having semanticscholar specific things in this function is bad.
+# How to turn a feed spec into fetched items. Each source in sources.json
+# declares a "kind" that selects the fetch routine, so nothing here is
+# keyed to a particular feed name.
+FETCHERS = {
+    "rss": fetch_rss,
+    "hn": fetch_hn,
+    "semanticscholar": fetch_semanticscholar,
+}
+
+# Having semanticschoral specific things in this function is bad.
 # We should be agnostic and kick that off into a clean separate source processor.
 def fetch_all(cfg: dict, src: dict) -> list[dict]:
     f = Fetcher(cfg["fetch"])
@@ -305,18 +314,24 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
         if os.name == "nt":
             options["creationflags"] = subprocess.DETACHED_PROCESS
         subprocess.Popen(refresh, **options)
-        log(f"Semantic Scholar background refresh started ({len(src.get('semanticscholar', []))} queries)")
+        s2_count = sum(
+            1 for specs in src.get("feeds", {}).values()
+            for spec in specs if spec.get("kind") == "semanticscholar"
+        )
+        log(f"Semantic Scholar background refresh started ({s2_count} queries)")
     except OSError as e:
         warn(f"could not start Semantic Scholar background refresh ({type(e).__name__}: {e})")
 
     jobs = []
     with cf.ThreadPoolExecutor(max_workers=8) as ex:
-        for s in src.get("arxiv", []):
-            jobs.append(ex.submit(run, s["name"], fetch_rss, s))
-        for s in src.get("hn", []):
-            jobs.append(ex.submit(run, f"HN:{s['query']}", fetch_hn, s))
-        for s in src.get("rss", []):
-            jobs.append(ex.submit(run, s["name"], fetch_rss, s))
+        for specs in src.get("feeds", {}).values():
+            for spec in specs:
+                kind = spec.get("kind", "rss")
+                fn = FETCHERS[kind]
+                label = spec["name"]
+                if kind == "hn":
+                    label = f"HN:{spec['query']}"
+                jobs.append(ex.submit(run, label, fn, spec))
         results = [j.result() for j in jobs]
     for label, got, err in results:
         if err:
@@ -329,12 +344,15 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
 
 def refresh_semanticscholar(cfg: dict, src: dict) -> None:
     fetcher = Fetcher(cfg["fetch"])
-    for spec in src.get("semanticscholar", []):
-        try:
-            items = fetch_semanticscholar(fetcher, spec)
-            log(f"Semantic Scholar refreshed {spec['name']}: {len(items)} items")
-        except Exception as e:
-            warn(f"Semantic Scholar source {spec['name']} failed ({type(e).__name__}: {e})")
+    for specs in src.get("feeds", {}).values():
+        for spec in specs:
+            if spec.get("kind") != "semanticscholar":
+                continue
+            try:
+                items = fetch_semanticscholar(fetcher, spec)
+                log(f"Semantic Scholar refreshed {spec['name']}: {len(items)} items")
+            except Exception as e:
+                warn(f"Semantic Scholar source {spec['name']} failed ({type(e).__name__}: {e})")
     log("Semantic Scholar background refresh complete")
 
 
@@ -775,14 +793,10 @@ def main() -> int:
     state = load_state()
     rollback_same_day(state, date_key)
 
-    source_types = {
-        spec["name"]: spec.get("type", default_type)
-        for key, default_type in (("arxiv", "researchlike"), ("semanticscholar", "researchlike"),
-                                  ("hn", "commentary"), ("rss", "newslike"))
-        for spec in src.get(key, [])
-    }
-    source_types["Hacker News"] = "commentary"
-    source_types["Semantic Scholar"] = "researchlike"
+    source_types = {}
+    for specs in src.get("feeds", {}).values():
+        for spec in specs:
+            source_types[spec["name"]] = spec.get("type", "commentary")
     for item in state["items"].values():
         item.setdefault("source_type", source_types.get(item["source"], "commentary"))
 

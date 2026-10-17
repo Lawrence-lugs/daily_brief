@@ -18,49 +18,51 @@
     "condmat": ["condensed matter", "memristor", "magnetic", "ferroelectric", "2d material", "coupled", "coupling",  "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],
     "neuro": ["neuroscience", "neuron", "cortex", "cortical", "hippocamp", "connectome", "brain", "organoid", "wetware", "biological neural", "synaptic", "plasticity", "cognitive", "computational neuroscience", "spiking", "neural coding", "dendrit", "cerebell", "neuropixels"]
   },
-  "arxiv": [
-    {"name": "arXiv Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel"},
-    {"name": "arXiv Emerging Tech", "url": "https://rss.arxiv.org/rss/cs.ET", "weight": 0.85, "type": "researchlike", "default_subtopic": "accel"},
-    {"name": "arXiv General Relativity", "url": "https://rss.arxiv.org/rss/gr-qc", "weight": 0.9, "type": "researchlike", "default_subtopic": "gr"},
-    {"name": "arXiv High Energy Theory", "url": "https://rss.arxiv.org/rss/hep-th", "weight": 0.9, "type": "researchlike", "default_subtopic": "qft"},
-    {"name": "arXiv Mesoscale Physics", "url": "https://rss.arxiv.org/rss/cond-mat.mes-hall", "weight": 0.85, "type": "researchlike", "default_subtopic": "condmat"},
-    {"name": "arXiv Neurons & Cognition", "url": "https://rss.arxiv.org/rss/q-bio.NC", "weight": 0.8, "type": "researchlike", "default_subtopic": "neuro"}
-  ],
-  "semanticscholar": [
-    {"name": "S2 DSE — Design Space Exploration", "query": "hardware accelerator design space exploration", "subtopic": "dse", "weight": 1.0, "type": "researchlike", "limit": 12},
-    {"name": "S2 DSE — Agentic Optimization", "query": "agentic hardware optimization architecture search", "subtopic": "dse", "weight": 1.0, "type": "researchlike", "limit": 12},
-    {"name": "S2 Accel — LLM Inference", "query": "AI accelerator architecture LLM inference", "subtopic": "accel", "weight": 0.95, "type": "researchlike", "limit": 12},
-    {"name": "S2 Accel — Compute in Memory", "query": "compute in memory analog accelerator", "subtopic": "accel", "weight": 0.95, "type": "researchlike", "limit": 12},
-    {"name": "S2 Fab — Advanced Packaging", "query": "advanced semiconductor packaging hybrid bonding", "subtopic": "fab", "weight": 0.85, "type": "researchlike", "limit": 12},
-    {"name": "S2 CondMat", "query": "ferroelectric transistor emerging memory devices spintronics spintronic", "subtopic": "condmat", "weight": 0.85, "type": "researchlike", "limit": 12},
-    {"name": "S2 GR", "query": "numerical relativity gravitational wave simulation", "subtopic": "gr", "weight": 0.9, "type": "researchlike", "limit": 12},
-    {"name": "S2 QFT", "query": "lattice gauge theory quantum field theory", "subtopic": "qft", "weight": 0.9, "type": "researchlike", "limit": 12},
-    {"name": "S2 Neuro", "query": "computational neuroscience neural coding", "subtopic": "neuro", "weight": 0.8, "type": "researchlike", "limit": 12}
-  ],
-  "hn": [
-    {"name": "Hacker News", "query": "semiconductor", "subtopic": "fab", "weight": 0.85, "type": "commentary", "min_points": 40},
-    {"name": "Hacker News", "query": "chip architecture", "subtopic": "accel", "weight": 0.85, "type": "commentary", "min_points": 40},
-    {"name": "Hacker News", "query": "TSMC", "subtopic": "fab", "weight": 0.85, "type": "commentary", "min_points": 40},
-    {"name": "Hacker News", "query": "RISC-V", "subtopic": "oshw", "weight": 0.85, "type": "commentary", "min_points": 30},
-    {"name": "Hacker News", "query": "neuroscience", "subtopic": "neuro", "weight": 0.8, "type": "commentary", "min_points": 40},
-    {"name": "Hacker News", "query": "general relativity", "subtopic": "gr", "weight": 0.8, "type": "commentary", "min_points": 25},
-    {"name": "Hacker News", "query": "quantum field theory", "subtopic": "qft", "weight": 0.8, "type": "commentary", "min_points": 25},
-    {"name": "Hacker News", "query": "memristor OR ferroelectric", "subtopic": "condmat", "weight": 0.8, "type": "commentary", "min_points": 20}
-  ],
-  "rss": [
-    {"name": "SemiWiki", "url": "https://semiwiki.com/feed/", "weight": 0.9, "type": "newslike", "default_subtopic": "fab"},
-    {"name": "SemiEngineering", "url": "https://semiengineering.com/feed/", "weight": 0.95, "type": "newslike", "default_subtopic": "fab"},
-    {"name": "IEEE Spectrum", "url": "https://spectrum.ieee.org/feeds/feed.rss", "weight": 0.85, "type": "newslike", "default_subtopic": null},
-    {"name": "Chips and Cheese", "url": "https://chipsandcheese.com/feed/", "weight": 0.95, "type": "commentary", "default_subtopic": "accel"},
-    {"name": "The Next Platform", "url": "https://www.nextplatform.com/feed/", "weight": 0.85, "type": "newslike", "default_subtopic": "accel"},
-    {"name": "SemiAnalysis", "url": "https://semianalysis.substack.com/feed", "weight": 0.85, "type": "commentary", "default_subtopic": "fab"},
-    {"name": "EE Times", "url": "https://www.eetimes.com/feed/", "weight": 0.75, "type": "newslike", "default_subtopic": null},
-    {"name": "Hackaday", "url": "https://hackaday.com/blog/feed/", "weight": 0.6, "type": "commentary", "default_subtopic": null},
-    {"name": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/", "weight": 0.9, "type": "newslike", "default_subtopic": null},
-    {"name": "Physics World", "url": "https://physicsworld.com/feed/", "weight": 0.8, "type": "newslike", "default_subtopic": null},
-    {"name": "Nature Neuroscience", "url": "https://www.nature.com/neuro.rss", "weight": 1.0, "type": "researchlike", "default_subtopic": "neuro"},
-    {"name": "Nature Electronics", "url": "https://www.nature.com/natelectron.rss", "weight": 0.95, "type": "researchlike", "default_subtopic": "condmat"},
-    {"name": "Nature Physics", "url": "https://www.nature.com/nphys.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null},
-    {"name": "Nature Computational Science", "url": "https://www.nature.com/natcomputsci.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null}
-  ]
+  "feeds": {
+    "arxiv": [
+      {"name": "arXiv Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "arXiv Emerging Tech", "url": "https://rss.arxiv.org/rss/cs.ET", "weight": 0.85, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "arXiv General Relativity", "url": "https://rss.arxiv.org/rss/gr-qc", "weight": 0.9, "type": "researchlike", "default_subtopic": "gr", "kind": "rss"},
+      {"name": "arXiv High Energy Theory", "url": "https://rss.arxiv.org/rss/hep-th", "weight": 0.9, "type": "researchlike", "default_subtopic": "qft", "kind": "rss"},
+      {"name": "arXiv Mesoscale Physics", "url": "https://rss.arxiv.org/rss/cond-mat.mes-hall", "weight": 0.85, "type": "researchlike", "default_subtopic": "condmat", "kind": "rss"},
+      {"name": "arXiv Neurons & Cognition", "url": "https://rss.arxiv.org/rss/q-bio.NC", "weight": 0.8, "type": "researchlike", "default_subtopic": "neuro", "kind": "rss"}
+    ],
+    "semanticscholar": [
+      {"name": "S2 DSE — Design Space Exploration", "query": "hardware accelerator design space exploration", "subtopic": "dse", "weight": 1.0, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 DSE — Agentic Optimization", "query": "agentic hardware optimization architecture search", "subtopic": "dse", "weight": 1.0, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 Accel — LLM Inference", "query": "AI accelerator architecture LLM inference", "subtopic": "accel", "weight": 0.95, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 Accel — Compute in Memory", "query": "compute in memory analog accelerator", "subtopic": "accel", "weight": 0.95, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 Fab — Advanced Packaging", "query": "advanced semiconductor packaging hybrid bonding", "subtopic": "fab", "weight": 0.85, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 CondMat", "query": "ferroelectric transistor emerging memory devices spintronics spintronic", "subtopic": "condmat", "weight": 0.85, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 GR", "query": "numerical relativity gravitational wave simulation", "subtopic": "gr", "weight": 0.9, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 QFT", "query": "lattice gauge theory quantum field theory", "subtopic": "qft", "weight": 0.9, "type": "researchlike", "limit": 12, "kind": "semanticscholar"},
+      {"name": "S2 Neuro", "query": "computational neuroscience neural coding", "subtopic": "neuro", "weight": 0.8, "type": "researchlike", "limit": 12, "kind": "semanticscholar"}
+    ],
+    "hn": [
+      {"name": "Hacker News", "query": "semiconductor", "subtopic": "fab", "weight": 0.85, "type": "commentary", "min_points": 40, "kind": "hn"},
+      {"name": "Hacker News", "query": "chip architecture", "subtopic": "accel", "weight": 0.85, "type": "commentary", "min_points": 40, "kind": "hn"},
+      {"name": "Hacker News", "query": "TSMC", "subtopic": "fab", "weight": 0.85, "type": "commentary", "min_points": 40, "kind": "hn"},
+      {"name": "Hacker News", "query": "RISC-V", "subtopic": "oshw", "weight": 0.85, "type": "commentary", "min_points": 30, "kind": "hn"},
+      {"name": "Hacker News", "query": "neuroscience", "subtopic": "neuro", "weight": 0.8, "type": "commentary", "min_points": 40, "kind": "hn"},
+      {"name": "Hacker News", "query": "general relativity", "subtopic": "gr", "weight": 0.8, "type": "commentary", "min_points": 25, "kind": "hn"},
+      {"name": "Hacker News", "query": "quantum field theory", "subtopic": "qft", "weight": 0.8, "type": "commentary", "min_points": 25, "kind": "hn"},
+      {"name": "Hacker News", "query": "memristor OR ferroelectric", "subtopic": "condmat", "weight": 0.8, "type": "commentary", "min_points": 20, "kind": "hn"}
+    ],
+    "rss": [
+      {"name": "SemiWiki", "url": "https://semiwiki.com/feed/", "weight": 0.9, "type": "newslike", "default_subtopic": "fab", "kind": "rss"},
+      {"name": "SemiEngineering", "url": "https://semiengineering.com/feed/", "weight": 0.95, "type": "newslike", "default_subtopic": "fab", "kind": "rss"},
+      {"name": "IEEE Spectrum", "url": "https://spectrum.ieee.org/feeds/feed.rss", "weight": 0.85, "type": "newslike", "default_subtopic": null, "kind": "rss"},
+      {"name": "Chips and Cheese", "url": "https://chipsandcheese.com/feed/", "weight": 0.95, "type": "commentary", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "The Next Platform", "url": "https://www.nextplatform.com/feed/", "weight": 0.85, "type": "newslike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "SemiAnalysis", "url": "https://semianalysis.substack.com/feed", "weight": 0.85, "type": "commentary", "default_subtopic": "fab", "kind": "rss"},
+      {"name": "EE Times", "url": "https://www.eetimes.com/feed/", "weight": 0.75, "type": "newslike", "default_subtopic": null, "kind": "rss"},
+      {"name": "Hackaday", "url": "https://hackaday.com/blog/feed/", "weight": 0.6, "type": "commentary", "default_subtopic": null, "kind": "rss"},
+      {"name": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/", "weight": 0.9, "type": "newslike", "default_subtopic": null, "kind": "rss"},
+      {"name": "Physics World", "url": "https://physicsworld.com/feed/", "weight": 0.8, "type": "newslike", "default_subtopic": null, "kind": "rss"},
+      {"name": "Nature Neuroscience", "url": "https://www.nature.com/neuro.rss", "weight": 1.0, "type": "researchlike", "default_subtopic": "neuro", "kind": "rss"},
+      {"name": "Nature Electronics", "url": "https://www.nature.com/natelectron.rss", "weight": 0.95, "type": "researchlike", "default_subtopic": "condmat", "kind": "rss"},
+      {"name": "Nature Physics", "url": "https://www.nature.com/nphys.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "Nature Computational Science", "url": "https://www.nature.com/natcomputsci.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null, "kind": "rss"}
+    ]
+  }
 }
