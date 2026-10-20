@@ -19,6 +19,28 @@ import util
 
 KEY_FILE = Path.home() / ".config" / "openrouter.key"
 
+# Set by brief.py to out_dir / "agent_responses.jsonl" so every agent JSON
+# response (success or failure) is persisted beside the output HTML for
+# debugging model JSON errors.
+DEBUG_LOG: Path | None = None
+
+
+def _debug_log(entry: dict) -> None:
+    """Append one JSON-lines entry to the agent debug log, if configured.
+
+    Reads ``LLM.DEBUG_LOG`` (set by brief.py to out_dir/"agent_responses.jsonl")
+    rather than the module-level ``DEBUG_LOG`` placeholder, which stays None.
+    """
+    log_path = getattr(LLM, "DEBUG_LOG", None)
+    if log_path is None:
+        return
+    try:
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            f.flush()
+    except OSError:
+        pass  # never let debug logging break a generation
+
 
 class LLMUnavailable(Exception):
     pass
@@ -39,17 +61,20 @@ class LLM:
             raise LLMUnavailable(f"no API key (env OPENROUTER_API_KEY or {KEY_FILE})")
         return k
 
-    def _http(self, url: str, body: dict | None = None, timeout: int = 30) -> tuple[dict, dict]:
+    def _http(self, url: str, body: dict | None = None, timeout: int = 30) -> tuple[dict, dict, str]:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(url, data=data, method="POST" if body else "GET", headers={
             "Authorization": f"Bearer {self.key}", "Content-Type": "application/json",
             "X-Title": "obsidian-daily-brief"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8")), dict(r.headers)
+            raw = r.read().decode("utf-8", errors="replace")
+            if raw.startswith("\ufeff"):
+                raw = raw[1:]
+            return json.loads(raw), dict(r.headers), raw
 
     def remaining_daily(self) -> int | None:
         try:
-            d, _ = self._http("https://openrouter.ai/api/v1/key")
+            d, _, _ = self._http("https://openrouter.ai/api/v1/key")
             return d["data"]["free_model_daily_requests"]["remaining"]
         except Exception as e:
             util.warn(f"could not read free-request quota ({type(e).__name__}); continuing")
@@ -64,33 +89,38 @@ class LLM:
             raise LLMUnavailable("no models configured")
         last = "unknown"
         for model in models:
-            body = {
-                "model": model,
-                "temperature": c["temperature"],
-                "max_tokens": c["max_tokens"],
-                "response_format": {
-                    "type": "json_object"
-                },
-                "reasoning": {
-                    "effort": c["effort"],
-                },
-                "messages": [{
-                    "role": "system",
-                    "content": system
-                }, {
-                    "role": "user",
-                    "content": user
-                }]}
             for attempt in range(c["retries"] + 1):
                 if self.requests >= c["max_requests_per_run"]:
                     raise LLMUnavailable(f"per-run request cap reached ({last})")
                 self.requests += 1
                 try:
-                    resp, _ = self._http(
+                    messages = [{
+                        "role": "system",
+                        "content": system
+                    }, {
+                        "role": "user",
+                        "content": user + (
+                            "\n\nIMPORTANT: your previous reply was not valid JSON. Reply with ONE valid JSON "
+                            "object only, no prose. Keep each blurb to two short sentences." if attempt > 0 else "")
+                    }]
+                    body = {
+                        "model": model,
+                        "temperature": c["temperature"],
+                        "max_tokens": c["max_tokens"],
+                        "response_format": {
+                            "type": "json_object"
+                        },
+                        "reasoning": {
+                            "effort": c["effort"],
+                        },
+                        "messages": messages}
+                    resp, _, raw = self._http(
                         "https://openrouter.ai/api/v1/chat/completions", body, c["timeout_s"]
                     )
                     choices = resp.get("choices") or []
                     if not choices:
+                        _debug_log({"event": "response_no_choices", "model": model, "attempt": attempt + 1,
+                                    "response": resp})
                         raise ValueError(
                             f"response has no choices (response_id={resp.get('id', '?')}, "
                             f"model={resp.get('model', model)}, keys={sorted(resp.keys())})"
@@ -99,6 +129,8 @@ class LLM:
                     message = choice.get("message") or {}
                     content = (message.get("content") or "").strip()
                     if not content:
+                        _debug_log({"event": "response_empty_content", "model": model, "attempt": attempt + 1,
+                                    "response": resp})
                         raise ValueError(
                             f"empty content (response_id={resp.get('id', '?')}, "
                             f"model={resp.get('model', model)}, "
@@ -109,10 +141,14 @@ class LLM:
                     if parsed.get("_salvaged"):
                         util.warn(f"model {resp.get('model', model)} returned malformed JSON; recovered "
                                   f"{len(parsed['items'])} items")
+                    _debug_log({"event": "response_ok", "model": resp.get("model", model), "attempt": attempt + 1,
+                                "response": resp, "raw_content": content})
                     self.models.append(resp.get("model", model))
                     return parsed
                 except urllib.error.HTTPError as e:
                     detail = e.read(500).decode("utf-8", errors="replace").strip()
+                    _debug_log({"event": "http_error", "model": model, "attempt": attempt + 1,
+                                "code": e.code, "detail": detail})
                     last = f"HTTP {e.code}" + (f": {detail}" if detail else "")
                     util.warn(f"model {model} attempt {attempt + 1}/{c['retries'] + 1} failed: {last}")
                     if e.code == 401:  # bad key: no model can work
@@ -123,12 +159,12 @@ class LLM:
                     time.sleep(min(max(wait, 5), 30) if wait else 3)
                 except (urllib.error.URLError, TimeoutError, ValueError, KeyError,
                         json.JSONDecodeError) as e:
+                    _debug_log({"event": "request_error", "model": model, "attempt": attempt + 1,
+                                "error": f"{type(e).__name__}: {e}"})
                     last = f"{type(e).__name__}: {e}"
                     util.warn(f"model {model} attempt {attempt + 1}/{c['retries'] + 1} failed: {last}")
-                    body["messages"][-1]["content"] = user + (
-                        "\n\nIMPORTANT: your previous reply was not valid JSON. Reply with ONE valid JSON "
-                        "object only, no prose. Keep each blurb to two short sentences.")
                     time.sleep(3)
+        _debug_log({"event": "all_models_failed", "models": models, "last_error": last})
         raise LLMUnavailable(f"all configured models failed ({last})")
 
 

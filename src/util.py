@@ -2,7 +2,7 @@
 
 WARNINGS is a mutable list so every module appends to the same log.
 LOG_FILE is rebound by brief.main (--log-file) and read by the fetcher when
-starting the background Semantic Scholar refresh; modules must read it as
+starting the background API refresh; modules must read it as
 ``util.LOG_FILE`` at call time rather than copying the reference.
 """
 from __future__ import annotations
@@ -17,9 +17,15 @@ LOG_FILE: Path | None = None
 def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
     if LOG_FILE:
-        with LOG_FILE.open("a", encoding="utf-8") as f:
-            f.write(msg + "\n")
-            f.flush()
+        try:
+            LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with LOG_FILE.open("a", encoding="utf-8") as f:
+                f.write(msg + "\n")
+                f.flush()
+        except OSError:
+            # Never let a logging problem kill the run; the message still
+            # reached stderr above.
+            pass
 
 
 def warn(msg: str) -> None:

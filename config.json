@@ -25,7 +25,7 @@
     "timeout_s": 20,
     "cache_ttl_hours": 6,
     "arxiv_delay_s": 3.1,
-    "semanticscholar_delay_s": 5.0,
+    "api_delay_s": 5.0,
     "hn_lookback_days": 45,
     "user_agent": "daily-brief/1.0 (personal Obsidian vault; stdlib urllib)"
   },

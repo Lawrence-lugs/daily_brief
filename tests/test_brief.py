@@ -67,6 +67,25 @@ def test_render_escapes_html_and_blocks_bad_urls():
     assert 'href="#"' in out and "javascript:" not in out
 
 
+def test_render_page_reads_project_root_css():
+    """render_page reads tailwind.css from the project root (not src/).
+    This is the function that failed after the src/ move when the CSS path
+    was still rooted at src/."""
+    cfg = {"paper_name": "Test Paper"}
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    desks = {
+        "primary": {"title": "Primary Desk", "deck": "deck", "stories": []},
+        "science": {"title": "Science Desk", "deck": "deck", "stories": []},
+    }
+    meta = {
+        "model": "test-model", "n_fresh": 0, "n_archive": 0, "n_explore": 0,
+        "epsilon": 0.25, "pool": 0, "sources": "",
+    }
+    out = brief.render_page(cfg, now, 1, desks, meta)
+    assert "<html" in out and "Test Paper" in out
+    assert "body" in out.lower()  # Tailwind CSS was inlined
+
+
 def test_canonical_url():
     assert brief.canonical_url("http://arxiv.org/abs/2610.09641v2") == "https://arxiv.org/abs/2610.09641"
     assert brief.canonical_url("https://Example.com/a/?utm_source=x&id=3#frag") == "https://example.com/a?id=3"
@@ -88,6 +107,22 @@ def test_feed_source_type_is_preserved():
     assert items[0]["source_type"] == "newslike"
 
 
+def test_project_root_assets_resolve_outside_src():
+    """After the src/ move, project-root assets (tailwind.css, config.json,
+    sources.json, prompt_system.md, state.json) must resolve from the project
+    root, not from src/. A regression here breaks every real render/run."""
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent
+    assert brief.PROJECT_ROOT == repo_root
+    assert (brief.PROJECT_ROOT / "tailwind.css").exists(), "tailwind.css must live at project root"
+    assert (brief.PROJECT_ROOT / "config.json").exists()
+    assert (brief.PROJECT_ROOT / "sources.json").exists()
+    assert (brief.PROJECT_ROOT / "prompt_system.md").exists()
+    # templates live under src/
+    assert (brief.TEMPLATES / "page.html").exists()
+    assert (brief.TEMPLATES / "tag.html").exists()
+
+
 def test_llm_falls_back_in_configured_order():
     llm = object.__new__(brief.LLM)
     llm.cfg = {"models": ["first/model", "second/model"], "temperature": 0.3, "max_tokens": 100,
@@ -102,7 +137,7 @@ def test_llm_falls_back_in_configured_order():
             raise urllib.error.HTTPError(
                 "https://example.com", 404, "missing model", {}, None
             )
-        return {"model": "second/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}
+        return {"model": "second/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}, ""
 
     llm._http = request
     assert llm.chat("system", "user") == {"items": []}
@@ -120,8 +155,8 @@ def test_llm_logs_empty_response_details_before_fallback():
     responses = iter([
         ({"id": "response-123", "model": "empty/model",
           "choices": [{"message": {"content": ""}, "finish_reason": "length"}],
-          "usage": {"completion_tokens": 100}}, {}),
-        ({"model": "working/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}),
+          "usage": {"completion_tokens": 100}}, {}, ""),
+        ({"model": "working/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}, ""),
     ])
     llm._http = lambda *_args: next(responses)
     with patch.object(brief.time, "sleep"):
@@ -133,13 +168,112 @@ def test_llm_logs_empty_response_details_before_fallback():
 
 def test_semanticscholar_refresh_is_started_separately(tmp_path, monkeypatch):
     source = {"name": "S2 test", "query": "test", "subtopic": "dse",
-              "weight": 1.0, "type": "researchlike"}
+              "weight": 1.0, "type": "researchlike", "kind": "api", "fetcher": "semanticscholar"}
     # Keep the real cache out of ~/.cache for this migrated test too.
     monkeypatch.setattr(brief, "CACHE", tmp_path / "cache")
-    with patch.object(brief, "Fetcher"), patch.object(brief.subprocess, "Popen") as popen:
-        assert brief.fetch_all({"fetch": {}}, {"semanticscholar": [source]}) == []
+    with patch.object(brief, "Fetcher"), patch("subprocess.Popen") as popen:
+        assert brief.fetch_all({"fetch": {}},
+                               {"feeds": {"api": {"semanticscholar": [source]}}}) == []
     command = popen.call_args.args[0]
-    assert "--refresh-s2" in command
+    assert "--refresh-api-feeds" in command
+
+
+def test_fetch_all_skips_api_feeds(tmp_path, monkeypatch):
+    """RSS specs are fetched; "api" specs are skipped and background-refresh
+    is spawned (Popen called with --refresh-api-feeds)."""
+    monkeypatch.setattr(brief, "CACHE", tmp_path / "cache")
+    import fetch  # noqa: E402  (src on sys.path via conftest)
+
+    fetched = []
+
+    def fake_fetch_rss(f, spec):
+        fetched.append(spec["name"])
+        return [{"id": "x", "title": spec["name"]}]
+
+    with patch.object(fetch.fetcher, "FETCHERS", {"rss": fake_fetch_rss}):
+        with patch("subprocess.Popen") as popen:
+            items = brief.fetch_all({"fetch": {}}, {
+                "feeds": {
+                    "rss": [{"name": "RSS One", "kind": "rss"}],
+                    "api": [{"name": "API One", "kind": "api",
+                             "fetcher": "semanticscholar"}],
+                }
+            })
+    assert [i["title"] for i in items] == ["RSS One"]
+    assert fetched == ["RSS One"]
+    assert "--refresh-api-feeds" in popen.call_args.args[0]
+
+
+def test_fetch_all_skips_unknown_kind(tmp_path, monkeypatch):
+    """An unknown/missing feed kind is warned and skipped, not a hard crash."""
+    monkeypatch.setattr(brief, "CACHE", tmp_path / "cache")
+    brief.WARNINGS.clear()
+    with patch("subprocess.Popen") as popen:  # no api feeds -> nothing spawned
+        items = brief.fetch_all({"fetch": {}},
+                                {"feeds": {"rss": [{"name": "Weird", "kind": "mystery"}]}})
+    assert items == []
+    assert popen.call_args is None
+    assert any("unknown feed kind" in w for w in brief.WARNINGS)
+
+
+def test_no_refresh_api_feeds_spawns_nothing(tmp_path, monkeypatch):
+    """refresh_api=False must not spawn the background refresh process."""
+    monkeypatch.setattr(brief, "CACHE", tmp_path / "cache")
+    with patch("subprocess.Popen") as popen:
+        items = brief.fetch_all({"fetch": {}}, {
+            "feeds": {"api": [{"name": "API One", "kind": "api",
+                              "fetcher": "semanticscholar"}]}
+        }, refresh_api=False)
+    assert items == []
+    assert popen.call_args is None
+
+
+def test_refresh_api_feeds_dispatches_per_spec(tmp_path, monkeypatch):
+    """refresh_api_feeds calls each registered api fetcher per spec and
+    warns-and-skips specs whose fetcher is unregistered."""
+    monkeypatch.setattr(brief, "CACHE", tmp_path / "cache")
+    brief.WARNINGS.clear()
+    import fetch  # noqa: E402
+    from fetch import fetcher as fetch_mod
+
+    calls = []
+
+    def fetcher_a(f, spec):
+        calls.append(spec["name"])
+        return [{"id": "a", "title": spec["name"]}]
+
+    def fetcher_b(f, spec):
+        calls.append(spec["name"])
+        return [{"id": "b", "title": spec["name"]}]
+
+    fetch_mod.API_FETCHERS["reg-a"] = fetcher_a
+    fetch_mod.API_FETCHERS["reg-b"] = fetcher_b
+    try:
+        items = brief.refresh_api_feeds({"fetch": {}}, {
+            "feeds": {
+                "api": [
+                    {"name": "Source A", "kind": "api", "fetcher": "reg-a"},
+                    {"name": "Source B", "kind": "api", "fetcher": "reg-b"},
+                    {"name": "Source C", "kind": "api", "fetcher": "nope"},
+                ]
+            }
+        })
+    finally:
+        del fetch_mod.API_FETCHERS["reg-a"]
+        del fetch_mod.API_FETCHERS["reg-b"]
+    assert [i["title"] for i in items] == ["Source A", "Source B"]
+    assert calls == ["Source A", "Source B"]
+    assert any("no api fetcher registered" in w for w in brief.WARNINGS)
+
+
+def test_iter_feed_specs_handles_both_groupings():
+    """_iter_feed_specs accepts flat lists and dict-of-lists grouping."""
+    from fetch.fetcher import _iter_feed_specs
+    flat = {"api": [{"name": "a"}, {"name": "b"}], "rss": [{"name": "c"}]}
+    nested = {"api": {"s1": [{"name": "a"}], "s2": [{"name": "b"}]},
+              "rss": [{"name": "c"}]}
+    assert [s["name"] for s in _iter_feed_specs(flat)] == ["a", "b", "c"]
+    assert [s["name"] for s in _iter_feed_specs(nested)] == ["a", "b", "c"]
 
 
 # --------------------------------------------------------------------------- new: mocked network endpoints
@@ -232,8 +366,8 @@ def test_openrouter_empty_content_falls_back_and_warns():
     responses = iter([
         ({"id": "response-123", "model": "empty/model",
           "choices": [{"message": {"content": ""}, "finish_reason": "length"}],
-          "usage": {"completion_tokens": 100}}, {}),
-        ({"model": "working/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}),
+          "usage": {"completion_tokens": 100}}, {}, ""),
+        ({"model": "working/model", "choices": [{"message": {"content": '{"items": []}'}}]}, {}, ""),
     ])
     llm._http = lambda *_args: next(responses)
     with patch.object(brief.time, "sleep"):

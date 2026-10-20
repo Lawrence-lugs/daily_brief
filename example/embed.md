@@ -4,10 +4,12 @@ Sample dataview snippet that can run or retrieve the daily brief
 
 ```dataviewjs
 // Daily brief. Docs: 98-Scripts/daily_brief/README.md
-const DIR = "05-for-agents/daily-brief";
-const SCRIPT = "98-Scripts/daily_brief/brief.py";
+const SCRIPT = "98-Scripts/daily_brief/src/brief.py";
 const PYTHON = "python";
 
+// Where the frontend sources the brief from (vault-relative).  The generator
+// is pointed at this same directory via --out so it writes exactly here.
+const DIR = "05-for-agents/daily-brief";
 const ad = app.vault.adapter;
 const root = dv.container;
 root.empty();
@@ -73,9 +75,10 @@ function readLogs() {
     lastLogText = fs.readFileSync(logPath, "utf8");
     logText.setText(lastLogText || "Waiting for generator output...");
     logText.scrollTop = logText.scrollHeight;
-    const backgroundStarted = lastLogText.includes("Semantic Scholar background refresh started");
-    const backgroundFinished = lastLogText.includes("Semantic Scholar background refresh complete");
-    if (generationFinished && (!backgroundStarted || backgroundFinished || Date.now() >= logDeadline)) {
+    const backgroundStarted = lastLogText.includes("API background refresh started");
+    const backgroundFinished = lastLogText.includes("API background refresh complete");
+    const generationDone = lastLogText.includes("brief generation done");
+    if (generationFinished && (generationDone || !backgroundStarted || backgroundFinished || Date.now() >= logDeadline)) {
       clearInterval(logTimer);
       logTimer = null;
       try { fs.unlinkSync(logPath); } catch (e) { console.warn("Could not remove temporary brief log", e); }
@@ -137,19 +140,22 @@ if (!cp || app.isMobile) {
     logText.setText("Waiting for generator output...");
     if (logTimer) clearInterval(logTimer);
     logTimer = setInterval(readLogs, 500);
-    cp.execFile(PYTHON, [SCRIPT, "--log-file", logPath], { cwd: ad.getBasePath(), timeout: 600000, windowsHide: true, maxBuffer: 1 << 24 },
+    cp.execFile(PYTHON, [SCRIPT, "--log-file", logPath, "--out", DIR], { cwd: ad.getBasePath(), timeout: 600000, windowsHide: true, maxBuffer: 1 << 24 },
       async (err, stdout, stderr) => {
         btn.disabled = false;
         btn.setText("Regenerate");
         generationFinished = true;
-        readLogs();
+        // Always refresh the iframe from disk once the process has exited,
+        // before cleaning up the temp log.
         await load();
         if (err) {
           const tail = (stderr || err.message).trim().split("\n").slice(-2).join(" ");
           status.setText("Generation failed: " + tail);
           status.style.color = "var(--text-error)";
+        } else {
+          status.setText("Brief generated.");
         }
-        readLogs();
+        readLogs(); // final read; removes the temp log once completion is detected
       });
   };
 }

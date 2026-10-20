@@ -20,8 +20,10 @@ import pytest
 # Make sure the repository root (where selection.py and brief.py live) is
 # importable no matter which pytest import mode is active.
 ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SRC = ROOT / "src"
+for _p in (str(SRC), str(ROOT)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 import brief  # noqa: E402
 import selection as sel  # noqa: E402
@@ -48,7 +50,7 @@ def fetch_cfg() -> dict:
         "timeout_s": 5,
         "cache_ttl_hours": 6,
         "arxiv_delay_s": 0.0,
-        "semanticscholar_delay_s": 0.0,
+        "api_delay_s": 0.0,
         "hn_lookback_days": 45,
         "user_agent": "daily-brief-test/1.0",
     }

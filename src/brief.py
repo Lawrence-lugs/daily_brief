@@ -16,9 +16,10 @@ See README.md for the design.
 
 Modules:
     util.py           shared logging/warnings state
-    fetcher.py        Fetcher base class, HTTP cache, generic throttler, feed parsers,
-                      fetch_hn/fetch_rss/fetch_semanticscholar, FETCHERS registry, fetch_all
-    semanticscholar.py SemanticScholarFetcher(Fetcher) + refresh_semanticscholar
+    fetch/fetcher.py  Fetcher base class, HTTP cache, generic throttler, feed parsers,
+                      fetch_rss, FETCHERS registry, fetch_all, refresh_api_feeds
+    fetch/semanticscholar.py SemanticScholarFetcher(Fetcher) + fetch_semanticscholar
+    fetch/hn.py       legacy HN Algolia fetcher (migrated out; HN is now RSS)
     agent.py          LLM chat loop, extract_json/salvage_items, build_user_message, apply_editor
     selection.py      epsilon-greedy selection (unchanged)
     brief.py          thin orchestrator: state/pool, classify, render, main, CLI
@@ -32,7 +33,6 @@ import json
 import os
 import random
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -41,22 +41,23 @@ import selection as sel
 
 import util
 from util import WARNINGS, log, warn
-from fetcher import (
+from fetch.fetcher import (
     Fetcher,
     parse_date,
     canonical_url,
     parse_feed,
-    fetch_hn,
     fetch_rss,
     fetch_all,
+    refresh_api_feeds,
+    _iter_feed_specs,
 )
-from semanticscholar import fetch_semanticscholar, refresh_semanticscholar, SemanticScholarFetcher
+from fetch.semanticscholar import fetch_semanticscholar
 from agent import LLM, LLMUnavailable, extract_json, build_user_message, apply_editor
 
 HERE = Path(__file__).resolve().parent
-VAULT = HERE.parent.parent
+PROJECT_ROOT = HERE.parent
 CACHE = Path.home() / ".cache" / "daily_brief"
-STATE_FILE = HERE / "state.json"
+STATE_FILE = PROJECT_ROOT / "state.json"
 TEMPLATES = HERE / "templates"
 
 UTC = dt.timezone.utc
@@ -224,7 +225,7 @@ def render_desk(stories: list[dict]) -> str:
 
 
 def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta: dict) -> str:
-    css = (HERE / "tailwind.css").read_text(encoding="utf-8")
+    css = (PROJECT_ROOT / "tailwind.css").read_text(encoding="utf-8")
     local_now = now.astimezone()
     foot = (f"Edited by {meta['model']}. {meta['n_fresh']} recent, {meta['n_archive']} from the archive. "
             f"{meta['n_explore']} explore picks (epsilon {meta['epsilon']}). "
@@ -253,17 +254,38 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int)
     ap.add_argument("--out", help="override output path")
-    ap.add_argument("--refresh-s2", action="store_true", help=argparse.SUPPRESS)
+    # --refresh-api-feeds is the hidden trigger used by the detached background
+    # refresh process spawned by fetch_all.  The background refresh is on by
+    # default; --no-refresh-api-feeds disables spawning it.
+    ap.add_argument("--refresh-api-feeds", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--no-refresh-api-feeds", action="store_false", dest="refresh_api_auto",
+                    default=True, help=argparse.SUPPRESS)
     ap.add_argument("--log-file", type=Path, help=argparse.SUPPRESS)
     args = ap.parse_args()
     util.LOG_FILE = args.log_file
 
-    cfg = load_json(HERE / "config.json")
-    src = load_json(HERE / "sources.json")
-    if args.refresh_s2:
-        refresh_semanticscholar(cfg, src)
+    cfg = load_json(PROJECT_ROOT / "config.json")
+    src = load_json(PROJECT_ROOT / "sources.json")
+
+    if args.refresh_api_feeds:
+        # Detached background refresh: fetch every "api" feed, classify, merge,
+        # persist, then exit.  Results can be up to about a day old.
+        items = refresh_api_feeds(cfg, src)
+        sub2desk = {s: d for d, v in src["desks"].items() for s in v["subtopics"]}
+        classified = []
+        for it in items:
+            c = classify(it, src["keywords"], sub2desk)
+            if c is not None:
+                classified.append(c)
+        now = dt.datetime.now(UTC)
+        # Re-read the latest state so a concurrent main-run update is not
+        # clobbered; the pool merge is idempotent (keyed by item id).
+        state = load_state()
+        merge_pool(state, classified, now, cfg["pool"]["max_age_days"])
+        save_json_atomic(STATE_FILE, state)
         return 0
-    if not (HERE / "tailwind.css").exists():
+
+    if not (PROJECT_ROOT / "tailwind.css").exists():
         util.log("tailwind.css missing. Run build_css.ps1 once (see README).")
         return 1
     scfg = {**sel.DEFAULTS, **cfg["selection"]}
@@ -276,9 +298,8 @@ def main() -> int:
     rollback_same_day(state, date_key)
 
     source_types = {}
-    for specs in src.get("feeds", {}).values():
-        for spec in specs:
-            source_types[spec["name"]] = spec.get("type", "commentary")
+    for spec in _iter_feed_specs(src.get("feeds", {})):
+        source_types[spec["name"]] = spec.get("type", "commentary")
     for item in state["items"].values():
         item.setdefault("source_type", source_types.get(item["source"], "commentary"))
 
@@ -286,7 +307,7 @@ def main() -> int:
     if args.no_fetch:
         util.log("skipping fetch; using persisted pool")
     else:
-        raw = fetch_all(cfg, src)
+        raw = fetch_all(cfg, src, refresh_api=args.refresh_api_auto)
         classified, seen, dropped = [], {}, set()
         for it in raw:
             c = classify(it, src["keywords"], sub2desk)
@@ -335,9 +356,23 @@ def main() -> int:
         except LLMUnavailable as e:
             util.warn(f"LLM skipped: {e}. Showing an unedited edition.")
             llm = None
+    # Log every agent JSON response (success or failure) beside the output HTML
+    # for debugging model JSON errors.  Both the HTML and the agent debug log
+    # live beside each other at out_dir.  Default to edition_dir unless --out is
+    # given, in which case --out is treated as the output directory and the
+    # dated HTML is written inside it (so the Obsidian embed can point at the
+    # same directory it reads from).
+    if args.out:
+        out_dir = Path(args.out)
+        out_path = out_dir / f"{date_key}.html"
+    else:
+        out_path = PROJECT_ROOT / cfg["edition_dir"] / f"{date_key}.html"
+        out_dir = out_path.parent
+    out_dir.mkdir(parents=True, exist_ok=True)
+    LLM.DEBUG_LOG = out_dir / "agent_responses.jsonl"
     desks_out, all_rejected, shown_ids = {}, [], []
     today_s = now.astimezone().strftime("%A %Y-%m-%d")
-    system = (HERE / "prompt_system.md").read_text(encoding="utf-8")
+    system = (PROJECT_ROOT / "prompt_system.md").read_text(encoding="utf-8")
     max_cap = int(cfg.get("max_agent_output_items_per_desk", n))
     system = system.replace("{{max_agent_output_items_per_desk}}", str(max_cap))
     for desk, spec in src["desks"].items():
@@ -350,6 +385,9 @@ def main() -> int:
                 util.warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
                 if "cap" in str(e) or "HTTP 401" in str(e):
                     llm = None
+            except Exception as e:  # one desk's editor failure must never kill the whole edition
+                util.warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
+                llm = None
         stories, rejected, deck = apply_editor(selected[desk], result, n)
         desks_out[desk] = {"title": spec["title"], "stories": stories,
                            "deck": deck or "Unedited candidates, ranked by relevance and freshness."}
@@ -357,9 +395,6 @@ def main() -> int:
         shown_ids += [s["id"] for s in stories]
 
     # 4. render
-    out_dir = VAULT / cfg["edition_dir"]
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = Path(args.out) if args.out else out_dir / f"{date_key}.html"
     all_stories = [s for d in desks_out.values() for s in d["stories"]]
     edition_no = len(set(state["editions"]) | {date_key})
     models = sorted(set(llm.models)) if llm and llm.models else []
@@ -373,6 +408,8 @@ def main() -> int:
     }
     page = render_page(cfg, now, edition_no, desks_out, meta)
     out_path.write_text(page, encoding="utf-8")
+    util.log(f"brief generation done: {out_path} ({len(all_stories)} stories, model={meta['model']}, "
+             f"llm_requests={llm.requests if llm else 0})")
 
     # 5. persist state only after a successful write
     if not args.dry_run:

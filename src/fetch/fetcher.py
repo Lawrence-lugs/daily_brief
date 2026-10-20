@@ -8,14 +8,21 @@ Provides:
     canonical_url      URL normalisation (arXiv, utm_/tracking params, etc.)
     make_item          normalised item dict factory
     parse_feed         RSS/Atom parser
-    fetch_hn           Hacker News (Algolia) fetcher
     fetch_rss          generic RSS fetcher
-    FETCHERS           kind -> fetch function registry
-    fetch_all          parallel fan-out over sources.json specs
+    FETCHERS           kind -> fetch function registry (``"rss"`` only)
+    register_api_fetcher  register a fetcher for ``"api"`` feeds
+    refresh_api_feeds     fetch every ``"api"`` feed (background refresh)
+    fetch_all          parallel fan-out over sources.json specs; ``"api"`` feeds
+                       are skipped here and refreshed in the background
 
-Source-specific fetchers live in their own files (e.g. semanticscholar.py) and
-simply inherit from Fetcher.  Throttling is generic (Throttler) and optional
-(min_interval_s <= 0 disables it).
+Source-specific fetchers live in their own files under ``src/fetch/`` (e.g.
+semanticscholar.py, hn.py) and simply inherit from ``Fetcher``.  Throttling is
+generic (Throttler) and optional (``api_delay_s`` <= 0 disables it).
+
+``sources.json`` groups feeds under exactly two types: ``"api"`` (throttled
+API fetches that run as a detached background refresh) and ``"rss"`` (fetched
+in parallel in the main program).  Each feed spec declares a ``kind`` of
+``"api"`` or ``"rss"``.
 """
 from __future__ import annotations
 
@@ -84,12 +91,12 @@ class Fetcher:
 
     Source-specific fetchers (semanticscholar.py, ...) subclass this and
     implement :meth:`fetch`.  This base provides a cached HTTP GET
-    (:meth:`get`) and an optional, generic throttler.
+    (:meth:`get`) and an optional, generic throttler (:meth:`throttle`).
     """
 
     def __init__(self, cfg: dict):
         self.cfg = cfg
-        self._throttle = Throttler(cfg.get("semanticscholar_delay_s", 0.0))
+        self._throttle = Throttler(cfg.get("api_delay_s", 0.0))
         self._cache_dir = _cache_dir()
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -107,8 +114,8 @@ class Fetcher:
         cache_file.write_text(text, encoding="utf-8")
         return text
 
-    def semanticscholar_throttle(self) -> None:
-        """Backward-compatible hook: enforce the Semantic Scholar delay."""
+    def throttle(self) -> None:
+        """Enforce the generic API delay between calls."""
         self._throttle.wait()
 
 
@@ -196,26 +203,6 @@ def parse_feed(
     return out
 
 
-def fetch_hn(f: Fetcher, spec: dict) -> list[dict]:
-    since = int(time.time() - f.cfg["hn_lookback_days"] * 86400)
-    qs = urllib.parse.urlencode({
-        "query": spec["query"], "tags": "story", "hitsPerPage": 30,
-        "numericFilters": f"created_at_i>{since},points>{spec['min_points']}",
-    })
-    data = json.loads(f.get(f"https://hn.algolia.com/api/v1/search_by_date?{qs}"))
-    out = []
-    for h in data.get("hits", []):
-        url = h.get("url") or f"https://news.ycombinator.com/item?id={h['objectID']}"
-        pts = h.get("points") or 1
-        snippet = strip_html(h.get("story_text") or "") or (
-            f"Hacker News discussion: {pts} points, {h.get('num_comments', 0)} comments.")
-        boost = min(1.0, max(0.6, 0.6 + 0.2 * math.log10(max(pts, 1))))
-        out.append(make_item(url, h.get("title", ""), snippet, parse_date(h.get("created_at")),
-                             "Hacker News", spec["subtopic"], spec["weight"], boost,
-                             spec.get("type", "commentary")))
-    return out
-
-
 def fetch_rss(f: Fetcher, spec: dict) -> list[dict]:
     return parse_feed(
         f.get(spec["url"]), spec["name"], spec["weight"], spec["default_subtopic"],
@@ -223,33 +210,101 @@ def fetch_rss(f: Fetcher, spec: dict) -> list[dict]:
     )
 
 
+# --------------------------------------------------------------------------- feed registry
+
 # How to turn a feed spec into fetched items. Each source in sources.json
 # declares a "kind" that selects the fetch routine, so nothing here is
-# keyed to a particular feed name.
-#
-# fetch_semanticscholar lives in semanticscholar.py and is registered lazily
-# below (importing it at module top would cycle: semanticscholar imports
-# Fetcher from fetcher).
-FETCHERS = {
+# keyed to a particular feed name.  Only two kinds exist: "rss" (fetched in
+# parallel in the main program) and "api" (refreshed in the background).
+FETCHERS: dict[str, callable] = {
     "rss": fetch_rss,
-    "hn": fetch_hn,
 }
 
+# Registry of fetchers for ``"api"`` feeds, keyed by name.  Source-specific
+# fetchers register themselves here (e.g. semanticscholar.py registers
+# ``"semanticscholar"``).  Kept separate from FETCHERS so the main loop never
+# accidentally blocks on a throttled API call.
+API_FETCHERS: dict[str, callable] = {}
 
-def _register_fetchers() -> None:
-    if "semanticscholar" not in FETCHERS:
-        from semanticscholar import fetch_semanticscholar
 
-        FETCHERS["semanticscholar"] = fetch_semanticscholar
+def register_api_fetcher(name: str, fn) -> None:
+    """Register a fetch function for an ``"api"`` feed source."""
+    API_FETCHERS[name] = fn
 
 
-def fetch_all(cfg: dict, src: dict) -> list[dict]:
+def _iter_feed_specs(feeds: dict):
+    """Yield every feed spec, regardless of grouping.
+
+    ``feeds`` may group specs either as flat lists (``{"api": [...], "rss": [...]}``)
+    or nested by source (``{"api": {"semanticscholar": [...]}, "rss": [...]}``).
+    """
+    for group in feeds.values():
+        if isinstance(group, dict):
+            for specs in group.values():
+                yield from specs
+        else:
+            yield from group
+
+
+def refresh_api_feeds(cfg: dict, src: dict) -> list[dict]:
+    """Fetch every ``"api"`` feed and return the raw (unclassified) items.
+
+    Runs in the detached background process (``brief.py --refresh-api-feeds``),
+    so the throttled API calls never block the main program. Results can be up
+    to about a day old.  Each ``"api"`` spec is dispatched to the fetcher
+    registered for it via :func:`register_api_fetcher` (or its ``fetcher``
+    field).
+    """
+    from brief import Fetcher
+
+    f = Fetcher(cfg["fetch"])
+    items: list[dict] = []
+    for spec in _iter_feed_specs(src.get("feeds", {})):
+        if spec.get("kind") != "api":
+            continue
+        key = spec.get("fetcher") or spec.get("source", "").lower().replace(" ", "_")
+        fn = API_FETCHERS.get(key)
+        if fn is None:
+            util.warn(f"no api fetcher registered for {key!r}; skipping {spec['name']}")
+            continue
+        try:
+            got = fn(f, spec)
+            items.extend(got)
+            util.log(f"API refreshed {spec['name']}: {len(got)} items")
+        except Exception as e:
+            util.warn(f"API source {spec['name']} failed ({type(e).__name__}: {e})")
+    util.log("API background refresh complete")
+    return items
+
+
+def _start_api_refresh(api_count: int) -> None:
+    """Start a detached background process that refreshes all ``"api"`` feeds."""
+    brief_py = HERE.parent / "brief.py"
+    refresh = [sys.executable, str(brief_py), "--refresh-api-feeds"]
+    if util.LOG_FILE:
+        refresh.extend(("--log-file", str(util.LOG_FILE)))
+    try:
+        options = {
+            "cwd": str(HERE.parent),
+            "stdin": subprocess.DEVNULL,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+            "close_fds": True,
+        }
+        if os.name == "nt":
+            options["creationflags"] = subprocess.DETACHED_PROCESS
+        subprocess.Popen(refresh, **options)
+        util.log(f"API background refresh started ({api_count} queries)")
+    except OSError as e:
+        util.warn(f"could not start API background refresh ({type(e).__name__}: {e})")
+
+
+def fetch_all(cfg: dict, src: dict, refresh_api: bool = True) -> list[dict]:
     # Fetcher is resolved from brief's namespace at call time so that tests
     # patching brief.Fetcher intercept this construction site exactly as they
     # did when fetch_all lived in brief.py.
     from brief import Fetcher  # noqa: PLC0415 (runtime import to avoid a cycle)
 
-    _register_fetchers()
     f = Fetcher(cfg["fetch"])
     items: list[dict] = []
     stats: dict[str, int] = {}
@@ -261,38 +316,29 @@ def fetch_all(cfg: dict, src: dict) -> list[dict]:
         except Exception as e:  # one broken source must never sink the edition
             return label, [], f"{type(e).__name__}: {e}"
 
-    refresh = [sys.executable, str(HERE / "brief.py"), "--refresh-s2"]
-    if util.LOG_FILE:
-        refresh.extend(("--log-file", str(util.LOG_FILE)))
-    try:
-        options = {
-            "cwd": HERE,
-            "stdin": subprocess.DEVNULL,
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL,
-            "close_fds": True,
-        }
-        if os.name == "nt":
-            options["creationflags"] = subprocess.DETACHED_PROCESS
-        subprocess.Popen(refresh, **options)
-        s2_count = sum(
-            1 for specs in src.get("feeds", {}).values()
-            for spec in specs if spec.get("kind") == "semanticscholar"
-        )
-        util.log(f"Semantic Scholar background refresh started ({s2_count} queries)")
-    except OSError as e:
-        util.warn(f"could not start Semantic Scholar background refresh ({type(e).__name__}: {e})")
+    if refresh_api:
+        api_count = sum(1 for spec in _iter_feed_specs(src.get("feeds", {}))
+                        if spec.get("kind") == "api")
+        if api_count:
+            _start_api_refresh(api_count)
 
     jobs = []
     with cf.ThreadPoolExecutor(max_workers=8) as ex:
-        for specs in src.get("feeds", {}).values():
-            for spec in specs:
-                kind = spec.get("kind", "rss")
-                fn = FETCHERS[kind]
-                label = spec["name"]
-                if kind == "hn":
-                    label = f"HN:{spec['query']}"
-                jobs.append(ex.submit(run, label, fn, spec))
+        for spec in _iter_feed_specs(src.get("feeds", {})):
+            kind = spec.get("kind", "rss")
+            if kind == "api":
+                # Throttled API fetches run as a detached background refresh
+                # (``--refresh-api-feeds``) so they never block the main
+                # program; their results can be up to about a day old.
+                continue
+            fn = FETCHERS.get(kind)
+            if fn is None:
+                util.warn(
+                    f"unknown feed kind {kind!r} for {spec.get('name', '?')!r}; skipping"
+                )
+                continue
+            label = spec["name"]
+            jobs.append(ex.submit(run, label, fn, spec))
         results = [j.result() for j in jobs]
     for label, got, err in results:
         if err:

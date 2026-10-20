@@ -6,20 +6,24 @@ output is a self-contained Tailwind HTML file per day.
 
 ```
 daily_brief/
-  brief.py             thin orchestrator: state/pool, classify, render, CLI (stdlib only)
-  selection.py         epsilon-greedy + soft staleness (pure functions)
-  util.py              shared logging/warnings state
-  fetcher.py           Fetcher base class, HTTP cache, generic throttler, feed parsers, fetch_all
-  semanticscholar.py   SemanticScholarFetcher(Fetcher) for the Semantic Scholar Graph API
-  agent.py             LLM chat loop, JSON salvage (extract_json), editor (apply_editor)
+  src/                 Python sources
+    brief.py           thin orchestrator: state/pool, classify, render, CLI (stdlib only)
+    selection.py       epsilon-greedy + soft staleness (pure functions)
+    util.py            shared logging/warnings state
+    agent.py           LLM chat loop, JSON salvage (extract_json), editor (apply_editor)
+    fetch/             fetching subsystem
+      fetcher.py       Fetcher base class, HTTP cache, generic throttler, feed parsers,
+                       fetch_rss, FETCHERS registry, fetch_all, refresh_api_feeds
+      semanticscholar.py SemanticScholarFetcher(Fetcher) for the Semantic Scholar Graph API
+      hn.py            legacy HN Algolia fetcher (migrated out; HN is now RSS)
+    templates/*.html   Tailwind-classed layout (page, lead, story, tag, ...)
   config.json          every tunable (epsilon, a50, slope, desk sizes, model, limits)
   sources.json         arXiv queries, HN queries, RSS feeds, subtopic keyword lists
   prompt_system.md     the editor prompt (interests + rules + JSON schema)
-  templates/*.html     Tailwind-classed layout (page, lead, story, tag, ...)
   tailwind.input.css   Tailwind entry file       tailwind.css  compiled output (committed)
   build_css.ps1        one-off Tailwind build
   state.json           pool of items + what has been shown (gitignored, Syncthing-synced)
-  test_selection.py    assertions + simulation   test_brief.py  parser/render tests
+  tests/               pytest suite (test_brief.py, test_selection.py, conftest.py)
   examples/            example how to embed daily brief into obsidian
 `edition_dir`/YYYY-MM-DD.html     the editions (newest one is displayed)
 ~/.config/openrouter.key                      API key (outside the vault)
@@ -36,11 +40,11 @@ daily_brief/
 | Reuse the pool | `--no-fetch` |
 | Don't persist state | `--dry-run` |
 | Reproducible draws | `--seed N` |
-| Tests | `python test_selection.py --sim` and `python test_brief.py` |
+| Tests | `python -m pytest tests/` |
 
 ## Pipeline
 
-1. **Fetch** RSS, arXiv, and Hacker News sources in parallel (arXiv is serialized with a 3.1 s gap, per arXiv's API etiquette). Semantic Scholar refreshes run in a detached background process with its own throttle; its HTTP cache is picked up by later runs. One failing source is a warning, never an error.
+1. **Fetch** RSS, arXiv, and Hacker News sources in parallel (arXiv is serialized with a 3.1 s gap, per arXiv's API etiquette). API feed refreshes run in a detached background process with its own throttle; its HTTP cache is picked up by later runs. One failing source is a warning, never an error.
 2. **Classify.** Each item is scored against the keyword lists in `sources.json`
    (title hit = 2, body hit = 1). The best subtopic wins; the source's own hint adds a mild prior.
    Untargeted feeds (IEEE Spectrum, Physics World, ...) need at least 2 hits or the item is dropped.
@@ -69,7 +73,7 @@ The half-and-half split is `stories_per_desk` in `config.json`.
 
 Goal: show what is fresh, but never run dry. Academic news is lumpy, so on a quiet day the page
 should degrade gracefully to last week's and last month's best items, with no hard cutoff.
-Implementation: `selection.py`. Simulation: `python test_selection.py --sim`.
+Implementation: `selection.py`. Simulation: `python -m pytest tests/test_selection.py --sim`.
 
 ### 1. Freshness: a logistic curve in log-age
 
@@ -189,7 +193,7 @@ See [notes](notes.md) for more on this.
   `openrouter/free`. The parser salvages valid items from malformed JSON, retries with a correction,
   and finally falls back to raw items. The footer lists which model(s) wrote the page.
 - **Logs are temporary.** The Obsidian embed's Logs popup shows live generator output. Its temporary
-  log is removed when both the edition and background Semantic Scholar refresh finish.
+  log is removed when both the edition and background API refresh finish.
 - **Privacy:** only public feed text is sent to the model, never vault notes.
 - **Untrusted text:** feed content is escaped before rendering, only http(s) URLs are linked, and
   the prompt tells the model to ignore instructions embedded in items.
