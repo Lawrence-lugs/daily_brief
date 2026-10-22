@@ -46,6 +46,32 @@
   <footer class="mt-10 border-t-4 border-double border-stone-800 pt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:border-slate-400 dark:text-slate-400">
     {{footer}}
   </footer>
+
+  <script>
+    (function () {
+      function handleAction(btn) {
+        var pressed = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!pressed));
+        var id = btn.getAttribute('data-story-id');
+        var action = btn.getAttribute('data-action');
+        var detail = { id: id, action: action };
+        if (action === 'like') { detail.liked = !pressed; }
+        if (action === 'save') { detail.saved = !pressed; }
+        var event = new CustomEvent('brief:' + action, {
+          bubbles: true,
+          composed: true,
+          detail: detail,
+        });
+        btn.dispatchEvent(event);
+      }
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) { return; }
+        e.preventDefault();
+        handleAction(btn);
+      });
+    })();
+  </script>
 </div>
 </body>
 </html>

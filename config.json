@@ -38,7 +38,7 @@
       "openrouter/free"
     ],
     "temperature": 0.3,
-    "max_tokens": 5000,
+    "max_tokens": 20000,
     "timeout_s": 150,
     "retries": 2,
     "max_requests_per_run": 24,

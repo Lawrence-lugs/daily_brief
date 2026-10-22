@@ -17,3 +17,137 @@
 @theme {
   --font-paper: Literata, "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
 }
+
+/* ===== Story actions — carved stone =====
+   Idle buttons are raised (embossed) stone tiles. aria-pressed="true", or holding
+   the button down, sinks them into the slab (engraved) and recolors the glyph.
+   Grain is an SVG noise tile layered over a light-to-dark stone gradient. */
+.story-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  --stone-hi: #ece7dc;
+  --stone-mid: #cbc4b5;
+  --stone-lo: #a59e8f;
+  --edge-light: #faf7f0;
+  --edge-dark: #4a453c;
+  --glyph: #3b362e;
+  --glyph-pressed: #8a5a1c;
+  --glyph-hi: rgba(255, 255, 255, 0.45);
+  --raised:
+    inset 0 1px 0 var(--edge-light),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.28),
+    0 2px 0 var(--edge-dark),
+    0 4px 5px rgba(0, 0, 0, 0.35);
+  --sunken:
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 var(--edge-light),
+    0 1px 0 var(--edge-light),
+    inset 0 0 0 transparent;
+}
+.dark .story-actions {
+  --stone-hi: #5b5b61;
+  --stone-mid: #47474d;
+  --stone-lo: #36363b;
+  --edge-light: #74747b;
+  --edge-dark: #101013;
+  --glyph: #d6d0c0;
+  --glyph-pressed: #e3b35c;
+  --glyph-hi: rgba(255, 255, 255, 0.15);
+}
+
+.btn-save,
+.btn-like {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23n)'/%3E%3C/svg%3E");
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background-color: var(--stone-mid);
+  background-image:
+    var(--grain),
+    linear-gradient(155deg, var(--stone-hi) 0%, var(--stone-mid) 50%, var(--stone-lo) 100%);
+  box-shadow: var(--raised);
+  color: var(--glyph);
+  font-family: var(--font-paper);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.1s ease, background-image 0.1s ease, transform 0.08s ease,
+    color 0.1s ease, filter 0.1s ease;
+}
+.btn-save:hover,
+.btn-like:hover {
+  filter: brightness(1.05);
+}
+.btn-save:focus-visible,
+.btn-like:focus-visible {
+  outline: 1px dotted var(--glyph);
+  outline-offset: 3px;
+}
+
+/* Pressed: sunk into the slab. Applies to the saved/liked state and to the momentary click. */
+.btn-save[aria-pressed="true"],
+.btn-like[aria-pressed="true"],
+.btn-save:active,
+.btn-like:active {
+  background-image:
+    var(--grain),
+    linear-gradient(200deg, var(--stone-lo) 0%, var(--stone-mid) 100%);
+  box-shadow: var(--sunken);
+  transform: translateY(1px);
+}
+.btn-save[aria-pressed="true"],
+.btn-like[aria-pressed="true"] {
+  color: var(--glyph-pressed);
+}
+
+/* Save: the check is carved in when on. */
+.save-off {
+  display: inline;
+}
+.save-on {
+  display: none;
+  text-shadow: 0 1px 0 var(--glyph-hi);
+}
+.btn-save[aria-pressed="true"] .save-off {
+  display: none;
+}
+.btn-save[aria-pressed="true"] .save-on {
+  display: inline;
+  text-shadow: 0 -1px 0 var(--glyph-hi);
+}
+
+/* Like: a bookmark ribbon drawn with a mask so it follows currentColor. */
+.btn-like {
+  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1.5h8v13L6 11.2 2 14.5z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='miter'/%3E%3C/svg%3E");
+}
+.btn-like[aria-pressed="true"] {
+  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1h8v14L6 11.7 2 15z' fill='black'/%3E%3C/svg%3E");
+}
+.like-mark {
+  display: inline-flex;
+  font-size: 0;
+  line-height: 0;
+  filter: drop-shadow(0 1px 0 var(--glyph-hi));
+}
+.btn-like[aria-pressed="true"] .like-mark {
+  filter: drop-shadow(0 -1px 0 var(--glyph-hi));
+}
+.like-mark::before {
+  content: "";
+  display: block;
+  width: 0.7rem;
+  height: 0.95rem;
+  background: currentColor;
+  -webkit-mask: var(--ribbon) center / contain no-repeat;
+          mask: var(--ribbon) center / contain no-repeat;
+}

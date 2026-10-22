@@ -1,7 +1,18 @@
-<article class="border-b border-stone-300 py-4 last:border-b-0 dark:border-slate-700">
+<article class="flex flex-col border-b border-stone-300 py-4 last:border-b-0 dark:border-slate-700">
   <div class="flex flex-wrap items-center gap-1.5">{{badge}}{{raw_note}}{{tags}}</div>
   <h3 class="mt-1.5 text-lg font-bold leading-snug"><a href="{{url}}" class="hover:underline hover:decoration-amber-600 dark:hover:decoration-amber-400">{{headline}}</a></h3>
   <p class="mt-1 text-sm leading-relaxed text-stone-800 dark:text-slate-300">{{blurb}}</p>
   {{why}}
   <p class="mt-1.5 text-[11px] uppercase tracking-wider text-stone-500 dark:text-slate-500">{{source}} &middot; {{age}}</p>
+  <div class="story-actions mt-3 self-end">
+    <button type="button" class="btn-save" aria-pressed="false" data-action="save" data-story-id="{{id}}" title="Save story">
+      <span class="save-off" aria-hidden="true"></span>
+      <span class="save-on" aria-hidden="true">&#x2713;</span>
+      <span class="sr-only">Save story</span>
+    </button>
+    <button type="button" class="btn-like" aria-pressed="false" data-action="like" data-story-id="{{id}}" title="Like story">
+      <span class="like-mark" aria-hidden="true"></span>
+      <span class="sr-only">Like story</span>
+    </button>
+  </div>
 </article>

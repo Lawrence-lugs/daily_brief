@@ -216,7 +216,7 @@ def render_story(s: dict, lead: bool) -> str:
     why = Raw(fill(tpl("why.html"), why=s["why_care"])) if s["why_care"] else Raw("")
     raw_note = Raw("" if s["summarized"] else fill(tpl("badge.html"), label="Unedited"))
     return fill(tpl("lead.html" if lead else "story.html"),
-                headline=s["headline"], blurb=s["blurb"], url=safe_url(s["url"]), source=s["source"],
+                id=s.get("id", ""), headline=s["headline"], blurb=s["blurb"], url=safe_url(s["url"]), source=s["source"],
                 age=age_label(s), tags=tags, badge=badge, why=why, raw_note=raw_note)
 
 
