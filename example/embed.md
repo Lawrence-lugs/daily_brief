@@ -18,6 +18,7 @@ const bar = root.createDiv({ cls: "daily-brief-bar" });
 const status = bar.createSpan();
 const btn = bar.createEl("button", { text: "Generate brief" });
 const logBtn = bar.createEl("button", { text: "Logs" });
+const reRenderBtn = bar.createEl("button", { text: "Re-render" });
 const logPopup = root.createDiv();
 logPopup.style.cssText = "display:none;position:fixed;right:1rem;bottom:1rem;z-index:9999;width:min(48rem,90vw);max-height:55vh;padding:0.75rem;background:var(--background-primary);border:1px solid var(--background-modifier-border);border-radius:8px;box-shadow:0 4px 24px #0005;";
 const logText = logPopup.createEl("pre");
@@ -25,6 +26,39 @@ logText.style.cssText = "max-height:calc(55vh - 2rem);overflow:auto;white-space:
 logText.setText("Logs appear here while a brief is being generated.");
 logBtn.onclick = () => {
   logPopup.style.display = logPopup.style.display === "none" ? "" : "none";
+};
+// Re-render: rebuild today's HTML from current CSS/templates only (no fetch/LLM),
+// then refresh the iframe. Faster than a full Generate; desktop-only.
+reRenderBtn.onclick = async () => {
+  reRenderBtn.disabled = true;
+  reRenderBtn.setText("Re-rendering...");
+  status.style.color = "";
+  status.setText("Re-rendering brief from current CSS/templates...");
+  logPath = path.join(os.tmpdir(), `daily-brief-rerender-${Date.now()}-${Math.random().toString(16).slice(2)}.log`);
+  fs.writeFileSync(logPath, "", "utf8");
+  lastLogText = "";
+  generationFinished = false;
+  logDeadline = Date.now() + 15 * 60 * 1000;
+  logText.setText("Waiting for generator output...");
+  if (logTimer) clearInterval(logTimer);
+  logTimer = setInterval(readLogs, 500);
+  cp.execFile(PYTHON, [SCRIPT, "--re-render", "--log-file", logPath, "--out", DIR], { cwd: ad.getBasePath(), timeout: 600000, windowsHide: true, maxBuffer: 1 << 24 },
+    async (err, stdout, stderr) => {
+      reRenderBtn.disabled = false;
+      reRenderBtn.setText("Re-render");
+      generationFinished = true;
+      // Refresh the iframe from disk once the re-render has exited,
+      // before cleaning up the temp log.
+      await load();
+      if (err) {
+        const tail = (stderr || err.message).trim().split("\n").slice(-2).join(" ");
+        status.setText("Re-render failed: " + tail);
+        status.style.color = "var(--text-error)";
+      } else {
+        status.setText("Brief re-rendered.");
+      }
+      readLogs(); // final read; removes the temp log once completion is detected
+    });
 };
 const frame = root.createEl("iframe");
 frame.setAttribute("sandbox", "allow-same-origin allow-scripts"); 
@@ -126,6 +160,7 @@ try {
 if (!cp || app.isMobile) {
   btn.style.display = "none"; // generation is desktop-only; mobile just displays the synced file
   logBtn.style.display = "none";
+  reRenderBtn.style.display = "none"; // re-render also needs desktop python
 } else {
   btn.onclick = () => {
     btn.disabled = true;

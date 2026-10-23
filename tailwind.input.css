@@ -18,62 +18,61 @@
   --font-paper: Literata, "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
 }
 
-/* ===== Story actions — carved stone =====
-   Idle buttons are raised (embossed) stone tiles. aria-pressed="true", or holding
-   the button down, sinks them into the slab (engraved) and recolors the glyph.
-   Grain is an SVG noise tile layered over a light-to-dark stone gradient. */
+/* ===== Story actions — carved stone (newspaper scheme) ===== */
 .story-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  --stone-hi: #ece7dc;
-  --stone-mid: #cbc4b5;
-  --stone-lo: #a59e8f;
-  --edge-light: #faf7f0;
-  --edge-dark: #4a453c;
-  --glyph: #3b362e;
-  --glyph-pressed: #8a5a1c;
+  gap: 0.75rem;
+  /* Newspaper scheme */
+  --face: #f5f5f4;            /* center face = page background */
+  --mocha: #d8c3a8;           /* shadow half — light mocha coffee stain */
+  --highlight: #ece7dc;       /* bevel highlight */
+  --size: 2rem;           /* ~1.5x the original 1.75rem button */
+  --glyph: #3b362e;           /* default unpressed icon ink */
+  --glyph-pressed: #784810;   /* deep warm ochre for active carved mark */
   --glyph-hi: rgba(255, 255, 255, 0.45);
-  --raised:
-    inset 0 1px 0 var(--edge-light),
-    inset 0 -2px 2px rgba(0, 0, 0, 0.28),
-    0 2px 0 var(--edge-dark),
-    0 4px 5px rgba(0, 0, 0, 0.35);
-  --sunken:
-    inset 0 2px 4px rgba(0, 0, 0, 0.55),
-    inset 0 -1px 0 var(--edge-light),
-    0 1px 0 var(--edge-light),
-    inset 0 0 0 transparent;
+  --face-sunk: #e5ded2;       /* recessed face background (replaces the dark ochre) */
 }
+
 .dark .story-actions {
-  --stone-hi: #5b5b61;
-  --stone-mid: #47474d;
-  --stone-lo: #36363b;
-  --edge-light: #74747b;
-  --edge-dark: #101013;
-  --glyph: #d6d0c0;
-  --glyph-pressed: #e3b35c;
-  --glyph-hi: rgba(255, 255, 255, 0.15);
+  --face: #020617;                                /* slate-950 page background */
+  --mocha: #332717;                               /* muted dark-amber frame (recedes) */
+  --mocha-pressed: oklch(82.8% 0.189 84.429);     /* amber-400 ONLY for active mark fill */
+  --highlight: #211c16;                           /* dark subtle bevel highlight */
+  --size: 2rem;
+  --glyph: #948f83;                               /* desaturated warm text/stroke when idle */
+  --glyph-hi: rgba(255, 255, 255, 0.08);          /* very faint edge reflection */
+  --face-sunk: #090d16;                           /* recessed dark tile face */
+}
+
+/* Ensure idle mark uses --glyph and active mark uses --mocha-pressed */
+.dark .save-mark,
+.dark .like-mark {
+  color: var(--glyph);
+  filter: drop-shadow(0 1px 0 var(--glyph-hi));
+}
+
+.dark .btn-save[aria-pressed="true"] .save-mark,
+.dark .btn-like[aria-pressed="true"] .like-mark {
+  color: var(--mocha-pressed);
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.35)); /* subtle amber glow when engaged */
 }
 
 .btn-save,
 .btn-like {
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23n)'/%3E%3C/svg%3E");
+  --bevel: 0.125rem;
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  min-width: 1.75rem;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  min-width: var(--size);
   padding: 0;
-  border: 0;
-  border-radius: 0.25rem;
-  background-color: var(--stone-mid);
-  background-image:
-    var(--grain),
-    linear-gradient(155deg, var(--stone-hi) 0%, var(--stone-mid) 50%, var(--stone-lo) 100%);
-  box-shadow: var(--raised);
+  border: 1px solid var(--mocha);
+  border-radius: 0.0625rem;
+  background: var(--mocha);   /* bottom-right shadow half */
   color: var(--glyph);
   font-family: var(--font-paper);
   font-size: 0.95rem;
@@ -81,72 +80,141 @@
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: box-shadow 0.1s ease, background-image 0.1s ease, transform 0.08s ease,
-    color 0.1s ease, filter 0.1s ease;
 }
+
+/* 1. The lighter half of the bevel (top-left diagonal triangle) */
+.btn-save::before,
+.btn-like::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--highlight);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* 2. The face covers the diagonal (center square) */
+.btn-save::after,
+.btn-like::after {
+  content: "";
+  position: absolute;
+  inset: var(--bevel);
+  z-index: -1;
+  background: var(--face);
+  box-shadow:
+    inset 1px 1px 0 var(--glyph-hi),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 3. Icon content fitted to the middle square */
+.btn-save > span:not(.sr-only),
+.btn-like > span:not(.sr-only) {
+  position: relative;
+  z-index: 1;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .btn-save:hover,
 .btn-like:hover {
   filter: brightness(1.05);
 }
+
 .btn-save:focus-visible,
 .btn-like:focus-visible {
   outline: 1px dotted var(--glyph);
   outline-offset: 3px;
 }
 
-/* Pressed: sunk into the slab. Applies to the saved/liked state and to the momentary click. */
+/* Pressed: engraved — swap bevel sides, recess face, and invert inner shadow */
 .btn-save[aria-pressed="true"],
-.btn-like[aria-pressed="true"],
 .btn-save:active,
+.btn-like[aria-pressed="true"],
 .btn-like:active {
-  background-image:
-    var(--grain),
-    linear-gradient(200deg, var(--stone-lo) 0%, var(--stone-mid) 100%);
-  box-shadow: var(--sunken);
+  background: var(--highlight);   /* bottom-right half now highlight */
   transform: translateY(1px);
 }
-.btn-save[aria-pressed="true"],
-.btn-like[aria-pressed="true"] {
-  color: var(--glyph-pressed);
+
+.btn-save[aria-pressed="true"]::before,
+.btn-save:active::before,
+.btn-like[aria-pressed="true"]::before,
+.btn-like:active::before {
+  background: var(--mocha);       /* top-left half now mocha (swapped) */
 }
 
-/* Save: the check is carved in when on. */
-.save-off {
-  display: inline;
-}
-.save-on {
-  display: none;
-  text-shadow: 0 1px 0 var(--glyph-hi);
-}
-.btn-save[aria-pressed="true"] .save-off {
-  display: none;
-}
-.btn-save[aria-pressed="true"] .save-on {
-  display: inline;
-  text-shadow: 0 -1px 0 var(--glyph-hi);
+.btn-save[aria-pressed="true"]::after,
+.btn-save:active::after,
+.btn-like[aria-pressed="true"]::after,
+.btn-like:active::after {
+  background: var(--face-sunk);   /* center square sunk */
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 0 var(--glyph-hi);
 }
 
-/* Like: a bookmark ribbon drawn with a mask so it follows currentColor. */
-.btn-like {
-  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1.5h8v13L6 11.2 2 14.5z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='miter'/%3E%3C/svg%3E");
+/* Save: checkmark mask fitted to the middle square */
+.btn-save {
+  --check-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-.btn-like[aria-pressed="true"] {
-  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1h8v14L6 11.7 2 15z' fill='black'/%3E%3C/svg%3E");
+
+.btn-save[aria-pressed="true"] {
+  --check-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z' fill='black'/%3E%3C/svg%3E");
 }
-.like-mark {
+
+.save-mark {
   display: inline-flex;
   font-size: 0;
   line-height: 0;
   filter: drop-shadow(0 1px 0 var(--glyph-hi));
+  color: var(--mocha);
 }
+
+.btn-save[aria-pressed="true"] .save-mark {
+  filter: drop-shadow(0 -1px 0 var(--glyph-hi));
+  color: var(--mocha);
+}
+
+.save-mark::before {
+  content: "";
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+  background: currentColor;
+  -webkit-mask: var(--check-off) center / contain no-repeat;
+          mask: var(--check-off) center / contain no-repeat;
+}
+
+/* Like: bookmark ribbon mask fitted to the middle square */
+.btn-like {
+  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1.5h8v13L6 11.2 2 14.5z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='miter'/%3E%3C/svg%3E");
+}
+
+.btn-like[aria-pressed="true"] {
+  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1h8v14L6 11.7 2 15z' fill='black'/%3E%3C/svg%3E");
+}
+
+.like-mark {
+  display: inline-flex;
+  font-size: 0;
+  line-height: 0;
+  color: var(--mocha);
+  filter: drop-shadow(0 1px 0 var(--glyph-hi));
+}
+
 .btn-like[aria-pressed="true"] .like-mark {
   filter: drop-shadow(0 -1px 0 var(--glyph-hi));
+  color: var(--mocha);
 }
+
 .like-mark::before {
   content: "";
   display: block;
-  width: 0.7rem;
-  height: 0.95rem;
+  width: 0.95rem;
+  height: 1.2rem;
   background: currentColor;
   -webkit-mask: var(--ribbon) center / contain no-repeat;
           mask: var(--ribbon) center / contain no-repeat;
