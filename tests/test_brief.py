@@ -548,3 +548,22 @@ def test_re_render_invalid_date_format(tmp_path):
     finally:
         sys.argv = old_argv
     assert rc == 1
+
+def test_re_render_embeds_saved_day_state(tmp_path):
+    """Saved/liked marks in YYYY-MM-DD.json survive a re-render and reach the page."""
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    (tmp_path / "issue-history.json").write_text(
+        json.dumps([_history_entry("2026-10-20", now.isoformat())]), encoding="utf-8")
+    (tmp_path / "2026-10-20.json").write_text(
+        json.dumps({"date": "2026-10-20", "stories": {"a": {"saved": True, "liked": False}}}),
+        encoding="utf-8")
+    brief.re_render({"paper_name": "P"}, now, "2026-10-20", tmp_path)
+    out = (tmp_path / "2026-10-20.html").read_text(encoding="utf-8")
+    assert '"saved": true' in out or '"saved":true' in out
+    assert '"date": "2026-10-20"' in out or '"date":"2026-10-20"' in out
+
+
+def test_load_day_state_defaults_and_tolerates_malformed(tmp_path):
+    assert brief.load_day_state(tmp_path, "2026-10-20") == {"date": "2026-10-20", "stories": {}}
+    (tmp_path / "2026-10-20.json").write_text("{not json", encoding="utf-8")
+    assert brief.load_day_state(tmp_path, "2026-10-20") == {"date": "2026-10-20", "stories": {}}

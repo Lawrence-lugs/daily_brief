@@ -1,7 +1,3 @@
-
-
-Sample dataview snippet that can run or retrieve the daily brief 
-
 ```dataviewjs
 // Daily brief. Docs: 98-Scripts/daily_brief/README.md
 const SCRIPT = "98-Scripts/daily_brief/src/brief.py";
@@ -122,10 +118,23 @@ function readLogs() {
     if (e.code !== "ENOENT") console.error("Could not read temporary brief log", e);
   }
 }
+// Save/like toggles arrive from the iframe; write them to YYYY-MM-DD.json beside the HTML.
+let stateWrites = Promise.resolve();
+const onBriefState = (e) => {
+  if (e.source !== frame.contentWindow) return;
+  const msg = e.data;
+  if (!msg || msg.type !== "brief-state" || !/^\d{4}-\d{2}-\d{2}$/.test(msg.date)) return;
+  const body = JSON.stringify({ date: msg.date, stories: msg.stories }, null, 1);
+  stateWrites = stateWrites
+    .then(() => ad.write(`${DIR}/${msg.date}.json`, body))
+    .catch((err) => console.error("Could not save brief state", err));
+};
+window.addEventListener("message", onBriefState);
 dv.component.register(() => {
   mo.disconnect();
   ro.disconnect();
   if (logTimer) clearInterval(logTimer);
+  window.removeEventListener("message", onBriefState);
 });
 
 async function load() {
@@ -143,7 +152,15 @@ async function load() {
   const stale = date !== window.moment().format("YYYY-MM-DD");
   status.setText(stale ? `Latest brief is from ${date} (not today)` : `Brief for ${date}`);
   status.style.color = stale ? "var(--text-warning)" : "";
+  await stateWrites;
   let html = await ad.read(latest);
+  let dayState = { stories: {} };
+  try {
+    const stateFile = `${DIR}/${date}.json`;
+    if (await ad.exists(stateFile)) dayState = JSON.parse(await ad.read(stateFile));
+  } catch (e) { console.error("Could not read brief state", e); }
+  const stateJson = JSON.stringify({ date, stories: dayState.stories || {} }).replace(/</g, "\\u003c");
+  html = html.replace(/<script id="brief-state">[\s\S]*?<\/script>/, () => `<script id="brief-state">window.BRIEF_STATE = ${stateJson};</script>`);
   html = html.replace('<html lang="en">', `<html lang="en" class="${isDark() ? "dark" : "light"}">`);
   frame.style.display = "";
   frame.srcdoc = html;

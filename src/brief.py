@@ -226,13 +226,35 @@ def render_desk(stories: list[dict]) -> str:
     return "".join(render_story(s, lead=(i == 0)) for i, s in enumerate(stories))
 
 
-def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta: dict) -> str:
+def day_state_path(out_dir: Path, date_key: str) -> Path:
+    return out_dir / f"{date_key}.json"
+
+
+def load_day_state(out_dir: Path, date_key: str) -> dict:
+    """Per-story saved/liked flags written by the viewer (YYYY-MM-DD.json beside the HTML).
+
+    The generator only reads this file, so regenerating a day keeps the reader's marks.
+    """
+    empty = {"date": date_key, "stories": {}}
+    path = day_state_path(out_dir, date_key)
+    try:
+        data = load_json(path, empty)
+    except json.JSONDecodeError:
+        util.warn(f"{path} is malformed; ignoring its saved/liked marks")
+        return empty
+    stories = data.get("stories") if isinstance(data, dict) else None
+    return {"date": date_key, "stories": stories if isinstance(stories, dict) else {}}
+
+
+def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta: dict,
+                day_state: dict | None = None) -> str:
     css = (PROJECT_ROOT / "tailwind.css").read_text(encoding="utf-8")
     local_now = now.astimezone()
     foot = (f"Edited by {meta['model']}. {meta['n_fresh']} recent, {meta['n_archive']} from the archive. "
             f"{meta['n_explore']} explore picks (epsilon {meta['epsilon']}). "
             f"Candidate pool: {meta['pool']} items. Sources: {meta['sources']}.")
     warn_html = Raw("".join(fill(tpl("warning.html"), text=w) for w in WARNINGS[:6]))
+    state_json = json.dumps(day_state or {"stories": {}}, ensure_ascii=False).replace("<", "\\u003c")
     return fill(
         tpl("page.html"),
         css=Raw(css), paper_name=cfg["paper_name"],
@@ -243,7 +265,7 @@ def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta:
         primary_stories=Raw(render_desk(desks["primary"]["stories"])),
         science_title=desks["science"]["title"], science_deck=desks["science"]["deck"],
         science_stories=Raw(render_desk(desks["science"]["stories"])),
-        warnings=warn_html, footer=foot,
+        warnings=warn_html, footer=foot, state=Raw(state_json),
     )
 
 
@@ -309,7 +331,8 @@ def re_render(cfg: dict, now: dt.datetime, date_key: str, out_dir: Path) -> int:
     # Render faithful to the original edition's timestamp (not the re-render
     # time), so date_long / generated stay the same and only CSS/templates change.
     render_now = parse_date(entry.get("generated")) or now
-    page = render_page(cfg, render_now, entry.get("edition", 1), desks_out, meta)
+    page = render_page(cfg, render_now, entry.get("edition", 1), desks_out, meta,
+                       load_day_state(out_dir, date_key))
     out_path = out_dir / f"{date_key}.html"
     out_path.write_text(page, encoding="utf-8")
     util.log(f"re-rendered {out_path} ({len(all_stories)} stories, model={meta['model']})")
@@ -501,7 +524,7 @@ def main() -> int:
         "epsilon": scfg["epsilon"], "pool": len(pool),
         "sources": ", ".join(sorted({s["source"].split(":")[0] for s in all_stories})),
     }
-    page = render_page(cfg, now, edition_no, desks_out, meta)
+    page = render_page(cfg, now, edition_no, desks_out, meta, load_day_state(out_dir, date_key))
     out_path.write_text(page, encoding="utf-8")
     util.log(f"brief generation done: {out_path} ({len(all_stories)} stories, model={meta['model']}, "
              f"llm_requests={llm.requests if llm else 0})")

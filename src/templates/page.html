@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>{{paper_name}} - {{date_long}}</title>
 <style>{{css}}</style>
+<script id="brief-state">window.BRIEF_STATE = {{state}};</script>
 </head>
 <body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200">
 <div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">
@@ -49,11 +50,42 @@
 
   <script>
     (function () {
+      var state = window.BRIEF_STATE || { stories: {} };
+      var date = state.date || '';
+      var inFrame = window.parent !== window;
+      var storageKey = 'daily-brief:' + date;
+      if (!inFrame) {
+        try {
+          var local = JSON.parse(localStorage.getItem(storageKey) || 'null');
+          if (local && local.stories) { state.stories = local.stories; }
+        } catch (e) { /* storage unavailable: keep the generated marks */ }
+      }
+      var stories = state.stories || (state.stories = {});
+
+      function applyState() {
+        document.querySelectorAll('[data-action]').forEach(function (btn) {
+          var s = stories[btn.getAttribute('data-story-id')] || {};
+          var on = btn.getAttribute('data-action') === 'save' ? !!s.saved : !!s.liked;
+          btn.setAttribute('aria-pressed', String(on));
+        });
+      }
+
+      function persist(id, action, on) {
+        var s = stories[id] || (stories[id] = { saved: false, liked: false });
+        if (action === 'save') { s.saved = on; } else { s.liked = on; }
+        if (inFrame) {
+          window.parent.postMessage({ type: 'brief-state', date: date, stories: stories }, '*');
+        } else {
+          try { localStorage.setItem(storageKey, JSON.stringify({ date: date, stories: stories })); } catch (e) { /* ignore */ }
+        }
+      }
+
       function handleAction(btn) {
         var pressed = btn.getAttribute('aria-pressed') === 'true';
         btn.setAttribute('aria-pressed', String(!pressed));
         var id = btn.getAttribute('data-story-id');
         var action = btn.getAttribute('data-action');
+        persist(id, action, !pressed);
         var detail = { id: id, action: action };
         if (action === 'like') { detail.liked = !pressed; }
         if (action === 'save') { detail.saved = !pressed; }
@@ -70,6 +102,7 @@
         e.preventDefault();
         handleAction(btn);
       });
+      applyState();
     })();
   </script>
 </div>
