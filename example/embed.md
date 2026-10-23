@@ -27,7 +27,7 @@ logBtn.onclick = () => {
   logPopup.style.display = logPopup.style.display === "none" ? "" : "none";
 };
 const frame = root.createEl("iframe");
-frame.setAttribute("sandbox", "allow-same-origin"); // no scripts run inside; we can still set its theme
+frame.setAttribute("sandbox", "allow-same-origin allow-scripts"); 
 frame.style.cssText = "width:100%;height:600px;border:0;border-radius:12px;";
 
 const isDark = () => document.body.classList.contains("theme-dark");
