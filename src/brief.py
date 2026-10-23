@@ -6,6 +6,8 @@
     python brief.py --no-fetch      # reuse the persisted pool, skip the network fetch
     python brief.py --dry-run       # do everything but do not persist state
     python brief.py --seed 3        # reproducible epsilon-greedy draws
+    python brief.py --re-render     # rebuild today's HTML from current CSS/templates only
+    python brief.py --re-render --date 2026-10-20   # rebuild a past edition the same way
 
 Pipeline: fetch real feeds -> normalize/classify -> merge into persistent pool (state.json)
 -> epsilon-greedy select per desk (selection.py) -> LLM edits + summarizes -> render Tailwind
@@ -245,6 +247,76 @@ def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta:
     )
 
 
+def append_issue_history(out_dir: Path, entry: dict) -> None:
+    """Append one edition's layout to issue-history.json beside the HTML.
+
+    Kept out of state.json on purpose: issue-history.json is presentation
+    history (what stories were shown, with their edited headlines/blurbs), while
+    state.json is the mutable candidate pool plus seen/rejected counters. Each
+    successful full run appends one entry so a later ``--re-render`` can rebuild
+    the page from current CSS/templates without re-picking stories or burning
+    LLM requests.
+    """
+    path = out_dir / "issue-history.json"
+    history = load_json(path, [])
+    history.append(entry)
+    save_json_atomic(path, history)
+
+
+def re_render(cfg: dict, now: dt.datetime, date_key: str, out_dir: Path) -> int:
+    """Re-render a stored edition from current CSS + templates only.
+
+    No network, fetch, selection, LLM, or state mutation. Reads the stored
+    edition layout from issue-history.json beside the output HTML, so an
+    updated tailwind.css or templates/ takes effect immediately without
+    re-picking stories or burning LLM requests.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        history = load_json(out_dir / "issue-history.json", [])
+    except json.JSONDecodeError:
+        util.log(f"{out_dir / 'issue-history.json'} is malformed; "
+                 f"run a full generation first (without --re-render)")
+        return 1
+    entry = None
+    for e in history:
+        if e.get("date") == date_key:
+            entry = e
+            break
+    if entry is None:
+        util.log(f"no stored edition for {date_key} in {out_dir / 'issue-history.json'}; "
+                 f"run a full generation first (without --re-render)")
+        return 1
+
+    desks_out = entry.get("desks")
+    if not isinstance(desks_out, dict) or "primary" not in desks_out or "science" not in desks_out:
+        util.log(f"stored edition for {date_key} in {out_dir / 'issue-history.json'} "
+                 f"is missing its desks; run a full generation first (without --re-render)")
+        return 1
+    meta = dict(entry.get("meta", {}))
+    meta.setdefault("model", "no model (raw items)")
+    # Recompute story counts from the stored desks so they stay consistent.
+    all_stories = [s for d in desks_out.values() for s in d.get("stories", [])]
+    meta["n_fresh"] = sum(s.get("kind") == "fresh" for s in all_stories)
+    meta["n_archive"] = sum(s.get("kind") == "archive" for s in all_stories)
+    meta["n_explore"] = sum(s.get("mode") == "explore" for s in all_stories)
+    scfg = {**sel.DEFAULTS, **cfg.get("selection", {})}
+    meta.setdefault("epsilon", scfg.get("epsilon", 0.25))
+    meta.setdefault("pool", len(all_stories))
+    meta.setdefault("sources", ", ".join(sorted({s.get("source", "").split(":")[0]
+                                                 for s in all_stories if s.get("source")})))
+
+    # Render faithful to the original edition's timestamp (not the re-render
+    # time), so date_long / generated stay the same and only CSS/templates change.
+    render_now = parse_date(entry.get("generated")) or now
+    page = render_page(cfg, render_now, entry.get("edition", 1), desks_out, meta)
+    out_path = out_dir / f"{date_key}.html"
+    out_path.write_text(page, encoding="utf-8")
+    util.log(f"re-rendered {out_path} ({len(all_stories)} stories, model={meta['model']})")
+    print(f"OK {out_path} ({len(all_stories)} stories, model={meta['model']})")
+    return 0
+
+
 # --------------------------------------------------------------------------- main
 
 def main() -> int:
@@ -254,6 +326,11 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int)
     ap.add_argument("--out", help="override output path")
+    ap.add_argument("--re-render", action="store_true",
+                    help="re-render a stored edition from current CSS/templates (no fetch/LLM)")
+    ap.add_argument("--render-only", action="store_true", dest="re_render", help=argparse.SUPPRESS)
+    ap.add_argument("--date", metavar="YYYY-MM-DD",
+                    help="edition date for --re-render (default today)")
     # --refresh-api-feeds is the hidden trigger used by the detached background
     # refresh process spawned by fetch_all.  The background refresh is on by
     # default; --no-refresh-api-feeds disables spawning it.
@@ -266,6 +343,9 @@ def main() -> int:
 
     cfg = load_json(PROJECT_ROOT / "config.json")
     src = load_json(PROJECT_ROOT / "sources.json")
+
+    now = dt.datetime.now(UTC)
+    date_key = args.date or now.astimezone().strftime("%Y-%m-%d")
 
     if args.refresh_api_feeds:
         # Detached background refresh: fetch every "api" feed, classify, merge,
@@ -288,6 +368,21 @@ def main() -> int:
     if not (PROJECT_ROOT / "tailwind.css").exists():
         util.log("tailwind.css missing. Run build_css.ps1 once (see README).")
         return 1
+
+    if args.re_render:
+        if args.date:
+            try:
+                dt.date.fromisoformat(args.date)
+            except ValueError:
+                util.log(f"--date must be YYYY-MM-DD, got {args.date!r}")
+                return 1
+            date_key = args.date
+        else:
+            date_key = now.astimezone().strftime("%Y-%m-%d")
+        out_dir = Path(args.out) if args.out else PROJECT_ROOT / cfg["edition_dir"]
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return re_render(cfg, now, date_key, out_dir)
+
     scfg = {**sel.DEFAULTS, **cfg["selection"]}
     rng = random.Random(args.seed)
     now = dt.datetime.now(UTC)
@@ -411,7 +506,8 @@ def main() -> int:
     util.log(f"brief generation done: {out_path} ({len(all_stories)} stories, model={meta['model']}, "
              f"llm_requests={llm.requests if llm else 0})")
 
-    # 5. persist state only after a successful write
+    # 5. persist state (and the beside-HTML issue history) only after a successful write.
+    #    --dry-run renders the page but does not mutate state.json or issue-history.json.
     if not args.dry_run:
         for iid in shown_ids:
             it = state["items"].get(iid)
@@ -425,6 +521,18 @@ def main() -> int:
                                        "generated": now.isoformat(), "model": meta["model"],
                                        "llm_requests": llm.requests if llm else 0}
         save_json_atomic(STATE_FILE, state)
+        # Record this edition's layout beside the HTML so --re-render can rebuild
+        # it from current CSS/templates without re-running fetch/selection/LLM.
+        # Kept out of state.json: issue-history.json is presentation history, while
+        # state.json is the mutable candidate pool + seen/rejected counters.
+        append_issue_history(out_dir, {
+            "date": date_key,
+            "edition": edition_no,
+            "generated": now.isoformat(),
+            "model": meta["model"],
+            "desks": desks_out,
+            "meta": meta,
+        })
     print(f"OK {out_path} ({len(all_stories)} stories, model={meta['model']}, "
           f"llm_requests={llm.requests if llm else 0})")
     return 0

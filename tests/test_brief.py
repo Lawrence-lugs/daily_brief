@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import sys
 import urllib.error
 from unittest.mock import patch
 
@@ -393,3 +394,157 @@ def test_openrouter_unauthorized_is_fatal(mocked_urlopen):
         assert "HTTP 401" in str(e)
     else:
         raise AssertionError("expected LLMUnavailable for HTTP 401")
+
+
+# --------------------------------------------------------------------------- issue-history + re-render
+
+_STORY = {
+    "id": "a", "headline": "Headline A", "blurb": "Blurb A sentence one.",
+    "url": "https://x/a", "source": "Example Journal", "age_days": 1,
+    "kind": "fresh", "mode": "greedy", "tags": ["dse"], "why_care": "",
+    "summarized": True, "significance": 3,
+}
+
+
+def _history_entry(date_key, generated, desks=None, edition=1, model="test-model"):
+    desks = desks or {
+        "primary": {"title": "Primary Desk", "deck": "primary deck", "stories": [_STORY]},
+        "science": {"title": "Science Desk", "deck": "science deck", "stories": []},
+    }
+    return {
+        "date": date_key, "edition": edition, "generated": generated,
+        "model": model, "desks": desks,
+        "meta": {"model": model, "n_fresh": 1, "n_archive": 0, "n_explore": 0,
+                 "epsilon": 0.25, "pool": 1, "sources": "Example Journal"},
+    }
+
+
+def test_append_issue_history_appends_entries(tmp_path):
+    brief.append_issue_history(tmp_path, _history_entry("2026-10-20", "2026-10-20T12:00:00+00:00"))
+    brief.append_issue_history(tmp_path, _history_entry("2026-10-21", "2026-10-21T12:00:00+00:00"))
+    history = json.loads((tmp_path / "issue-history.json").read_text(encoding="utf-8"))
+    assert [e["date"] for e in history] == ["2026-10-20", "2026-10-21"]
+    assert history[0]["desks"]["primary"]["stories"][0]["headline"] == "Headline A"
+
+
+def test_re_render_picks_up_stored_edition(tmp_path):
+    """re-render rebuilds the HTML from current CSS/templates using the stored layout."""
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    (tmp_path / "issue-history.json").write_text(
+        json.dumps([_history_entry("2026-10-20", now.isoformat())]), encoding="utf-8")
+    rc = brief.re_render({"paper_name": "ReRender Paper"}, now, "2026-10-20", tmp_path)
+    assert rc == 0
+    out = (tmp_path / "2026-10-20.html").read_text(encoding="utf-8")
+    assert "<html" in out and "ReRender Paper" in out
+    assert "Headline A" in out
+    assert "Primary Desk" in out and "Science Desk" in out
+    # compiled CSS is inlined from the project root
+    assert "<style>" in out and "body" in out.lower()
+
+
+def test_re_render_missing_edition_errors(tmp_path):
+    """No stored edition for the date -> clean error, nonzero exit, no HTML."""
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    (tmp_path / "issue-history.json").write_text(
+        json.dumps([_history_entry("2026-10-19", now.isoformat())]), encoding="utf-8")
+    rc = brief.re_render({"paper_name": "X"}, now, "2026-10-20", tmp_path)
+    assert rc == 1
+    assert not (tmp_path / "2026-10-20.html").exists()
+
+
+def test_re_render_uses_original_timestamp(tmp_path):
+    """The re-rendered page keeps the original edition's generated/date_long."""
+    original = dt.datetime(2026, 10, 15, 9, 30, 0, tzinfo=dt.timezone.utc)
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    (tmp_path / "issue-history.json").write_text(
+        json.dumps([_history_entry("2026-10-15", original.isoformat())]), encoding="utf-8")
+    brief.re_render({"paper_name": "P"}, now, "2026-10-15", tmp_path)
+    out = (tmp_path / "2026-10-15.html").read_text(encoding="utf-8")
+    assert "October 15, 2026" in out  # original edition's date, not today's (Oct 20)
+    # generated time matches the stored instant rendered in the local zone
+    assert original.astimezone().strftime("%H:%M") in out
+    assert now.astimezone().strftime("%H:%M") not in out
+    assert "Headline A" in out
+
+
+def test_re_render_missing_history_file(tmp_path):
+    """No issue-history.json at all -> clean error, rc 1, no HTML."""
+    rc = brief.re_render({"paper_name": "P"}, dt.datetime.now(dt.timezone.utc),
+                           "2026-10-20", tmp_path)
+    assert rc == 1
+    assert not any(tmp_path.iterdir())
+
+
+def test_re_render_malformed_history_json(tmp_path):
+    """Corrupt issue-history.json -> clean error, rc 1, no crash."""
+    (tmp_path / "issue-history.json").write_text("{not valid json", encoding="utf-8")
+    rc = brief.re_render({"paper_name": "P"}, dt.datetime.now(dt.timezone.utc),
+                           "2026-10-20", tmp_path)
+    assert rc == 1
+    assert not (tmp_path / "2026-10-20.html").exists()
+
+
+def test_re_render_missing_desks_key_graceful(tmp_path):
+    """A stored entry without a usable `desks` key -> rc 1, no KeyError."""
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    (tmp_path / "issue-history.json").write_text(
+        json.dumps([{"date": "2026-10-20", "generated": now.isoformat(), "model": "m"}]),
+        encoding="utf-8")
+    rc = brief.re_render({"paper_name": "P"}, now, "2026-10-20", tmp_path)
+    assert rc == 1
+    assert not (tmp_path / "2026-10-20.html").exists()
+
+
+def test_re_render_meta_missing_fields(tmp_path):
+    """Entry with no `meta` (or missing epsilon/pool/sources/model) -> defaults fill in."""
+    now = dt.datetime(2026, 10, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
+    entry = _history_entry("2026-10-20", now.isoformat())
+    del entry["meta"]
+    (tmp_path / "issue-history.json").write_text(json.dumps([entry]), encoding="utf-8")
+    rc = brief.re_render({"paper_name": "P"}, now, "2026-10-20", tmp_path)
+    assert rc == 0
+    out = (tmp_path / "2026-10-20.html").read_text(encoding="utf-8")
+    assert "Headline A" in out
+
+
+def test_re_render_via_main_with_date_and_out(tmp_path):
+    """CLI path: main --re-render --date --out rebuilds HTML from history (no network)."""
+    entry = _history_entry("2026-10-20", "2026-10-20T12:00:00+00:00")
+    (tmp_path / "issue-history.json").write_text(json.dumps([entry]), encoding="utf-8")
+    old_argv = sys.argv
+    sys.argv = ["brief.py", "--re-render", "--date", "2026-10-20",
+                              "--out", str(tmp_path)]
+    try:
+        rc = brief.main()
+    finally:
+        sys.argv = old_argv
+    assert rc == 0
+    out = (tmp_path / "2026-10-20.html").read_text(encoding="utf-8")
+    assert "Headline A" in out and "Primary Desk" in out
+
+
+def test_render_only_alias(tmp_path):
+    """--render-only behaves identically to --re-render."""
+    entry = _history_entry("2026-10-20", "2026-10-20T12:00:00+00:00")
+    (tmp_path / "issue-history.json").write_text(json.dumps([entry]), encoding="utf-8")
+    old_argv = sys.argv
+    sys.argv = ["brief.py", "--render-only", "--date", "2026-10-20",
+                              "--out", str(tmp_path)]
+    try:
+        rc = brief.main()
+    finally:
+        sys.argv = old_argv
+    assert rc == 0
+    assert (tmp_path / "2026-10-20.html").exists()
+
+
+def test_re_render_invalid_date_format(tmp_path):
+    """--date not-a-date -> rc 1 via main."""
+    old_argv = sys.argv
+    sys.argv = ["brief.py", "--re-render", "--date", "not-a-date",
+                              "--out", str(tmp_path)]
+    try:
+        rc = brief.main()
+    finally:
+        sys.argv = old_argv
+    assert rc == 1
