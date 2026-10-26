@@ -1,6 +1,8 @@
 {
   "paper_name": "The Daily Die",
   "edition_dir": "05-for-agents/daily-brief",
+  "db_file": "daily_brief.db",
+  "debug_dir": "logs",
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
   "max_agent_output_items_per_desk": 5,

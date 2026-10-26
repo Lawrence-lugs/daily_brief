@@ -1,3 +1,9 @@
 __pycache__/
+node_modules/
 state.json
 .agents/
+*.db
+*.db-wal
+*.db-shm
+logs/
+.server.pid

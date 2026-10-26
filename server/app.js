@@ -11,7 +11,7 @@ const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; chars
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** @param {{root:string, port:number, python?:string}} o  root = project dir holding config.json */
-export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'python' }) {
+export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'python', onShutdown }) {
   const cfg = JSON.parse(readFileSync(path.join(root, 'config.json'), 'utf8'));
   const db = openDb(path.resolve(root, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
   const q = makeQueries(db);
@@ -101,6 +101,14 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
           const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });
         }
+        if (p === '/api/shutdown') {
+          // Clean off-switch for the background server. Guarded like any other write (requires the
+          // X-Brief-Client header, which a foreign origin cannot forge due to the missing CORS
+          // preflight response). Respond first, then shut down once the response is on its way.
+          json(res, 200, { ok: true });
+          res.on('finish', () => { if (typeof onShutdown === 'function') onShutdown(); });
+          return;
+        }
       }
       return json(res, 404, { error: 'not found' });
     } catch (e) {
@@ -108,5 +116,5 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
     }
   }
 
-  return { handler, close: () => db.close(), db, jobs };
+  return { handler, close: () => db.close(), shutdown: onShutdown, db, jobs };
 }

@@ -1,67 +1,46 @@
 #!/usr/bin/env python3
-"""Daily research brief generator (stdlib only).
+"""Daily research brief generator (stdlib only) -- SQLite edition.
 
-    python brief.py                 # full run: fetch -> select -> LLM -> render
+    python brief.py                 # full run: fetch -> select -> LLM -> append to DB
     python brief.py --no-llm        # offline edition from raw snippets (no OpenRouter calls)
     python brief.py --no-fetch      # reuse the persisted pool, skip the network fetch
-    python brief.py --dry-run       # do everything but do not persist state
+    python brief.py --dry-run       # do everything but do not write the brief / counters
     python brief.py --seed 3        # reproducible epsilon-greedy draws
-    python brief.py --re-render     # rebuild today's HTML from current CSS/templates only
-    python brief.py --re-render --date 2026-10-20   # rebuild a past edition the same way
 
-Pipeline: fetch real feeds -> normalize/classify -> merge into persistent pool (state.json)
--> epsilon-greedy select per desk (selection.py) -> LLM edits + summarizes -> render Tailwind
-template -> write 05-for-agents/daily-brief/YYYY-MM-DD.html -> persist state.
+Pipeline: fetch feeds -> classify -> upsert candidate_pool -> epsilon-greedy select per desk
+(selection.py) -> LLM edits + summarizes -> db.append_brief (one atomic write).
+HTML rendering now lives in the node server (server/lib/render.js); this file never writes HTML.
 
-The model never supplies URLs or items; it only ranks and writes about candidates we fetched.
-See README.md for the design.
-
-Modules:
-    util.py           shared logging/warnings state
-    fetch/fetcher.py  Fetcher base class, HTTP cache, generic throttler, feed parsers,
-                      fetch_rss, FETCHERS registry, fetch_all, refresh_api_feeds
-    fetch/semanticscholar.py SemanticScholarFetcher(Fetcher) + fetch_semanticscholar
-    fetch/hn.py       legacy HN Algolia fetcher (migrated out; HN is now RSS)
-    agent.py          LLM chat loop, extract_json/salvage_items, build_user_message, apply_editor
-    selection.py      epsilon-greedy selection (unchanged)
-    brief.py          thin orchestrator: state/pool, classify, render, main, CLI
+NOTE: fetch/fetcher.py does `from brief import Fetcher, CACHE`; keep those names exported here.
 """
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import html
 import json
-import os
 import random
 import re
 import sys
-import time
 from pathlib import Path
 
 import selection as sel
 
 import util
-from util import WARNINGS, log, warn
-from fetch.fetcher import (
+import db
+from util import log, warn
+from fetch.fetcher import (  # noqa: F401  (Fetcher/CACHE are re-imported by fetcher.py)
     Fetcher,
     parse_date,
-    canonical_url,
-    parse_feed,
-    fetch_rss,
     fetch_all,
     refresh_api_feeds,
     _iter_feed_specs,
 )
-from fetch.semanticscholar import fetch_semanticscholar
-from agent import LLM, LLMUnavailable, extract_json, build_user_message, apply_editor
+from fetch.semanticscholar import fetch_semanticscholar  # noqa: F401  (registers the api fetcher)
+from agent import LLM, LLMUnavailable, build_user_message, apply_editor
 
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parent
 CACHE = Path.home() / ".cache" / "daily_brief"
-STATE_FILE = PROJECT_ROOT / "state.json"
-TEMPLATES = HERE / "templates"
-
 UTC = dt.timezone.utc
 
 
@@ -71,43 +50,8 @@ def load_json(path: Path, default=None):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def save_json_atomic(path: Path, obj) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(obj, indent=1, ensure_ascii=False), encoding="utf-8")
-    os.replace(tmp, path)
-
-
-# --------------------------------------------------------------------------- state / pool
-
-def load_state() -> dict:
-    return load_json(STATE_FILE, {"version": 1, "items": {}, "editions": {}})
-
-
-def merge_pool(state: dict, fresh: list[dict], now: dt.datetime, max_age: float,
-               dropped_ids: set[str] = frozenset()) -> int:
-    added = 0
-    pool = state["items"]
-    for iid in dropped_ids:  # fetched again but no longer classified as relevant
-        pool.pop(iid, None)
-    for it in fresh:
-        old = pool.get(it["id"])
-        if old:
-            # Re-fetched items are reclassified so keyword fixes take effect on existing pool entries.
-            old["rel"], old["subtopic"], old["desk"] = it["rel"], it["subtopic"], it["desk"]
-            old["source_type"] = it.get("source_type", "commentary")
-            if not old.get("snippet") and it["snippet"]:
-                old["snippet"] = it["snippet"]
-            continue
-        pool[it["id"]] = {
-            **{k: it[k] for k in ("id", "url", "title", "snippet", "published", "source",
-                                  "source_type", "subtopic", "desk", "rel")},
-            "first_seen": now.isoformat(), "times_shown": 0, "rejected": 0, "last_shown": None,
-        }
-        added += 1
-    for iid in list(pool):
-        if age_days(pool[iid], now) > max_age:
-            del pool[iid]
-    return added
+def db_path(cfg: dict) -> Path:
+    return PROJECT_ROOT / cfg.get("db_file", "daily_brief.db")
 
 
 def age_days(item: dict, now: dt.datetime) -> float:
@@ -115,22 +59,7 @@ def age_days(item: dict, now: dt.datetime) -> float:
     return max(0.0, (now - d).total_seconds() / 86400)
 
 
-def rollback_same_day(state: dict, date_key: str) -> None:
-    """Re-running on the same day must not count the earlier edition as 'already shown'."""
-    prev = state["editions"].get(date_key)
-    if not prev:
-        return
-    for iid in prev.get("ids", []):
-        it = state["items"].get(iid)
-        if it and it["times_shown"] > 0:
-            it["times_shown"] -= 1
-    for iid in prev.get("rejected_ids", []):
-        it = state["items"].get(iid)
-        if it and it["rejected"] > 0:
-            it["rejected"] -= 1
-
-
-# --------------------------------------------------------------------------- classification
+# --------------------------------------------------------------------------- classification (unchanged)
 
 _TERM_CACHE: dict[str, re.Pattern] = {}
 
@@ -179,167 +108,6 @@ def classify(item: dict, keywords: dict, subtopic_to_desk: dict) -> dict | None:
     return item
 
 
-# --------------------------------------------------------------------------- rendering
-
-class Raw(str):
-    pass
-
-
-def fill(tpl: str, **vals) -> str:
-    def esc(v):
-        return v if isinstance(v, Raw) else html.escape(str(v), quote=True)
-    return re.sub(r"\{\{(\w+)\}\}", lambda m: esc(vals.get(m.group(1), "")), tpl)
-
-
-def tpl(name: str) -> str:
-    return (TEMPLATES / name).read_text(encoding="utf-8")
-
-
-def age_label(s: dict) -> str:
-    d = s["age_days"]
-    if d < 1:
-        return "today"
-    if d < 2:
-        return "yesterday"
-    if d < 14:
-        return f"{int(d)} days ago"
-    if d < 60:
-        return f"{int(d // 7)} weeks ago"
-    return f"{int(d // 30)} months ago"
-
-
-def safe_url(u: str) -> str:
-    return u if u.startswith(("http://", "https://")) else "#"
-
-
-def render_story(s: dict, lead: bool) -> str:
-    tags = Raw("".join(fill(tpl("tag.html"), tag=t) for t in s["tags"]))
-    badge = Raw(fill(tpl("badge.html"), label="From the archive")) if s["kind"] == "archive" else Raw("")
-    why = Raw(fill(tpl("why.html"), why=s["why_care"])) if s["why_care"] else Raw("")
-    raw_note = Raw("" if s["summarized"] else fill(tpl("badge.html"), label="Unedited"))
-    return fill(tpl("lead.html" if lead else "story.html"),
-                id=s.get("id", ""), headline=s["headline"], blurb=s["blurb"], url=safe_url(s["url"]), source=s["source"],
-                age=age_label(s), tags=tags, badge=badge, why=why, raw_note=raw_note)
-
-
-def render_desk(stories: list[dict]) -> str:
-    return "".join(render_story(s, lead=(i == 0)) for i, s in enumerate(stories))
-
-
-def day_state_path(out_dir: Path, date_key: str) -> Path:
-    return out_dir / f"{date_key}.json"
-
-
-def load_day_state(out_dir: Path, date_key: str) -> dict:
-    """Per-story saved/liked flags written by the viewer (YYYY-MM-DD.json beside the HTML).
-
-    The generator only reads this file, so regenerating a day keeps the reader's marks.
-    """
-    empty = {"date": date_key, "stories": {}}
-    path = day_state_path(out_dir, date_key)
-    try:
-        data = load_json(path, empty)
-    except json.JSONDecodeError:
-        util.warn(f"{path} is malformed; ignoring its saved/liked marks")
-        return empty
-    stories = data.get("stories") if isinstance(data, dict) else None
-    return {"date": date_key, "stories": stories if isinstance(stories, dict) else {}}
-
-
-def render_page(cfg: dict, now: dt.datetime, edition_no: int, desks: dict, meta: dict,
-                day_state: dict | None = None) -> str:
-    css = (PROJECT_ROOT / "tailwind.css").read_text(encoding="utf-8")
-    local_now = now.astimezone()
-    foot = (f"Edited by {meta['model']}. {meta['n_fresh']} recent, {meta['n_archive']} from the archive. "
-            f"{meta['n_explore']} explore picks (epsilon {meta['epsilon']}). "
-            f"Candidate pool: {meta['pool']} items. Sources: {meta['sources']}.")
-    warn_html = Raw("".join(fill(tpl("warning.html"), text=w) for w in WARNINGS[:6]))
-    state_json = json.dumps(day_state or {"stories": {}}, ensure_ascii=False).replace("<", "\\u003c")
-    return fill(
-        tpl("page.html"),
-        css=Raw(css), paper_name=cfg["paper_name"],
-        date_long=local_now.strftime("%A, %B %d, %Y").replace(" 0", " "),
-        edition=f"No. {edition_no}",
-        generated=local_now.strftime("%H:%M"),
-        primary_title=desks["primary"]["title"], primary_deck=desks["primary"]["deck"],
-        primary_stories=Raw(render_desk(desks["primary"]["stories"])),
-        science_title=desks["science"]["title"], science_deck=desks["science"]["deck"],
-        science_stories=Raw(render_desk(desks["science"]["stories"])),
-        warnings=warn_html, footer=foot, state=Raw(state_json),
-    )
-
-
-def append_issue_history(out_dir: Path, entry: dict) -> None:
-    """Append one edition's layout to issue-history.json beside the HTML.
-
-    Kept out of state.json on purpose: issue-history.json is presentation
-    history (what stories were shown, with their edited headlines/blurbs), while
-    state.json is the mutable candidate pool plus seen/rejected counters. Each
-    successful full run appends one entry so a later ``--re-render`` can rebuild
-    the page from current CSS/templates without re-picking stories or burning
-    LLM requests.
-    """
-    path = out_dir / "issue-history.json"
-    history = load_json(path, [])
-    history.append(entry)
-    save_json_atomic(path, history)
-
-
-def re_render(cfg: dict, now: dt.datetime, date_key: str, out_dir: Path) -> int:
-    """Re-render a stored edition from current CSS + templates only.
-
-    No network, fetch, selection, LLM, or state mutation. Reads the stored
-    edition layout from issue-history.json beside the output HTML, so an
-    updated tailwind.css or templates/ takes effect immediately without
-    re-picking stories or burning LLM requests.
-    """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        history = load_json(out_dir / "issue-history.json", [])
-    except json.JSONDecodeError:
-        util.log(f"{out_dir / 'issue-history.json'} is malformed; "
-                 f"run a full generation first (without --re-render)")
-        return 1
-    entry = None
-    for e in history:
-        if e.get("date") == date_key:
-            entry = e
-            break
-    if entry is None:
-        util.log(f"no stored edition for {date_key} in {out_dir / 'issue-history.json'}; "
-                 f"run a full generation first (without --re-render)")
-        return 1
-
-    desks_out = entry.get("desks")
-    if not isinstance(desks_out, dict) or "primary" not in desks_out or "science" not in desks_out:
-        util.log(f"stored edition for {date_key} in {out_dir / 'issue-history.json'} "
-                 f"is missing its desks; run a full generation first (without --re-render)")
-        return 1
-    meta = dict(entry.get("meta", {}))
-    meta.setdefault("model", "no model (raw items)")
-    # Recompute story counts from the stored desks so they stay consistent.
-    all_stories = [s for d in desks_out.values() for s in d.get("stories", [])]
-    meta["n_fresh"] = sum(s.get("kind") == "fresh" for s in all_stories)
-    meta["n_archive"] = sum(s.get("kind") == "archive" for s in all_stories)
-    meta["n_explore"] = sum(s.get("mode") == "explore" for s in all_stories)
-    scfg = {**sel.DEFAULTS, **cfg.get("selection", {})}
-    meta.setdefault("epsilon", scfg.get("epsilon", 0.25))
-    meta.setdefault("pool", len(all_stories))
-    meta.setdefault("sources", ", ".join(sorted({s.get("source", "").split(":")[0]
-                                                 for s in all_stories if s.get("source")})))
-
-    # Render faithful to the original edition's timestamp (not the re-render
-    # time), so date_long / generated stay the same and only CSS/templates change.
-    render_now = parse_date(entry.get("generated")) or now
-    page = render_page(cfg, render_now, entry.get("edition", 1), desks_out, meta,
-                       load_day_state(out_dir, date_key))
-    out_path = out_dir / f"{date_key}.html"
-    out_path.write_text(page, encoding="utf-8")
-    util.log(f"re-rendered {out_path} ({len(all_stories)} stories, model={meta['model']})")
-    print(f"OK {out_path} ({len(all_stories)} stories, model={meta['model']})")
-    return 0
-
-
 # --------------------------------------------------------------------------- main
 
 def main() -> int:
@@ -348,15 +116,7 @@ def main() -> int:
     ap.add_argument("--no-fetch", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int)
-    ap.add_argument("--out", help="override output path")
-    ap.add_argument("--re-render", action="store_true",
-                    help="re-render a stored edition from current CSS/templates (no fetch/LLM)")
-    ap.add_argument("--render-only", action="store_true", dest="re_render", help=argparse.SUPPRESS)
-    ap.add_argument("--date", metavar="YYYY-MM-DD",
-                    help="edition date for --re-render (default today)")
-    # --refresh-api-feeds is the hidden trigger used by the detached background
-    # refresh process spawned by fetch_all.  The background refresh is on by
-    # default; --no-refresh-api-feeds disables spawning it.
+    # Hidden trigger used by the detached background refresh spawned by fetch_all.
     ap.add_argument("--refresh-api-feeds", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--no-refresh-api-feeds", action="store_false", dest="refresh_api_auto",
                     default=True, help=argparse.SUPPRESS)
@@ -366,67 +126,30 @@ def main() -> int:
 
     cfg = load_json(PROJECT_ROOT / "config.json")
     src = load_json(PROJECT_ROOT / "sources.json")
-
-    now = dt.datetime.now(UTC)
-    date_key = args.date or now.astimezone().strftime("%Y-%m-%d")
+    sub2desk = {s: d for d, v in src["desks"].items() for s in v["subtopics"]}
+    conn = db.connect(db_path(cfg))
+    max_age = cfg["pool"]["max_age_days"]
 
     if args.refresh_api_feeds:
-        # Detached background refresh: fetch every "api" feed, classify, merge,
-        # persist, then exit.  Results can be up to about a day old.
+        # Detached background refresh: fetch every "api" feed, classify, upsert, exit.
         items = refresh_api_feeds(cfg, src)
-        sub2desk = {s: d for d, v in src["desks"].items() for s in v["subtopics"]}
-        classified = []
-        for it in items:
-            c = classify(it, src["keywords"], sub2desk)
-            if c is not None:
-                classified.append(c)
+        classified = [c for c in (classify(it, src["keywords"], sub2desk) for it in items) if c]
         now = dt.datetime.now(UTC)
-        # Re-read the latest state so a concurrent main-run update is not
-        # clobbered; the pool merge is idempotent (keyed by item id).
-        state = load_state()
-        merge_pool(state, classified, now, cfg["pool"]["max_age_days"])
-        save_json_atomic(STATE_FILE, state)
+        db.upsert_pool(conn, classified, now)  # row-level upserts: safe against a concurrent main run
+        db.prune_pool(conn, now, max_age)
         return 0
-
-    if not (PROJECT_ROOT / "tailwind.css").exists():
-        util.log("tailwind.css missing. Run build_css.ps1 once (see README).")
-        return 1
-
-    if args.re_render:
-        if args.date:
-            try:
-                dt.date.fromisoformat(args.date)
-            except ValueError:
-                util.log(f"--date must be YYYY-MM-DD, got {args.date!r}")
-                return 1
-            date_key = args.date
-        else:
-            date_key = now.astimezone().strftime("%Y-%m-%d")
-        out_dir = Path(args.out) if args.out else PROJECT_ROOT / cfg["edition_dir"]
-        out_dir.mkdir(parents=True, exist_ok=True)
-        return re_render(cfg, now, date_key, out_dir)
 
     scfg = {**sel.DEFAULTS, **cfg["selection"]}
     rng = random.Random(args.seed)
     now = dt.datetime.now(UTC)
     date_key = now.astimezone().strftime("%Y-%m-%d")
-    sub2desk = {s: d for d, v in src["desks"].items() for s in v["subtopics"]}
 
-    state = load_state()
-    rollback_same_day(state, date_key)
-
-    source_types = {}
-    for spec in _iter_feed_specs(src.get("feeds", {})):
-        source_types[spec["name"]] = spec.get("type", "commentary")
-    for item in state["items"].values():
-        item.setdefault("source_type", source_types.get(item["source"], "commentary"))
-
-    # 1. fetch + classify + merge
+    # 1. fetch + classify + upsert
     if args.no_fetch:
-        util.log("skipping fetch; using persisted pool")
+        log("skipping fetch; using persisted pool")
     else:
         raw = fetch_all(cfg, src, refresh_api=args.refresh_api_auto)
-        classified, seen, dropped = [], {}, set()
+        seen, dropped = {}, set()
         for it in raw:
             c = classify(it, src["keywords"], sub2desk)
             if c is None:
@@ -434,34 +157,38 @@ def main() -> int:
             elif c["id"] not in seen or c["rel"] > seen[c["id"]]["rel"]:
                 seen[c["id"]] = c
         classified = list(seen.values())
-        added = merge_pool(state, classified, now, cfg["pool"]["max_age_days"], dropped - set(seen))
-        util.log(f"classified {len(classified)}/{len(raw)} items, {added} new in pool")
-    pool = list(state["items"].values())
+        added = db.upsert_pool(conn, classified, now)
+        db.delete_pool(conn, dropped - set(seen))  # fetched again but no longer relevant
+        db.prune_pool(conn, now, max_age)
+        log(f"classified {len(classified)}/{len(raw)} items, {added} new in pool")
+    pool = db.load_pool(conn)
     if not pool:
-        util.log("pool is empty (all sources failed?)")
+        log("pool is empty (all sources failed?)")
         return 1
+
+    # Same-day rerun must not count today's earlier edition as 'already shown'. Adjust IN MEMORY only;
+    # db.append_brief performs the real decrement atomically with the insert.
+    sd_shown, sd_rej = db.same_day_counts(conn, date_key)
     for p in pool:
+        p["times_shown"] = max(0, p["times_shown"] - sd_shown.get(p["id"], 0))
+        p["rejected"] = max(0, p["rejected"] - sd_rej.get(p["id"], 0))
         p["age_days"] = age_days(p, now)
 
     # 2. epsilon-greedy selection per desk
     n, k = cfg["stories_per_desk"], cfg["reserve_per_desk"]
     selected: dict[str, list[dict]] = {}
-    modes = {"explore": 0, "greedy": 0}
     for desk, spec in src["desks"].items():
         cands_all = [p for p in pool if p["subtopic"] in spec["subtopics"]]
         picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng,
                               minimum_types={"newslike": 1, "paperlike": 2})
-        for item, mode in picks:
-            modes[mode] += 1
         chosen = [dict(i, mode=m) for i, m in picks]
         reserve = [dict(i, mode="reserve") for i in sel.pick_reserves(
-            cands_all, {i["id"] for i, _ in picks}, k, scfg,
-            minimum_types={"newslike": 1},
-        )]
+            cands_all, {i["id"] for i, _ in picks}, k, scfg, minimum_types={"newslike": 1})]
         selected[desk] = chosen + reserve
         for c in selected[desk]:
             c["kind"] = sel.kind_of(c, scfg)
-        util.log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) + {len(reserve)} reserve")
+        log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) "
+            f"+ {len(reserve)} reserve")
 
     # 3. LLM edit
     llm: LLM | None = None
@@ -472,23 +199,12 @@ def main() -> int:
             if rem is not None and rem < cfg["llm"]["min_remaining_daily"]:
                 raise LLMUnavailable(f"only {rem} free requests left today")
         except LLMUnavailable as e:
-            util.warn(f"LLM skipped: {e}. Showing an unedited edition.")
+            warn(f"LLM skipped: {e}. Showing an unedited edition.")
             llm = None
-    # Log every agent JSON response (success or failure) beside the output HTML
-    # for debugging model JSON errors.  Both the HTML and the agent debug log
-    # live beside each other at out_dir.  Default to edition_dir unless --out is
-    # given, in which case --out is treated as the output directory and the
-    # dated HTML is written inside it (so the Obsidian embed can point at the
-    # same directory it reads from).
-    if args.out:
-        out_dir = Path(args.out)
-        out_path = out_dir / f"{date_key}.html"
-    else:
-        out_path = PROJECT_ROOT / cfg["edition_dir"] / f"{date_key}.html"
-        out_dir = out_path.parent
-    out_dir.mkdir(parents=True, exist_ok=True)
-    LLM.DEBUG_LOG = out_dir / "agent_responses.jsonl"
-    desks_out, all_rejected, shown_ids = {}, [], []
+    debug_dir = PROJECT_ROOT / cfg.get("debug_dir", "logs")
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    LLM.DEBUG_LOG = debug_dir / "agent_responses.jsonl"
+    desks_out, all_rejected = {}, []
     today_s = now.astimezone().strftime("%A %Y-%m-%d")
     system = (PROJECT_ROOT / "prompt_system.md").read_text(encoding="utf-8")
     max_cap = int(cfg.get("max_agent_output_items_per_desk", n))
@@ -500,21 +216,19 @@ def main() -> int:
                 result = llm.chat(system, build_user_message(spec["title"], n, selected[desk], today_s,
                                                              keep_cap=max_cap))
             except LLMUnavailable as e:
-                util.warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
+                warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
                 if "cap" in str(e) or "HTTP 401" in str(e):
                     llm = None
             except Exception as e:  # one desk's editor failure must never kill the whole edition
-                util.warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
+                warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
                 llm = None
         stories, rejected, deck = apply_editor(selected[desk], result, n)
         desks_out[desk] = {"title": spec["title"], "stories": stories,
                            "deck": deck or "Unedited candidates, ranked by relevance and freshness."}
         all_rejected += rejected
-        shown_ids += [s["id"] for s in stories]
 
-    # 4. render
+    # 4. persist (single atomic append)
     all_stories = [s for d in desks_out.values() for s in d["stories"]]
-    edition_no = len(set(state["editions"]) | {date_key})
     models = sorted(set(llm.models)) if llm and llm.models else []
     meta = {
         "model": ", ".join(models) if models else "no model (raw items)",
@@ -524,46 +238,23 @@ def main() -> int:
         "epsilon": scfg["epsilon"], "pool": len(pool),
         "sources": ", ".join(sorted({s["source"].split(":")[0] for s in all_stories})),
     }
-    page = render_page(cfg, now, edition_no, desks_out, meta, load_day_state(out_dir, date_key))
-    out_path.write_text(page, encoding="utf-8")
-    util.log(f"brief generation done: {out_path} ({len(all_stories)} stories, model={meta['model']}, "
-             f"llm_requests={llm.requests if llm else 0})")
-
-    # 5. persist state (and the beside-HTML issue history) only after a successful write.
-    #    --dry-run renders the page but does not mutate state.json or issue-history.json.
-    if not args.dry_run:
-        for iid in shown_ids:
-            it = state["items"].get(iid)
-            if it:
-                it["times_shown"] += 1
-                it["last_shown"] = now.isoformat()
-        for iid in all_rejected:
-            if iid in state["items"]:
-                state["items"][iid]["rejected"] += 1
-        state["editions"][date_key] = {"ids": shown_ids, "rejected_ids": all_rejected,
-                                       "generated": now.isoformat(), "model": meta["model"],
-                                       "llm_requests": llm.requests if llm else 0}
-        save_json_atomic(STATE_FILE, state)
-        # Record this edition's layout beside the HTML so --re-render can rebuild
-        # it from current CSS/templates without re-running fetch/selection/LLM.
-        # Kept out of state.json: issue-history.json is presentation history, while
-        # state.json is the mutable candidate pool + seen/rejected counters.
-        append_issue_history(out_dir, {
-            "date": date_key,
-            "edition": edition_no,
-            "generated": now.isoformat(),
-            "model": meta["model"],
-            "desks": desks_out,
-            "meta": meta,
-        })
-    print(f"OK {out_path} ({len(all_stories)} stories, model={meta['model']}, "
-          f"llm_requests={llm.requests if llm else 0})")
+    llm_requests = llm.requests if llm else 0
+    if args.dry_run:
+        print(f"DRY-RUN {len(all_stories)} stories, model={meta['model']}, llm_requests={llm_requests}")
+        return 0
+    brief_id = db.append_brief(conn, date_key=date_key, now=now, model=meta["model"],
+                               llm_requests=llm_requests, rejected_ids=all_rejected,
+                               desks_out=desks_out, meta=meta)
+    log(f"brief generation done: brief_id={brief_id} ({len(all_stories)} stories, "
+        f"model={meta['model']}, llm_requests={llm_requests})")  # jobs.js watches for this exact phrase
+    print(f"OK brief_id={brief_id} ({len(all_stories)} stories, model={meta['model']}, "
+          f"llm_requests={llm_requests})")
     return 0
 
 
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception as e:  # surface a one-line error for the Obsidian button
+    except Exception as e:
         util.log(f"FAILED: {type(e).__name__}: {e}")
         raise

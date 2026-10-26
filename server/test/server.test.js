@@ -33,7 +33,8 @@ ins.run('ccc', 'science', 0, 'Sci', 'blurb', 'https://e.com/c', 'S', 'sub', 20, 
 seed.close();
 
 const PORT = 45873;
-const app = createApp({ root, port: PORT });
+let shutdownCalled = false;
+const app = createApp({ root, port: PORT, onShutdown: () => { shutdownCalled = true; } });
 const server = http.createServer(app.handler);
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 test.after(() => { server.close(); app.close(); });
@@ -85,4 +86,15 @@ test('static traversal blocked, health ok, job idle', async () => {
   assert.equal((await call('GET', '/static/../../config.json')).status === 200, false);
   assert.equal(JSON.parse((await call('GET', '/api/health')).body).name, 'daily-brief');
   assert.equal(JSON.parse((await call('GET', '/api/job?id=0&since=0')).body).status, 'idle');
+});
+
+test('shutdown endpoint: missing client header is refused, valid request shuts down', async () => {
+  // No X-Brief-Client header -> guard refuses the write.
+  assert.equal((await call('POST', '/api/shutdown', { headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 403);
+  // Valid client request -> 200 and triggers the clean shutdown callback.
+  shutdownCalled = false;
+  const r = await call('POST', '/api/shutdown', { headers: W, body: '{}' });
+  assert.equal(r.status, 200);
+  assert.deepEqual(JSON.parse(r.body), { ok: true });
+  assert.ok(shutdownCalled);
 });

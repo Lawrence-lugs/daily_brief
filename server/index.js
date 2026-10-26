@@ -26,8 +26,14 @@ if (await alreadyRunning()) {
   console.log(`daily-brief already running on http://${host}:${port}`);
   process.exit(0);
 }
-const app = createApp({ root, port });
+function shutdown() {
+  server.close();
+  app.close();
+  process.exit(0);
+}
+
+const app = createApp({ root, port, onShutdown: shutdown });
 const server = http.createServer(app.handler);
 server.on('error', (e) => { console.error(`cannot listen on ${host}:${port}: ${e.message}`); process.exit(1); });
 server.listen(port, host, () => console.log(`daily-brief listening on http://${host}:${port}`));
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { server.close(); app.close(); process.exit(0); });
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, shutdown);

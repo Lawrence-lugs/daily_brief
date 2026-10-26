@@ -2,8 +2,8 @@
    brief.py:   powershell -File build_css.ps1
    Normal daily runs never touch this. */
 @import "tailwindcss";
-@source "./templates";
-@source "./brief.py";
+@source "./server/templates";
+@source "./server/public/client.js";
 
 /* Class-based dark mode, with an OS-preference fallback when no .light/.dark class is set.
    Home.md's iframe sets <html class="dark|light"> to mirror Obsidian's theme. */

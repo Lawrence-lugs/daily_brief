@@ -2,10 +2,15 @@
   "name": "daily-brief",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "serve": "node server/index.js",
     "app": "electron electron/main.cjs",
     "test": "node --test server/test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
   }
 }
