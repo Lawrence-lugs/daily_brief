@@ -1,0 +1,11 @@
+{
+  "name": "daily-brief",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "serve": "node server/index.js",
+    "app": "electron electron/main.cjs",
+    "test": "node --test server/test/*.test.js"
+  }
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{paper_name}} - {{date_long}}</title>
+<style>{{css}}</style>
+<link rel="stylesheet" href="/static/app.css">
+<script id="boot" type="application/json">{{boot}}</script>
+<script src="/static/client.js" defer></script>
+</head>
+<body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200">
+<div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+
+  <div id="toolbar" class="brief-toolbar">
+    <select id="brief-select" aria-label="Choose brief">{{brief_options}}</select>
+    <span id="status" class="{{status_class}}">{{status}}</span>
+    <span class="spacer"></span>
+    <button id="btn-generate" type="button">{{generate_label}}</button>
+    <button id="btn-logs" type="button">Logs</button>
+  </div>
+  <pre id="log-popup" hidden>Logs appear here while a brief is being generated.</pre>
+
+  <header class="text-center">
+    <div class="flex items-center justify-between border-b border-stone-400 pb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500 dark:border-slate-600 dark:text-slate-400">
+      <span>{{edition}}</span>
+      <span>Research &amp; Silicon</span>
+      <span>Set {{generated}}</span>
+    </div>
+  <h1 class="mt-3 text-5xl font-black uppercase tracking-tight sm:text-7xl" style="display:inline-flex; align-items:center; gap:0.25em;">
+    <span>{{paper_name}}</span>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+        width="0.9em" height="0.9em" style="flex:none" aria-hidden="true" focusable="false">
+      <path d="M13 1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zM3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3z"/>
+      <path d="M5.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m-4-4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m4-4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m-8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+    </svg>
+  </h1>
+    <div class="mt-3 border-y-4 border-double border-stone-800 py-1.5 text-sm italic text-stone-600 dark:border-slate-400 dark:text-slate-300">{{date_long}}</div>
+</header>
+
+  <main class="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-0 md:divide-x md:divide-stone-400 dark:md:divide-slate-700">
+    <section class="md:pr-6">
+      <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{primary_title}}</h2>
+      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400">{{primary_deck}}</p>
+      {{primary_stories}}
+    </section>
+    <section class="md:pl-6">
+      <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{science_title}}</h2>
+      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400">{{science_deck}}</p>
+      {{science_stories}}
+    </section>
+  </main>
+
+  <footer class="mt-10 border-t-4 border-double border-stone-800 pt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:border-slate-400 dark:text-slate-400">
+    {{footer}}
+  </footer>
+</div>
+</body>
+</html>
