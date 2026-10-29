@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import path from 'node:path';
 import os from 'node:os';
-import { mkdtempSync, writeFileSync, copyFileSync, symlinkSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, copyFileSync, readFileSync, cpSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { createApp } from '../app.js';
@@ -13,7 +13,7 @@ import { esc, ageLabel } from '../lib/render.js';
 const real = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const root = mkdtempSync(path.join(os.tmpdir(), 'brief-test-'));
 copyFileSync(path.join(real, 'schema.sql'), path.join(root, 'schema.sql'));
-symlinkSync(path.join(real, 'server'), path.join(root, 'server'), 'dir');
+cpSync(path.join(real, 'server'), path.join(root, 'server'), { recursive: true });
 writeFileSync(path.join(root, 'tailwind.css'), '/* css */');
 writeFileSync(path.join(root, 'config.json'), JSON.stringify({ paper_name: 'TEST', db_file: 'test.db' }));
 

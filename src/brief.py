@@ -80,7 +80,7 @@ def select_lr(
         cmd.extend(["--set", f"sampling.desks.side={desks.get('side', 'science')}"])
 
     # Run from PROJECT_ROOT so perfect_samples.json and config.json paths resolve correctly
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
         raise RuntimeError(f"ranker select failed (exit {result.returncode}): {result.stderr}")
     try:

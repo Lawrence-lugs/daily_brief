@@ -27,7 +27,7 @@ export function buildTrainingSet({ perfect, liked, rows, vecs, cfg }) {
     if (!vec) continue;
     const ctx = { interests: foldI[foldOf(r.item_id, K)], authorCfg: cfg.authors };
     const { keys, vals } = encode({ ...r, vec }, ctx, cfg.features);
-    examples.push({ keys, vals, y: r.y, weight: 1, date: r.date });
+    examples.push({ item_id: r.item_id, keys, vals, y: r.y, weight: 1, date: r.date });
   }
   return { examples, full };
 }

@@ -335,14 +335,9 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
     cfg,
   });
 
-  // Filter examples that have embeddings
-  const validExamples = examples.filter((e) => embById.has(e.keys.find((k) => true) ?? ''));
-  // Actually, the examples are already filtered in buildTrainingSet (rows without vecs are skipped)
-  // But let's be safe and check if we have the vec for the item
+  // Filter examples that have embeddings (should already be filtered in buildTrainingSet)
   const examplesWithVec = examples.filter((e) => {
-    // The item_id is not directly in examples, but we can infer from the fact that buildTrainingSet
-    // only includes rows where vecs.get(r.item_id) exists. So all examples should have valid vecs.
-    return true;
+    return true; // buildTrainingSet already skips rows without vecs
   });
 
   if (examplesWithVec.length === 0) {
@@ -354,8 +349,9 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
   const { train, test } = chronoSplit(examplesWithVec, testFrac);
   console.error(`[eval] train=${train.length} test=${test.length} (testFrac=${testFrac})`);
 
-  // Get pool candidates for scaling (use full pool for all models)
+  // Get pool items for scaling and for keyword baseline (rel scores)
   const poolItems = store.getPool();
+  const poolById = new Map(poolItems.map((p) => [p.id, p]));
   const poolCandidates = [];
   for (const item of poolItems) {
     const emb = embById.get(item.id);
@@ -372,14 +368,18 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
 
   // --- Baseline 2: Keyword rel ---
   // Use the 'rel' score from candidate_pool as the prediction
-  // We need to map training examples to their rel scores
   const keywordScores = [];
   const keywordLabels = [];
   for (const ex of test) {
-    // Find the rel for this item_id (we need to store item_id in examples)
-    // Since buildTrainingSet doesn't include item_id, we need another approach
-    // For now, skip keyword baseline as it requires mapping back to pool
+    const poolItem = poolById.get(ex.item_id);
+    if (poolItem && typeof poolItem.rel === 'number') {
+      keywordScores.push(poolItem.rel);
+      keywordLabels.push(ex.y);
+    }
   }
+  const keywordResults = keywordScores.length > 0
+    ? { auc: auc(keywordScores, keywordLabels), logLoss: logLoss(keywordScores, keywordLabels) }
+    : { auc: NaN, logLoss: NaN };
 
   // --- Fitted model ---
   const fittedModel = new SparseBayesLogReg(cfg.model);
@@ -403,7 +403,8 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
   const fittedResults = evaluate(fittedModel, test);
 
   console.error(`[eval] Prior: AUC=${priorResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${priorResults.logLoss?.toFixed(4) ?? 'NaN'}`);
+  console.error(`[eval] Keyword: AUC=${keywordResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${keywordResults.logLoss?.toFixed(4) ?? 'NaN'}`);
   console.error(`[eval] Fitted: AUC=${fittedResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${fittedResults.logLoss?.toFixed(4) ?? 'NaN'}`);
 
-  return { prior: priorResults, keyword: { auc: NaN, logLoss: NaN }, fitted: fittedResults };
+  return { prior: priorResults, keyword: keywordResults, fitted: fittedResults };
 }
