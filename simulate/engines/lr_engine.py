@@ -33,6 +33,9 @@ class LREngine(Engine):
         # Verify CLI exists
         if not (self.project_root / self.cli_path).exists():
             raise FileNotFoundError(f"LR CLI not found: {self.project_root / self.cli_path}")
+        
+        # Cache for cluster metadata
+        self._cluster_metadata = None
     
     @property
     def name(self) -> str:
@@ -132,6 +135,69 @@ class LREngine(Engine):
                             item[key] = pool_item[key]
         
         return lr_result
+
+    def get_cluster_metadata(self) -> Dict[str, Any]:
+        """Fetch cluster metadata from Node.js inspect command.
+
+        Returns:
+            Dict with clusters list containing id, medoid, medoidTitle, size, core
+        """
+        if self._cluster_metadata is not None:
+            return self._cluster_metadata
+        
+        cmd = [
+            "node", str(self.cli_path),
+            "inspect",
+        ]
+        
+        result = subprocess.run(
+            cmd,
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        
+        if result.returncode != 0:
+            # Try to parse stderr for actual error
+            raise RuntimeError(f"LR inspect failed: {result.stderr}")
+        
+        # Parse JSON output (may have log lines before JSON)
+        try:
+            # Find the first line that starts with {
+            lines = result.stdout.strip().split('\n')
+            json_start = next(i for i, line in enumerate(lines) if line.strip().startswith('{'))
+            json_str = '\n'.join(lines[json_start:])
+            data = json.loads(json_str)
+        except (json.JSONDecodeError, StopIteration) as e:
+            raise RuntimeError(f"Failed to parse LR inspect output: {result.stdout[:500]}") from e
+        
+        self._cluster_metadata = data
+        return data
+
+    def get_cluster_summary(self) -> Dict[str, Any]:
+        """Get a summary of clusters for reporting."""
+        meta = self.get_cluster_metadata()
+        clusters = meta.get("clusters", [])
+        
+        core_clusters = [c for c in clusters if c.get("core", False)]
+        side_clusters = [c for c in clusters if not c.get("core", False)]
+        
+        return {
+            "total": len(clusters),
+            "core_count": len(core_clusters),
+            "side_count": len(side_clusters),
+            "clusters": [
+                {
+                    "id": c["id"],
+                    "medoid": c["medoid"],
+                    "medoid_title": c.get("medoidTitle", c["medoid"]),
+                    "size": c.get("size", 0),
+                    "core": c.get("core", False),
+                }
+                for c in sorted(clusters, key=lambda x: x["id"])
+            ],
+        }
 
 
 class LREngineDirect(Engine):

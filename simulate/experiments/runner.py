@@ -41,6 +41,18 @@ def compare_engines(
     pool = pool_provider.load(date, config.get("max_age_days", 120.0), config)
     print(f"Loaded pool: {len(pool)} items")
     
+    # Fetch cluster metadata from LR engine if present
+    cluster_metadata = None
+    for engine in engines:
+        if engine.name == "lr" and hasattr(engine, "get_cluster_summary"):
+            try:
+                cluster_metadata = engine.get_cluster_summary()
+                print(f"Loaded cluster metadata: {cluster_metadata['total']} clusters "
+                      f"({cluster_metadata['core_count']} core, {cluster_metadata['side_count']} side)")
+            except Exception as e:
+                print(f"  Warning: Could not load cluster metadata: {e}")
+            break
+    
     runs = []
     
     for seed in seeds:
@@ -90,6 +102,7 @@ def compare_engines(
         "pool_size": len(pool),
         "runs": runs,
         "aggregate": aggregate,
+        "cluster_metadata": cluster_metadata,
         "timestamp": datetime.now().isoformat(),
     }
     
