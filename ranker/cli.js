@@ -114,8 +114,50 @@ async function cmdInspect(args) {
   const cfg = loadConfig();
   const store = new Store(DB_FILE);
   try {
-    // TODO: inspect
-    console.log(JSON.stringify({ weights: [], clusters: [] }));
+    await ensureEmbeddings(store, cfg, { persist: true });
+    const fitted = await ensureFitted(store, cfg, { persist: true });
+    if (!fitted.interests) {
+      console.error('[inspect] interests not built');
+      process.exit(3);
+    }
+    
+    // Get medoid titles from embeddings or pool/stories
+    const embById = new Map((store.getAllEmbeddings() || []).map((e) => [e.item_id, e]));
+    const poolItems = store.getPool();
+    const poolById = new Map(poolItems.map((p) => [p.item_id, p]));
+    
+    function getMedoidTitle(id) {
+      if (id.startsWith('ps:')) {
+        // Perfect sample - get from perfect_samples.json
+        const psId = id.slice(3);
+        const ps = (JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8')) || [])
+          .find((p) => p.id === psId);
+        return ps ? ps.title : id;
+      }
+      const poolItem = poolById.get(id);
+      if (poolItem) return poolItem.title;
+      return id;
+    }
+    
+    // Clusters
+    const clusters = fitted.interests.clusters.map((c) => ({
+      id: c.id,
+      medoid: c.medoid,
+      medoidTitle: getMedoidTitle(c.medoid),
+      size: c.size,
+      core: c.core,
+      stopHeight: fitted.interests.stopHeight,
+    }));
+    
+    // Model weights
+    const weights = fitted.model ? fitted.model.weights() : [];
+    const topPos = weights.filter((w) => w.w > 0).sort((a, b) => b.w - a.w).slice(0, 20);
+    const topNeg = weights.filter((w) => w.w < 0).sort((a, b) => a.w - b.w).slice(0, 20);
+    
+    console.log(JSON.stringify({
+      clusters,
+      weights: { topPositive: topPos, topNegative: topNeg },
+    }, null, 2));
   } finally {
     store.close();
   }

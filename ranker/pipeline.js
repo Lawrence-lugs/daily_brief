@@ -2,6 +2,9 @@
 import { embedTexts, textOf, textHash, MODEL as EMBED_MODEL, DIM } from './embedder.js';
 import { SQL } from './store.js';
 import { createHash } from 'node:crypto';
+import { buildTrainingSet } from './trainer.js';
+import { SparseBayesLogReg } from './model.js';
+import { encode } from './features.js';
 
 const ENCODING_VERSION = 1; // bump when encode() schema changes
 
@@ -124,21 +127,88 @@ export async function ensureFitted(store, cfg, { persist = true, force = false }
   if (!force && cachedKey === fitKey) {
     console.error('[refit] cache hit, loading interests and model from ranker_state');
     const interests = JSON.parse(store.getState('interests'));
-    const model = JSON.parse(store.getState('model'));
+    const modelJson = JSON.parse(store.getState('model'));
+    const model = SparseBayesLogReg.fromJSON(modelJson, cfg.model);
     return { interests, model, fitKey, fromCache: true };
   }
 
   console.error('[refit] building interests and fitting model...');
-  // TODO: Phase 3 - build interests
-  // TODO: Phase 4 - fit model
+
+  // Build perfect samples with vectors
+  const perfectWithVecs = [];
+  for (const ps of perfectSamples) {
+    const rawId = ps.id;
+    const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
+    const emb = store.getEmbedding(id);
+    if (emb) {
+      perfectWithVecs.push({ id, vec: emb.vec, core: ps.core });
+    } else {
+      console.error(`[refit] WARNING: perfect sample ${id} has no embedding`);
+    }
+  }
+
+  // Get liked items with vectors
+  const likedWithVecs = [];
+  const allEmbeddings = store.getAllEmbeddings();
+  const embById = new Map(allEmbeddings.map((e) => [e.item_id, e]));
+  for (const lid of likedIds) {
+    const emb = embById.get(lid);
+    if (emb) {
+      likedWithVecs.push({ id: lid, vec: emb.vec });
+    }
+  }
+
+  // Build interests (full) and cross-fitted training examples
+  const { examples, full: interests } = buildTrainingSet({
+    perfect: perfectWithVecs,
+    liked: likedWithVecs,
+    rows: trainingRows,
+    vecs: embById,
+    cfg,
+  });
+
+  // Diagnostics logging (as per PLAN)
+  const coreClusters = interests.clusters.filter((c) => c.core).length;
+  const sideClusters = interests.clusters.filter((c) => !c.core).length;
+  const sizeHist = {};
+  for (const c of interests.clusters) {
+    sizeHist[c.size] = (sizeHist[c.size] || 0) + 1;
+  }
+  const positives = examples.filter((e) => e.y === 1).length;
+  console.error(
+    `[refit] perfect=${perfectWithVecs.length} liked=${likedWithVecs.length} ` +
+    `clusters=${interests.clusters.length} (core=${coreClusters} side=${sideClusters}) ` +
+    `stopHeight=${interests.stopHeight?.toFixed(4) ?? 'N/A'} ` +
+    `sizes=${JSON.stringify(sizeHist)} ` +
+    `examples=${examples.length} positives=${positives}`
+  );
+
+  // Fit model (Phase 4 - for now just create the model, fit will be implemented)
+  const model = new SparseBayesLogReg(cfg.model);
+  if (examples.length > 0) {
+    // Get pool candidates for scaling numeric features
+    const poolItems = store.getPool();
+    const poolCandidates = [];
+    for (const item of poolItems) {
+      const emb = embById.get(item.id);
+      if (emb) {
+        const ctx = { interests, authorCfg: cfg.authors };
+        const { keys, vals } = encode({ ...item, vec: emb.vec }, ctx, cfg.features);
+        poolCandidates.push({ keys, vals });
+      }
+    }
+    model.fit(examples, { scaleSample: poolCandidates });
+  } else {
+    console.error('[refit] no training examples, model stays at prior');
+  }
 
   if (persist) {
     store.setState('fit_key', fitKey);
-    // store.setState('interests', JSON.stringify(interests));
-    // store.setState('model', JSON.stringify(model.toJSON()));
+    store.setState('interests', JSON.stringify(interests));
+    store.setState('model', JSON.stringify(model.toJSON()));
   }
 
-  return { interests: null, model: null, fitKey, fromCache: false };
+  return { interests, model, fitKey, fromCache: false };
 }
 
 /**
