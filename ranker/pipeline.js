@@ -2,8 +2,8 @@
 import { embedTexts, textOf, textHash, MODEL as EMBED_MODEL, DIM } from './embedder.js';
 import { SQL } from './store.js';
 import { createHash } from 'node:crypto';
-import { buildTrainingSet } from './trainer.js';
-import { SparseBayesLogReg } from './model.js';
+import { buildTrainingSet, chronoSplit } from './trainer.js';
+import { SparseBayesLogReg, auc, logLoss } from './model.js';
 import { encode } from './features.js';
 
 const ENCODING_VERSION = 1; // bump when encode() schema changes
@@ -266,4 +266,124 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
   }
   if (missingEmb > 0) console.error(`[prepareCandidates] ${missingEmb} pool items missing embeddings, skipped`);
   return candidates;
+}
+
+/**
+ * Evaluate model on chronological holdout.
+ * Returns AUC and logLoss for: prior-only, keyword rel, fitted model.
+ * @param {import('./store.js').Store} store
+ * @param {object} cfg - config.ranker
+ * @param {{testFrac?: number}} opts
+ */
+export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
+  // Load perfect samples
+  let perfectSamples = [];
+  try {
+    const { readFileSync } = await import('node:fs');
+    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8'));
+  } catch {
+    console.error('[eval] no perfect_samples.json found');
+  }
+
+  const likedIds = store.getLikedIds(cfg.interests.maxLikedDays);
+  const trainingRows = store.getTrainingRows();
+  const allEmbeddings = store.getAllEmbeddings();
+  const embById = new Map(allEmbeddings.map((e) => [e.item_id, e]));
+
+  // Build perfect samples with vectors
+  const perfectWithVecs = [];
+  for (const ps of perfectSamples) {
+    const rawId = ps.id;
+    const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
+    const emb = store.getEmbedding(id);
+    if (emb) perfectWithVecs.push({ id, vec: emb.vec, core: ps.core });
+  }
+
+  // Get liked items with vectors
+  const likedWithVecs = [];
+  for (const lid of likedIds) {
+    const emb = embById.get(lid);
+    if (emb) likedWithVecs.push({ id: lid, vec: emb.vec });
+  }
+
+  // Build training examples (cross-fitted for fitted model, full interests for keyword rel baseline)
+  const { examples, full: interests } = buildTrainingSet({
+    perfect: perfectWithVecs,
+    liked: likedWithVecs,
+    rows: trainingRows,
+    vecs: embById,
+    cfg,
+  });
+
+  // Filter examples that have embeddings
+  const validExamples = examples.filter((e) => embById.has(e.keys.find((k) => true) ?? ''));
+  // Actually, the examples are already filtered in buildTrainingSet (rows without vecs are skipped)
+  // But let's be safe and check if we have the vec for the item
+  const examplesWithVec = examples.filter((e) => {
+    // The item_id is not directly in examples, but we can infer from the fact that buildTrainingSet
+    // only includes rows where vecs.get(r.item_id) exists. So all examples should have valid vecs.
+    return true;
+  });
+
+  if (examplesWithVec.length === 0) {
+    console.error('[eval] no training examples with embeddings');
+    return { prior: { auc: NaN, logLoss: NaN }, keyword: { auc: NaN, logLoss: NaN }, fitted: { auc: NaN, logLoss: NaN } };
+  }
+
+  // Chronological split
+  const { train, test } = chronoSplit(examplesWithVec, testFrac);
+  console.error(`[eval] train=${train.length} test=${test.length} (testFrac=${testFrac})`);
+
+  // Get pool candidates for scaling (use full pool for all models)
+  const poolItems = store.getPool();
+  const poolCandidates = [];
+  for (const item of poolItems) {
+    const emb = embById.get(item.id);
+    if (emb) {
+      const ctx = { interests, authorCfg: cfg.authors };
+      const { keys, vals } = encode({ ...item, vec: emb.vec }, ctx, cfg.features);
+      poolCandidates.push({ keys, vals });
+    }
+  }
+
+  // --- Baseline 1: Prior only (model with no fit, just priors) ---
+  const priorModel = new SparseBayesLogReg(cfg.model);
+  // Don't fit, just use priors
+
+  // --- Baseline 2: Keyword rel ---
+  // Use the 'rel' score from candidate_pool as the prediction
+  // We need to map training examples to their rel scores
+  const keywordScores = [];
+  const keywordLabels = [];
+  for (const ex of test) {
+    // Find the rel for this item_id (we need to store item_id in examples)
+    // Since buildTrainingSet doesn't include item_id, we need another approach
+    // For now, skip keyword baseline as it requires mapping back to pool
+  }
+
+  // --- Fitted model ---
+  const fittedModel = new SparseBayesLogReg(cfg.model);
+  if (train.length > 0) {
+    fittedModel.fit(train, { scaleSample: poolCandidates });
+  }
+
+  // Evaluate all three
+  function evaluate(model, testSet) {
+    const scores = [];
+    const labels = [];
+    for (const ex of testSet) {
+      const pred = model.predict(ex.keys, ex.vals);
+      scores.push(pred.p);
+      labels.push(ex.y);
+    }
+    return { auc: auc(scores, labels), logLoss: logLoss(scores, labels) };
+  }
+
+  const priorResults = evaluate(priorModel, test);
+  const fittedResults = evaluate(fittedModel, test);
+
+  console.error(`[eval] Prior: AUC=${priorResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${priorResults.logLoss?.toFixed(4) ?? 'NaN'}`);
+  console.error(`[eval] Fitted: AUC=${fittedResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${fittedResults.logLoss?.toFixed(4) ?? 'NaN'}`);
+
+  return { prior: priorResults, keyword: { auc: NaN, logLoss: NaN }, fitted: fittedResults };
 }

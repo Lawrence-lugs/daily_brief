@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
-import { ensureEmbeddings, ensureFitted, prepareCandidates } from './pipeline.js';
+import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const CONFIG_FILE = resolve(__dirname, '..', 'config.json');
@@ -103,8 +103,9 @@ async function cmdEval(args) {
   const cfg = loadConfig();
   const store = new Store(DB_FILE);
   try {
-    // TODO: eval
-    console.log(JSON.stringify({ auc: 0, logLoss: 0 }));
+    await ensureEmbeddings(store, cfg, { persist: true });
+    const results = await evalModel(store, cfg, { testFrac: args.testFrac ? parseFloat(args.testFrac) : 0.2 });
+    console.log(JSON.stringify(results, null, 2));
   } finally {
     store.close();
   }
@@ -182,6 +183,7 @@ async function main() {
       date: { type: 'string', short: 'd' },
       runs: { type: 'string' },
       set: { type: 'string', multiple: true },
+      testFrac: { type: 'string' },
     },
   });
 
