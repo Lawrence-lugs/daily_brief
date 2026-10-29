@@ -1,0 +1,152 @@
+// Pipeline functions: embeddings, fitting, candidate preparation.
+import { embedTexts, textOf, textHash, MODEL as EMBED_MODEL, DIM } from './embedder.js';
+import { SQL } from './store.js';
+import { createHash } from 'node:crypto';
+
+const ENCODING_VERSION = 1; // bump when encode() schema changes
+
+/**
+ * Ensure all pool/story items and perfect samples have embeddings.
+ * @param {import('./store.js').Store} store
+ * @param {object} cfg - config.ranker
+ * @param {{persist?: boolean}} opts
+ */
+export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
+  const missing = store.getMissingEmbeddings();
+  if (missing.length > 0) {
+    const texts = missing.map((m) => textOf(m.title, m.body));
+    const vecs = await embedTexts(texts);
+    for (let i = 0; i < missing.length; i++) {
+      const h = textHash(texts[i]);
+      if (persist) store.upsertEmbedding(missing[i].id, EMBED_MODEL, h, DIM, vecs[i]);
+    }
+    console.error(`[embed] inserted ${missing.length} embeddings`);
+  } else {
+    console.error('[embed] all items already embedded');
+  }
+
+  // Perfect samples
+  const psFile = cfg.perfect_samples_file || 'perfect_samples.json';
+  let perfectSamples = [];
+  try {
+    const { readFileSync } = await import('node:fs');
+    perfectSamples = JSON.parse(readFileSync(psFile, 'utf8'));
+  } catch {
+    console.error('[embed] no perfect_samples.json found');
+  }
+  if (perfectSamples.length > 0) {
+    const texts = perfectSamples.map((ps) => textOf(ps.title, ps.snippet));
+    const vecs = await embedTexts(texts);
+    for (let i = 0; i < perfectSamples.length; i++) {
+      const id = perfectSamples[i].id.startsWith('ps:') ? perfectSamples[i].id : `ps:${perfectSamples[i].id}`;
+      const h = textHash(texts[i]);
+      const existing = store.getEmbedding(id);
+      if (!existing || existing.text_hash !== h) {
+        if (persist) store.upsertEmbedding(id, EMBED_MODEL, h, DIM, vecs[i]);
+        console.error(`[embed] perfect sample ${id} embedded`);
+      }
+    }
+  }
+
+  // Prune embeddings for items no longer in pool or stories
+  if (persist) {
+    store.pruneEmbeddings();
+  }
+}
+
+/**
+ * Build fitKey for caching.
+ */
+function buildFitKey(perfectSamples, likedIds, trainingRows, cfg) {
+  const payload = [
+    perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core]).sort(),
+    likedIds.slice().sort(),
+    trainingRows.map((r) => [r.item_id, r.y]).sort(),
+    cfg.interests,
+    cfg.features,
+    cfg.authors,
+    cfg.crossFit,
+    cfg.model,
+    ENCODING_VERSION,
+  ];
+  return createHash('sha1').update(JSON.stringify(payload)).digest('hex');
+}
+
+/**
+ * Ensure model and interests are fitted (or loaded from cache).
+ * @param {import('./store.js').Store} store
+ * @param {object} cfg - config.ranker
+ * @param {{persist?: boolean, force?: boolean}} opts
+ */
+export async function ensureFitted(store, cfg, { persist = true, force = false } = {}) {
+  // Load perfect samples
+  let perfectSamples = [];
+  try {
+    const { readFileSync } = await import('node:fs');
+    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8'));
+  } catch {
+    console.error('[refit] no perfect_samples.json found');
+  }
+
+  const likedIds = store.getLikedIds(cfg.interests.maxLikedDays);
+  const trainingRows = store.getTrainingRows();
+  const fitKey = buildFitKey(perfectSamples, likedIds, trainingRows, cfg);
+
+  const cachedKey = store.getState('fit_key');
+  if (!force && cachedKey === fitKey) {
+    console.error('[refit] cache hit, loading interests and model from ranker_state');
+    const interests = JSON.parse(store.getState('interests'));
+    const model = JSON.parse(store.getState('model'));
+    return { interests, model, fitKey, fromCache: true };
+  }
+
+  console.error('[refit] building interests and fitting model...');
+  // TODO: Phase 3 - build interests
+  // TODO: Phase 4 - fit model
+
+  if (persist) {
+    store.setState('fit_key', fitKey);
+    // store.setState('interests', JSON.stringify(interests));
+    // store.setState('model', JSON.stringify(model.toJSON()));
+  }
+
+  return { interests: null, model: null, fitKey, fromCache: false };
+}
+
+/**
+ * Prepare candidates for selection.
+ * @param {import('./store.js').Store} store
+ * @param {object} cfg - config.ranker
+ * @param {{interests, model}} fitted
+ * @param {string} dateKey - YYYY-MM-DD
+ * @param {Date} now
+ */
+export function prepareCandidates(store, cfg, { interests, model }, dateKey, now) {
+  const pool = store.getPool();
+  const embeddings = store.getAllEmbeddings();
+  const embById = new Map(embeddings.map((e) => [e.item_id, e]));
+  const lastShown = new Map(store.getLastShown(dateKey).map((r) => [r.item_id, r.last]));
+
+  const candidates = [];
+  let missingEmb = 0;
+  for (const item of pool) {
+    const emb = embById.get(item.id);
+    if (!emb) {
+      missingEmb++;
+      continue;
+    }
+    // TODO: encode features, predict, nearest cluster
+    candidates.push({
+      id: item.id,
+      title: item.title,
+      source_type: item.source_type,
+      p: 0.5, // placeholder
+      age_days: 0,
+      days_since_shown: null,
+      cluster: -1,
+      core: false,
+    });
+  }
+  if (missingEmb > 0) console.error(`[prepareCandidates] ${missingEmb} pool items missing embeddings, skipped`);
+  return candidates;
+}

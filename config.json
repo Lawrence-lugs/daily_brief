@@ -46,5 +46,36 @@
     "max_requests_per_run": 24,
     "min_remaining_daily": 3,
     "effort": "high"
+  },
+
+  "ranker": {
+    "engine": "keyword",
+    "perfect_samples_file": "perfect_samples.json",
+    "label": "liked_or_saved",
+    "features": ["bias", "type", "author", "medoid"],
+    "authors": { "head": 3, "tail": 2, "threshold": 5 },
+    "interests": { "kappa": 20, "maxLikedDays": 100, "mode": "stop", "minClusters": 1 },
+    "crossFit": { "folds": 5 },
+    "model": {
+      "name": "bayes_lr", "maxSweeps": 60, "tol": 0.0001,
+      "numDefault": { "mean": 0.45, "std": 0.15 },
+      "prior": {
+        "default": { "prec": 1, "mean": 0 },
+        "rules": [
+          { "match": "b",    "prec": 0.5, "mean": -2 },
+          { "match": "t:",   "prec": 2 },
+          { "match": "a:",   "prec": 3 },
+          { "match": "n:d1", "prec": 1, "mean": -0.8 },
+          { "match": "n:d2", "prec": 2, "mean": -0.2 },
+          { "match": "n:d3", "prec": 2 }
+        ]
+      }
+    },
+    "sampling": {
+      "epsilon": 0.25, "halfLifeDays": 7,
+      "desks": { "core": "primary", "side": "science" },
+      "explore": { "gamma": 0.5, "floor": 0.01 },
+      "dedupe": { "hardWindowDays": 2, "t0": 7, "scale": 2 }
+    }
   }
 }
