@@ -7,22 +7,49 @@ const ENCODING_VERSION = 1; // bump when encode() schema changes
 
 /**
  * Ensure all pool/story items and perfect samples have embeddings.
+ * Re-embeds pool items if their text_hash changed.
  * @param {import('./store.js').Store} store
  * @param {object} cfg - config.ranker
  * @param {{persist?: boolean}} opts
  */
 export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
-  const missing = store.getMissingEmbeddings();
-  if (missing.length > 0) {
-    const texts = missing.map((m) => textOf(m.title, m.body));
-    const vecs = await embedTexts(texts);
-    for (let i = 0; i < missing.length; i++) {
-      const h = textHash(texts[i]);
-      if (persist) store.upsertEmbedding(missing[i].id, EMBED_MODEL, h, DIM, vecs[i]);
+  // Pool items: missing or text_hash mismatch
+  const poolItems = store.getPool();
+  const existingEmbs = store.getAllEmbeddings();
+  const embById = new Map(existingEmbs.map((e) => [e.item_id, e]));
+  
+  const toEmbed = [];
+  for (const item of poolItems) {
+    const text = textOf(item.title, item.snippet);
+    const h = textHash(text);
+    const existing = embById.get(item.id);
+    if (!existing || existing.text_hash !== h) {
+      toEmbed.push({ id: item.id, text, hash: h });
     }
-    console.error(`[embed] inserted ${missing.length} embeddings`);
+  }
+  
+  if (toEmbed.length > 0) {
+    const texts = toEmbed.map((t) => t.text);
+    const vecs = await embedTexts(texts);
+    for (let i = 0; i < toEmbed.length; i++) {
+      if (persist) store.upsertEmbedding(toEmbed[i].id, EMBED_MODEL, toEmbed[i].hash, DIM, vecs[i]);
+    }
+    console.error(`[embed] inserted/updated ${toEmbed.length} pool embeddings`);
   } else {
-    console.error('[embed] all items already embedded');
+    console.error('[embed] all pool items already embedded');
+  }
+
+  // Stories not in pool (fallback)
+  const missingStories = store.getMissingEmbeddings()
+    .filter((m) => !embById.has(m.id) && !toEmbed.some((t) => t.id === m.id));
+  if (missingStories.length > 0) {
+    const texts = missingStories.map((m) => textOf(m.title, m.body));
+    const vecs = await embedTexts(texts);
+    for (let i = 0; i < missingStories.length; i++) {
+      const h = textHash(texts[i]);
+      if (persist) store.upsertEmbedding(missingStories[i].id, EMBED_MODEL, h, DIM, vecs[i]);
+    }
+    console.error(`[embed] inserted ${missingStories.length} story embeddings`);
   }
 
   // Perfect samples
@@ -38,7 +65,8 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
     const texts = perfectSamples.map((ps) => textOf(ps.title, ps.snippet));
     const vecs = await embedTexts(texts);
     for (let i = 0; i < perfectSamples.length; i++) {
-      const id = perfectSamples[i].id.startsWith('ps:') ? perfectSamples[i].id : `ps:${perfectSamples[i].id}`;
+      const rawId = perfectSamples[i].id;
+      const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
       const h = textHash(texts[i]);
       const existing = store.getEmbedding(id);
       if (!existing || existing.text_hash !== h) {
@@ -61,7 +89,7 @@ function buildFitKey(perfectSamples, likedIds, trainingRows, cfg) {
   const payload = [
     perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core]).sort(),
     likedIds.slice().sort(),
-    trainingRows.map((r) => [r.item_id, r.y]).sort(),
+    trainingRows.map((r) => [r.item_id, r.y, r.source_type, (r.authors || []).join(',')]).sort(),
     cfg.interests,
     cfg.features,
     cfg.authors,

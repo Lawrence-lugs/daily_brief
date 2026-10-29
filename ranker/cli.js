@@ -84,10 +84,14 @@ async function cmdSimulate(args) {
   if (args.set) cfg = applyOverrides(cfg, args.set);
   if (args.runs) cfg.runs = parseInt(args.runs, 10);
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
+  if (!args.date) {
+    console.error('simulate requires --date D');
+    process.exit(1);
+  }
   const store = new Store(DB_FILE);
   try {
-    await ensureFitted(store, cfg, { persist: false });
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, new Date());
+    const fittedResult = await ensureFitted(store, cfg, { persist: false });
+    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, new Date());
     // TODO: simulate
     console.log(JSON.stringify({ runs: cfg.runs, summary: 'TODO' }));
   } finally {
