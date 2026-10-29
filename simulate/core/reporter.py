@@ -1,0 +1,429 @@
+"""Reporter - outputs results in JSON, HTML, or console format."""
+from __future__ import annotations
+import json
+from pathlib import Path
+from typing import Dict, Any, List
+from datetime import datetime
+
+
+class Reporter:
+    """Handles output formatting for experiment results."""
+    
+    def __init__(self, output_dir: str = "experiments/output"):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+    
+    def write_json(self, data: Dict, filename: str) -> Path:
+        """Write results as JSON."""
+        path = self.output_dir / filename
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return path
+    
+    def write_html(self, html: str, filename: str) -> Path:
+        """Write HTML report."""
+        path = self.output_dir / filename
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(html)
+        return path
+    
+    def print_console(self, data: Dict) -> None:
+        """Pretty print to console."""
+        print(json.dumps(data, indent=2, ensure_ascii=False))
+    
+    def generate_comparison_html(self, results: Dict, title: str = "Engine Comparison") -> str:
+        """Generate HTML report with Chart.js visualizations."""
+        # Extract data for charts
+        engines = results.get("engines", [])
+        runs = results.get("runs", [])
+        
+        # Aggregate source type counts
+        source_type_counts = {e: Counter() for e in engines}
+        for run in runs:
+            for engine in engines:
+                for desk, items in run.get("selections", {}).get(engine, {}).items():
+                    for item in items:
+                        st = item.get("source_type", "unknown")
+                        source_type_counts[engine][st] += 1
+        
+        # Aggregate cluster counts (for LR)
+        cluster_counts = {}
+        for run in runs:
+            for engine in engines:
+                if engine == "lr":
+                    for desk, items in run.get("selections", {}).get(engine, {}).items():
+                        for item in items:
+                            cluster = item.get("cluster")
+                            if cluster is not None:
+                                cluster_counts[cluster] = cluster_counts.get(cluster, 0) + 1
+        
+        # Aggregate mode counts
+        mode_counts = {e: Counter() for e in engines}
+        for run in runs:
+            for engine in engines:
+                for desk, items in run.get("selections", {}).get(engine, {}).items():
+                    for item in items:
+                        mode = item.get("mode", "unknown")
+                        mode_counts[engine][mode] += 1
+        
+        # Per-desk stats
+        desk_stats = {}
+        for engine in engines:
+            desk_stats[engine] = {}
+            for run in runs:
+                for desk, items in run.get("selections", {}).get(engine, {}).items():
+                    if desk not in desk_stats[engine]:
+                        desk_stats[engine][desk] = {"freshness": [], "count": 0}
+                    desk_stats[engine][desk]["count"] += len(items)
+                    for item in items:
+                        if "age_days" in item:
+                            desk_stats[engine][desk]["freshness"].append(item["age_days"])
+        
+        # Build HTML
+        return self._build_html_report(
+            title=title,
+            date=results.get("date", "unknown"),
+            seeds=results.get("seeds", []),
+            engines=engines,
+            source_type_counts=source_type_counts,
+            cluster_counts=cluster_counts,
+            mode_counts=mode_counts,
+            desk_stats=desk_stats,
+            runs=runs,
+        )
+    
+    def _build_html_report(self, **kwargs) -> str:
+        """Build the HTML report string."""
+        engines = kwargs["engines"]
+        source_type_counts = kwargs["source_type_counts"]
+        cluster_counts = kwargs["cluster_counts"]
+        mode_counts = kwargs["mode_counts"]
+        desk_stats = kwargs["desk_stats"]
+        runs = kwargs["runs"]
+        
+        # Colors
+        engine_colors = {
+            "keyword": {"main": "#e74c3c", "light": "rgba(231,76,60,0.7)", "dark": "#c0392b"},
+            "lr": {"main": "#27ae60", "light": "rgba(39,174,96,0.7)", "dark": "#1e8449"},
+        }
+        
+        # Source type chart data
+        source_labels = sorted(set().union(*[set(c.keys()) for c in source_type_counts.values()]))
+        source_datasets = []
+        for engine in engines:
+            source_datasets.append({
+                "label": engine.capitalize(),
+                "data": [source_type_counts[engine].get(l, 0) for l in source_labels],
+                "backgroundColor": engine_colors.get(engine, {}).get("light", "rgba(100,100,100,0.7)"),
+                "borderColor": engine_colors.get(engine, {}).get("dark", "#666"),
+                "borderWidth": 1,
+            })
+        
+        # Cluster chart data (LR only)
+        cluster_labels = sorted(cluster_counts.keys())
+        cluster_data = [cluster_counts.get(c, 0) for c in cluster_labels]
+        
+        # Mode chart data
+        mode_labels = sorted(set().union(*[set(c.keys()) for c in mode_counts.values()]))
+        mode_datasets = []
+        for engine in engines:
+            mode_datasets.append({
+                "label": engine.capitalize(),
+                "data": [mode_counts[engine].get(l, 0) for l in mode_labels],
+                "backgroundColor": engine_colors.get(engine, {}).get("light", "rgba(100,100,100,0.7)"),
+                "borderColor": engine_colors.get(engine, {}).get("dark", "#666"),
+                "borderWidth": 1,
+            })
+        
+        # Per-desk freshness
+        desk_freshness = {}
+        for engine in engines:
+            desk_freshness[engine] = {}
+            for desk, data in desk_stats.get(engine, {}).items():
+                ages = data.get("freshness", [])
+                if ages:
+                    desk_freshness[engine][desk] = {
+                        "mean": sum(ages) / len(ages),
+                        "median": sorted(ages)[len(ages)//2],
+                        "count": data["count"],
+                    }
+        
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{kwargs['title']}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+               max-width: 1200px; margin: auto; padding: 20px; background: #f5f5f5; }}
+        .card {{ background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; 
+                 box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }}
+        .chart-container {{ position: relative; height: 350px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+        th, td {{ padding: 8px; border-bottom: 1px solid #eee; text-align: left; }}
+        th {{ background: #f8f9fa; font-weight: 600; }}
+        .engine-kw {{ border-left: 4px solid #e74c3c; }}
+        .engine-lr {{ border-left: 4px solid #27ae60; }}
+        .highlight {{ background: #fff3cd; }}
+        pre {{ background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 13px; }}
+        .badge {{ display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; 
+                  font-weight: 600; color: white; }}
+        .badge-kw {{ background: #e74c3c; }}
+        .badge-lr {{ background: #27ae60; }}
+        h1 {{ color: #333; }}
+        h2 {{ color: #444; border-bottom: 1px solid #eee; padding-bottom: 10px; }}
+        h3 {{ color: #555; }}
+        .metric-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }}
+        .metric-card {{ background: #f8f9fa; padding: 15px; border-radius: 6px; }}
+        .metric-value {{ font-size: 24px; font-weight: 700; color: #333; }}
+        .metric-label {{ font-size: 12px; color: #666; text-transform: uppercase; }}
+    </style>
+</head>
+<body>
+    <h1>{kwargs['title']}</h1>
+    <p>Date: {kwargs['date']} | Seeds: {len(kwargs['seeds'])} ({kwargs['seeds'][0]}...{kwargs['seeds'][-1]}) | Runs: {len(runs)}</p>
+    
+    <div class="card engine-kw">
+        <h2><span class="badge badge-kw">KEYWORD</span> Keyword Engine (Legacy)</h2>
+        <p>Epsilon-greedy with keyword relevance, freshness decay, subtopic balancing.</p>
+    </div>
+    
+    <div class="card engine-lr">
+        <h2><span class="badge badge-lr">LR</span> LR Engine (New)</h2>
+        <p>Bayesian logistic regression, Ward clustering, value-based sampling with cluster round-robin.</p>
+    </div>
+    
+    <div class="card">
+        <h2>Source Type Distribution</h2>
+        <div class="grid">
+            <div class="chart-container">
+                <canvas id="sourceTypeChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="modeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Cluster Coverage (LR Engine)</h2>
+        <div class="chart-container">
+            <canvas id="clusterChart"></canvas>
+        </div>
+        <p><small>Green = core clusters (guaranteed 1 pick/day via round-robin), Yellow = side clusters</small></p>
+    </div>
+    
+    <div class="card">
+        <h2>Per-Desk Metrics</h2>
+        <div class="grid">
+            <div>
+                <h3>Primary Desk</h3>
+                <table>
+                    <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+                    {self._build_desk_table("primary", desk_stats, source_type_counts, mode_counts)}
+                </table>
+            </div>
+            <div>
+                <h3>Science Desk</h3>
+                <table>
+                    <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+                    {self._build_desk_table("science", desk_stats, source_type_counts, mode_counts)}
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Key Metrics Summary</h2>
+        <table>
+            <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+            {self._build_summary_table(source_type_counts, desk_freshness, mode_counts, runs)}
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Run Details (First 5 Seeds)</h2>
+        <pre>{json.dumps(runs[:5], indent=2)}</pre>
+    </div>
+    
+    <script>
+        // Source Type Chart
+        new Chart(document.getElementById("sourceTypeChart"), {{
+            type: "bar",
+            data: {{
+                labels: {json.dumps(source_labels)},
+                datasets: {json.dumps(source_datasets)}
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{ title: {{ display: true, text: "Source Type Distribution (all desks, all runs)" }} }},
+                scales: {{ y: {{ beginAtZero: true, title: {{ display: true, text: "Count" }} }} }}
+            }}
+        }});
+        
+        // Mode Chart - aggregate across engines
+        new Chart(document.getElementById("modeChart"), {{
+            type: "doughnut",
+            data: {{
+                labels: {json.dumps(mode_labels)},
+                datasets: [{{
+                    label: "Selection Mode",
+                    data: {json.dumps([sum(mode_counts.get(e, {}).get(l, 0) for e in engines) for l in mode_labels])},
+                    backgroundColor: {json.dumps(["rgba(231,76,60,0.7)", "rgba(39,174,96,0.7)", "rgba(241,196,15,0.7)"][:len(mode_labels)])},
+                    borderWidth: 1
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{ title: {{ display: true, text: "Selection Mode Distribution (all engines)" }} }}
+            }}
+        }});
+        
+        // Cluster Chart (if LR data exists)
+        {self._cluster_chart_js(cluster_labels, cluster_data) if cluster_labels else "// No cluster data"}
+    </script>
+</body>
+</html>"""
+        return html
+    
+    def _build_desk_table(self, desk: str, desk_stats: Dict, 
+                          source_type_counts: Dict, mode_counts: Dict) -> str:
+        """Build HTML table rows for a desk."""
+        rows = []
+        
+        # Total picks per engine
+        for engine in ["keyword", "lr"]:
+            if engine in desk_stats and desk in desk_stats[engine]:
+                count = desk_stats[engine][desk]["count"]
+                rows.append(f"<tr><td>Total picks</td><td>{count}</td><td>--</td><td>--</td></tr>")
+        
+        # Freshness
+        if "keyword" in desk_stats and desk in desk_stats["keyword"]:
+            kw_ages = desk_stats["keyword"][desk].get("freshness", [])
+            lr_ages = desk_stats.get("lr", {}).get(desk, {}).get("freshness", [])
+            if kw_ages:
+                kw_mean = sum(kw_ages)/len(kw_ages)
+                if lr_ages:
+                    lr_mean = sum(lr_ages)/len(lr_ages)
+                    diff = lr_mean - kw_mean
+                    rows.append(f"<tr><td>Mean age (days)</td><td>{kw_mean:.1f}</td><td>{lr_mean:.1f}</td><td>{diff:+.1f}</td></tr>")
+                else:
+                    rows.append(f"<tr><td>Mean age (days)</td><td>{kw_mean:.1f}</td><td>N/A</td><td>N/A</td></tr>")
+            if kw_ages:
+                kw_median = sorted(kw_ages)[len(kw_ages)//2]
+                if lr_ages:
+                    lr_median = sorted(lr_ages)[len(lr_ages)//2]
+                    rows.append(f"<tr><td>Median age (days)</td><td>{kw_median:.1f}</td><td>{lr_median:.1f}</td><td>N/A</td></tr>")
+                else:
+                    rows.append(f"<tr><td>Median age (days)</td><td>{kw_median:.1f}</td><td>N/A</td><td>N/A</td></tr>")
+        
+        return "".join(rows)
+    
+    def _build_summary_table(self, source_type_counts: Dict, desk_freshness: Dict,
+                             mode_counts: Dict, runs: List[Dict]) -> str:
+        """Build summary metrics table."""
+        rows = []
+        
+        # Source type percentages
+        for engine in ["keyword", "lr"]:
+            total = sum(source_type_counts.get(engine, {}).values())
+            if total > 0:
+                for stype in ["researchlike", "newslike", "commentary"]:
+                    pct = source_type_counts[engine].get(stype, 0) / total * 100
+                    # We'll fill both columns in a single pass below
+        
+        # Compute overall stats from runs
+        kw_picks = []
+        lr_picks = []
+        for run in runs:
+            for desk, items in run.get("selections", {}).get("keyword", {}).items():
+                kw_picks.extend(items)
+            for desk, items in run.get("selections", {}).get("lr", {}).items():
+                lr_picks.extend(items)
+        
+        def get_pct(picks, stype):
+            total = len(picks)
+            if total == 0: return 0
+            return sum(1 for p in picks if p.get("source_type") == stype) / total * 100
+        
+        def get_mean_age(picks):
+            ages = [p.get("age_days", 0) for p in picks if p.get("age_days") is not None]
+            return sum(ages)/len(ages) if ages else 0
+        
+        def get_median_age(picks):
+            ages = sorted([p.get("age_days", 0) for p in picks if p.get("age_days") is not None])
+            return ages[len(ages)//2] if ages else 0
+        
+        def get_explore_pct(picks):
+            total = len(picks)
+            if total == 0: return 0
+            return sum(1 for p in picks if p.get("mode") == "explore") / total * 100
+        
+        # Jaccard
+        primary_kw = {i["id"] for run in runs for i in run.get("selections", {}).get("keyword", {}).get("primary", [])}
+        primary_lr = {i["id"] for run in runs for i in run.get("selections", {}).get("lr", {}).get("primary", [])}
+        science_kw = {i["id"] for run in runs for i in run.get("selections", {}).get("keyword", {}).get("science", [])}
+        science_lr = {i["id"] for run in runs for i in run.get("selections", {}).get("lr", {}).get("science", [])}
+        
+        from simulate.core.metrics import MetricsCollector
+        jaccard_primary = MetricsCollector.jaccard(primary_kw, primary_lr)
+        jaccard_science = MetricsCollector.jaccard(science_kw, science_lr)
+        
+        rows.append(f"<tr><td>Researchlike %</td><td>{get_pct(kw_picks, 'researchlike'):.1f}%</td><td>{get_pct(lr_picks, 'researchlike'):.1f}%</td><td class='highlight'>{get_pct(lr_picks, 'researchlike') - get_pct(kw_picks, 'researchlike'):+.1f}%</td></tr>")
+        rows.append(f"<tr><td>Newslike %</td><td>{get_pct(kw_picks, 'newslike'):.1f}%</td><td>{get_pct(lr_picks, 'newslike'):.1f}%</td><td class='highlight'>{get_pct(lr_picks, 'newslike') - get_pct(kw_picks, 'newslike'):+.1f}%</td></tr>")
+        rows.append(f"<tr><td>Commentary %</td><td>{get_pct(kw_picks, 'commentary'):.1f}%</td><td>{get_pct(lr_picks, 'commentary'):.1f}%</td><td>{get_pct(lr_picks, 'commentary') - get_pct(kw_picks, 'commentary'):+.1f}%</td></tr>")
+        rows.append(f"<tr><td>Mean age (days)</td><td>{get_mean_age(kw_picks):.1f}</td><td>{get_mean_age(lr_picks):.1f}</td><td>{get_mean_age(lr_picks) - get_mean_age(kw_picks):+.1f}</td></tr>")
+        rows.append(f"<tr><td>Median age (days)</td><td>{get_median_age(kw_picks):.1f}</td><td>{get_median_age(lr_picks):.1f}</td><td>{get_median_age(lr_picks) - get_median_age(kw_picks):+.1f}</td></tr>")
+        rows.append(f"<tr><td>Explore rate</td><td>{get_explore_pct(kw_picks):.1f}%</td><td>{get_explore_pct(lr_picks):.1f}%</td><td>{get_explore_pct(lr_picks) - get_explore_pct(kw_picks):+.1f}%</td></tr>")
+        rows.append(f"<tr><td>Jaccard (primary)</td><td>--</td><td>{jaccard_primary:.3f}</td><td>{'Very low' if jaccard_primary < 0.1 else 'Low' if jaccard_primary < 0.3 else 'Moderate'}</td></tr>")
+        rows.append(f"<tr><td>Jaccard (science)</td><td>--</td><td>{jaccard_science:.3f}</td><td>{'No overlap' if jaccard_science == 0 else 'Very low' if jaccard_science < 0.1 else 'Low'}</td></tr>")
+        
+        return "".join(rows)
+    
+    def _cluster_chart_js(self, labels: List, data: List) -> str:
+        """Generate Chart.js code for cluster chart."""
+        if not labels:
+            return ""
+        
+        # Color core vs side clusters (assuming 0-4 are core based on typical config)
+        colors = []
+        for i, c in enumerate(labels):
+            if c < 5:
+                colors.append("rgba(39,174,96,0.7)")  # core = green
+            else:
+                colors.append("rgba(241,196,15,0.7)")  # side = yellow
+        
+        return f"""
+        new Chart(document.getElementById("clusterChart"), {{
+            type: "bar",
+            data: {{
+                labels: {json.dumps([f"C{{c}}" for c in labels])},
+                datasets: [{{
+                    label: "Picks per run (aggregated)",
+                    data: {json.dumps(data)},
+                    backgroundColor: {json.dumps(colors)},
+                    borderColor: {json.dumps(["#27ae60" if c < 5 else "#f1c40f" for c in labels])},
+                    borderWidth: 1
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    title: {{ display: true, text: "LR Cluster Coverage (Green=Core, Yellow=Side)" }},
+                    legend: {{ display: false }}
+                }},
+                scales: {{
+                    y: {{ beginAtZero: true, title: {{ display: true, text: "Picks" }} }},
+                    x: {{ title: {{ display: true, text: "Cluster (0-4=Core, 5+=Side)" }} }}
+                }}
+            }}
+        }});
+        """
+
+
+from collections import Counter

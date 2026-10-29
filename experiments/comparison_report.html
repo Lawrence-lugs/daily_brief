@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Keyword vs LR Engine Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 1200px; margin: auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .chart-container { position: relative; height: 300px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 8px; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; }
+        .engine-kw { border-left: 4px solid #e74c3c; }
+        .engine-lr { border-left: 4px solid #27ae60; }
+        .highlight { background: #fff3cd; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <h1>Keyword vs LR Engine Comparison</h1>
+    <p>Date: 2026-10-29 | Pool: 2,902 | Seeds: 50</p>
+    <div class="card engine-kw"><h2>Keyword Engine (Legacy)</h2><p>Epsilon-greedy with keyword relevance, freshness decay, subtopic balancing.</p></div>
+    <div class="card engine-lr"><h2>LR Engine (New)</h2><p>Bayesian logistic regression, Ward clustering, value-based sampling.</p></div>
+    <div class="card"><h2>Source Type Distribution</h2><div class="grid"><div class="chart-container"><canvas id="sourceTypeChart"></canvas></div><div class="chart-container"><canvas id="clusterChart"></canvas></div></div></div>
+    <div class="card"><h2>Key Metrics Comparison</h2>
+    <table><tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+    <tr><td>Researchlike %</td><td>62.8%</td><td>94.0%</td><td class="highlight">+31.2%</td></tr>
+    <tr><td>Newslike %</td><td>31.2%</td><td>0.6%</td><td class="highlight">-30.6%</td></tr>
+    <tr><td>Commentary %</td><td>6.0%</td><td>5.4%</td><td>-0.6%</td></tr>
+    <tr><td>Mean age (days)</td><td>6.5</td><td>3.1</td><td>-3.4</td></tr>
+    <tr><td>Median age (days)</td><td>1.2</td><td>1.2</td><td>Equal</td></tr>
+    <tr><td>Explore rate</td><td>26.2%</td><td>26.2%</td><td>Equal</td></tr>
+    <tr><td>Jaccard (primary)</td><td>--</td><td>0.033</td><td>Very low</td></tr>
+    <tr><td>Jaccard (science)</td><td>--</td><td>0.000</td><td>No overlap</td></tr>
+    </table></div>
+    <div class="card"><h2>LR Model Weights</h2>
+    <table><tr><th>Feature</th><th>Weight</th><th>Std Dev</th><th>Interpretation</th></tr>
+    <tr><td>Bias (b)</td><td>-1.885</td><td>0.271</td><td>Base like rate ~13%</td></tr>
+    <tr><td>type:researchlike</td><td>+0.706</td><td>0.278</td><td><b>Strong positive</b> for papers</td></tr>
+    <tr><td>type:newslike</td><td>-0.551</td><td>0.505</td><td>Negative for news</td></tr>
+    <tr><td>type:commentary</td><td>-0.128</td><td>0.671</td><td>Slightly negative</td></tr>
+    <tr><td>d1 (closest medoid)</td><td>+0.272</td><td>0.026</td><td><b>Closer = more likely</b></td></tr>
+    <tr><td>d2</td><td>-0.235</td><td>0.025</td><td>Less predictive</td></tr>
+    <tr><td>d3</td><td>-0.016</td><td>0.025</td><td>Negligible</td></tr>
+    </table></div>
+    <div class="card"><h2>Simulation Results (500 runs)</h2>
+    <div class="grid"><div>
+    <h3>Diversity Metrics</h3><ul>
+    <li>Items ever picked: 886 / 2,902 (30.5%)</li>
+    <li>Consecutive Jaccard: 0.455</li>
+    <li>Primary desk clusters/run: 5.0 (all core)</li>
+    <li>Science desk clusters/run: 2.16 (of 3 side)</li>
+    </ul>
+    <h3>Top Consistently Picked Items</h3><ol>
+    <li>Impact of deformation parameters... (100%)</li>
+    <li>Intrinsically Quantum Effects... (99.2%)</li>
+    <li>SLICE-CiM: Selective Layer-wise... (91.4%)</li>
+    <li>Weighing dark matter particles... (78.0%)</li>
+    <li>Bethe Cycles, Frobenius Identities... (76.8%)</li>
+    </ol></div><div>
+    <h3>Model Probability Distribution</h3><ul>
+    <li>p (like prob): mean=0.247, std=0.030</li>
+    <li>V (sampling value): mean=0.198, std=0.060</li>
+    <li>V range: 0.000 to 0.243</li>
+    </ul>
+    <h3>Cluster Coverage (50 seeds)</h3>
+    <table style="font-size:12px"><tr><th>Cluster</th><th>Medoid (Perfect Sample)</th><th>Core</th><th>Size</th><th>Picks</th></tr>
+    <tr><td>0</td><td>Scaling Laws for Neural LMs</td><td>Yes</td><td>6</td><td>50</td></tr>
+    <tr><td>1</td><td>Attention Is All You Need</td><td>Yes</td><td>1</td><td>50</td></tr>
+    <tr><td>2</td><td>BERT</td><td>Yes</td><td>1</td><td>50</td></tr>
+    <tr><td>3</td><td>LoRA</td><td>Yes</td><td>1</td><td>50</td></tr>
+    <tr><td>4</td><td>Chain-of-Thought</td><td>Yes</td><td>4</td><td>50</td></tr>
+    <tr><td>5</td><td>RAG</td><td>No</td><td>7</td><td>189</td></tr>
+    <tr><td>6</td><td>Mixture of Experts</td><td>No</td><td>5</td><td>51</td></tr>
+    <tr><td>7</td><td>FlashAttention</td><td>No</td><td>1</td><td>10</td></tr>
+    </table></div></div></div>
+    <div class="card"><h2>Key Observations</h2><ol>
+    <li><strong>Different philosophies:</strong> Keyword balances subtopics + source types; LR optimizes p(like) within interest clusters.</li>
+    <li><strong>LR heavily favors papers:</strong> Weight +0.706 for researchlike, -0.551 for newslike (reflects like history).</li>
+    <li><strong>Guaranteed interest coverage:</strong> Round-robin across 5 core clusters ensures every interest appears daily.</li>
+    <li><strong>Very low overlap:</strong> Jaccard ~0.03 (primary), 0.00 (science) - engines pick almost disjoint sets.</li>
+    <li><strong>Freshness:</strong> LR picks fresher items on average (3.1 vs 6.5 days) due to value function V = p * exp(-lambda*A) * L(days).</li>
+    <li><strong>Explore behavior:</strong> Both explore at ~26% (epsilon=0.25), but LR explore picks have very low V values.</li>
+    <li><strong>Simulation stability:</strong> 30.5% of pool eventually picked, consecutive Jaccard 0.45 = good variety.</li>
+    </ol></div>
+    <div class="card"><h2>Proposed Simulation Framework</h2><pre># Unified simulation framework
+
+simulate.py / simulate.js
+|-- Core abstractions
+|   |-- Engine interface: select(pool, config, seed) -> picks
+|   |-- Pool provider: DB or synthetic
+|   |-- Metrics: overlap, diversity, coverage, freshness
+|   |-- Reporter: JSON, HTML, console
+|-- Engines
+|   |-- KeywordEngine: selection.py (Python)
+|   |-- LREngine: node ranker/cli.js (Node)
+|   |-- Pluggable future engines
+|-- Experiments
+|   |-- compare_engines(date, seeds, engines)
+|   |-- parameter_sweep(grid, metric)
+|   |-- ablation_study(engine, features)
+|   |-- monte_carlo(engine, runs)
+|-- Visualization
+    |-- HTML + Chart.js
+    |-- Statistical tables
+    |-- Time-series tracking</pre></div>
+    <script>
+        new Chart(document.getElementById("sourceTypeChart"), {
+            type: "bar",
+            data: {
+                labels: ["researchlike", "newslike", "commentary"],
+                datasets: [{
+                    label: "Keyword Engine",
+                    data: [314, 156, 30],
+                    backgroundColor: "rgba(231,76,60,0.7)",
+                    borderColor: "#e74c3c",
+                    borderWidth: 1
+                }, {
+                    label: "LR Engine",
+                    data: [470, 3, 27],
+                    backgroundColor: "rgba(39,174,96,0.7)",
+                    borderColor: "#27ae60",
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { title: { display: true, text: "Source Type Distribution (500 picks each)" } },
+                scales: { y: { beginAtZero: true, title: { display: true, text: "Count" } } }
+            }
+        });
+        
+        new Chart(document.getElementById("clusterChart"), {
+            type: "bar",
+            data: {
+                labels: ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7"],
+                datasets: [{
+                    label: "Picks per 50 seeds",
+                    data: [50, 50, 50, 50, 50, 189, 51, 10],
+                    backgroundColor: [
+                        "rgba(39,174,96,0.7)", "rgba(39,174,96,0.7)", "rgba(39,174,96,0.7)",
+                        "rgba(39,174,96,0.7)", "rgba(39,174,96,0.7)",
+                        "rgba(241,196,15,0.7)", "rgba(241,196,15,0.7)", "rgba(241,196,15,0.7)"
+                    ],
+                    borderColor: [
+                        "#27ae60", "#27ae60", "#27ae60", "#27ae60", "#27ae60",
+                        "#f1c40f", "#f1c40f", "#f1c40f"
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: "LR Cluster Coverage (Green=Core, Yellow=Side)" },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: "Picks" } },
+                    x: { title: { display: true, text: "Cluster (0-4=Core, 5-7=Side)" } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
