@@ -1,0 +1,1501 @@
+{
+  "param_grid": {
+    "epsilon": [
+      0.4,
+      0.6,
+      0.8
+    ],
+    "halfLifeDays": [
+      14,
+      21,
+      30,
+      45
+    ],
+    "explore.gamma": [
+      0.3,
+      0.5
+    ]
+  },
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "results": [
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 46,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7466666666666666,
+        "mean_age": 4.2920748456790125,
+        "mean_diff": 0.6955975286752474,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.0944654310042903
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 75,
+          "2-5": 3,
+          "5-10": 2,
+          "10-20": 6,
+          "20-50": 0,
+          "50+": 1
+        },
+        "dist": 0.25777777777777783,
+        "mean_age": 3.4397020948897894,
+        "mean_diff": 0.5332832978439906,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.5244194266997732
+      },
+      "avg_score": 0.8094424288520317,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 35,
+          "2-5": 46,
+          "5-10": 2,
+          "10-20": 4,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7466666666666666,
+        "mean_age": 4.129099408436215,
+        "mean_diff": 0.7071560703236727,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.1002447018285029
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 75,
+          "2-5": 1,
+          "5-10": 3,
+          "10-20": 6,
+          "20-50": 1,
+          "50+": 1
+        },
+        "dist": 0.28,
+        "mean_age": 3.633220484807485,
+        "mean_diff": 0.5070257144087538,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.5335128572043769
+      },
+      "avg_score": 0.8168787795164398,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 46,
+          "5-10": 1,
+          "10-20": 6,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7244444444444443,
+        "mean_age": 4.347630401234568,
+        "mean_diff": 0.6916574183521583,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.0702731536205234
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 75,
+          "2-5": 2,
+          "5-10": 3,
+          "10-20": 6,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.28,
+        "mean_age": 2.5657481339844392,
+        "mean_diff": 0.6518659248325048,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.6059329624162524
+      },
+      "avg_score": 0.8381030580183879,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 35,
+          "2-5": 45,
+          "5-10": 1,
+          "10-20": 6,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7022222222222222,
+        "mean_age": 4.314297067901235,
+        "mean_diff": 0.6940214845460118,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.049232964495228
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 77,
+          "2-5": 1,
+          "5-10": 3,
+          "10-20": 6,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.32444444444444437,
+        "mean_age": 2.2800952276058384,
+        "mean_diff": 0.6906247995107411,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.669756844199815
+      },
+      "avg_score": 0.8594949043475215,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 30,
+          "2-5": 49,
+          "5-10": 3,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.8355555555555555,
+        "mean_age": 4.435301826131687,
+        "mean_diff": 0.6854395867991712,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.178275348955141
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 72,
+          "2-5": 3,
+          "5-10": 3,
+          "10-20": 8,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.23555555555555557,
+        "mean_age": 2.671662743037937,
+        "mean_diff": 0.6374948788279596,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.5543029949695354
+      },
+      "avg_score": 0.8662891719623382,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 46,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7466666666666666,
+        "mean_age": 4.2920748456790125,
+        "mean_diff": 0.6955975286752474,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.0944654310042903
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 76,
+          "2-5": 1,
+          "5-10": 3,
+          "10-20": 6,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3244444444444444,
+        "mean_age": 2.3105516319268258,
+        "mean_diff": 0.6864923158850983,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.6676906023869935
+      },
+      "avg_score": 0.8810780166956419,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 31,
+          "2-5": 49,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.8133333333333332,
+        "mean_age": 4.36985262345679,
+        "mean_diff": 0.6900813742229227,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.1583740204447945
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 73,
+          "2-5": 6,
+          "5-10": 2,
+          "10-20": 6,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.26666666666666666,
+        "mean_age": 2.322229744066744,
+        "mean_diff": 0.6849077687833456,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.6091205510583395
+      },
+      "avg_score": 0.883747285751567,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 47,
+          "5-10": 1,
+          "10-20": 6,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.7466666666666667,
+        "mean_age": 3.6068302469135802,
+        "mean_diff": 0.7441964363891078,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1187648848612206
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 78,
+          "2-5": 2,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3244444444444445,
+        "mean_age": 2.2025325990050155,
+        "mean_diff": 0.7011489010848012,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.6750188949868451
+      },
+      "avg_score": 0.8968918899240328,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 47,
+          "5-10": 1,
+          "10-20": 6,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.7466666666666667,
+        "mean_age": 3.573496913580247,
+        "mean_diff": 0.7465605025829612,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1199469179581474
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 78,
+          "2-5": 2,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3244444444444445,
+        "mean_age": 2.161357187482382,
+        "mean_diff": 0.7067357954569361,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.6778123421729125
+      },
+      "avg_score": 0.89887963006553,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.8,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 47,
+          "5-10": 2,
+          "10-20": 4,
+          "20-50": 2,
+          "50+": 1
+        },
+        "dist": 0.7688888888888888,
+        "mean_age": 4.162432741769548,
+        "mean_diff": 0.7047920041298192,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 1.1212848909537985
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 77,
+          "2-5": 1,
+          "5-10": 4,
+          "10-20": 5,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3466666666666666,
+        "mean_age": 2.2356273778116,
+        "mean_diff": 0.6966584290621981,
+        "modes": {
+          "explore": 12,
+          "reserve": 75,
+          "greedy": 3
+        },
+        "n_items": 90,
+        "score": 0.6949958811977657
+      },
+      "avg_score": 0.9081403860757821,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 47,
+          "5-10": 2,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.7688888888888888,
+        "mean_age": 3.5290524691358023,
+        "mean_diff": 0.7497125908414325,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1437451843096051
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 77,
+          "2-5": 4,
+          "5-10": 3,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.33333333333333326,
+        "mean_age": 2.0169127430379374,
+        "mean_diff": 0.7263347702797914,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.696500718473229
+      },
+      "avg_score": 0.9201229513914171,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 31,
+          "2-5": 49,
+          "5-10": 3,
+          "10-20": 5,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.8355555555555555,
+        "mean_age": 3.6734969135802467,
+        "mean_diff": 0.739468304001401,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.2052897075562559
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 74,
+          "2-5": 7,
+          "5-10": 2,
+          "10-20": 4,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.31111111111111106,
+        "mean_age": 2.1002460763712705,
+        "mean_diff": 0.7150276694204518,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.6686249458213369
+      },
+      "avg_score": 0.9369573266887964,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 48,
+          "5-10": 3,
+          "10-20": 4,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.8133333333333332,
+        "mean_age": 3.2206116255144037,
+        "mean_diff": 0.7715878279777019,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1991272473221841
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 78,
+          "2-5": 2,
+          "5-10": 3,
+          "10-20": 4,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3466666666666667,
+        "mean_age": 2.083340855177855,
+        "mean_diff": 0.7173214579134526,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.705327395623393
+      },
+      "avg_score": 0.9522273214727885,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 47,
+          "5-10": 3,
+          "10-20": 5,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.7911111111111111,
+        "mean_age": 3.328031507201646,
+        "mean_diff": 0.7639693966523656,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1730958094372939
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 78,
+          "2-5": 2,
+          "5-10": 3,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.36888888888888893,
+        "mean_age": 1.9883294097046038,
+        "mean_diff": 0.7302131058745449,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7339954418261614
+      },
+      "avg_score": 0.9535456256317276,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 48,
+          "5-10": 3,
+          "10-20": 4,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.8133333333333332,
+        "mean_age": 3.1872782921810705,
+        "mean_diff": 0.7739518941715552,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.200309280419111
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 77,
+          "2-5": 3,
+          "5-10": 4,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3466666666666666,
+        "mean_age": 2.0277852996222996,
+        "mean_diff": 0.7248595251530123,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7090964292431727
+      },
+      "avg_score": 0.9547028548311418,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 36,
+          "2-5": 49,
+          "5-10": 1,
+          "10-20": 2,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.791111111111111,
+        "mean_age": 3.047871527777778,
+        "mean_diff": 0.7838388987391647,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.1830305604806934
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 80,
+          "2-5": 2,
+          "5-10": 2,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3688888888888888,
+        "mean_age": 1.8995377430379372,
+        "mean_diff": 0.7422608218401713,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7400192998089745
+      },
+      "avg_score": 0.961524930144834,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.6,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 30,
+          "2-5": 49,
+          "5-10": 5,
+          "10-20": 5,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.8799999999999999,
+        "mean_age": 3.5379251543209875,
+        "mean_diff": 0.7490833223885824,
+        "modes": {
+          "explore": 11,
+          "greedy": 4,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.254541661194291
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 74,
+          "2-5": 5,
+          "5-10": 4,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3333333333333333,
+        "mean_age": 2.1161071874823816,
+        "mean_diff": 0.7128755512235574,
+        "modes": {
+          "explore": 10,
+          "greedy": 5,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.689771108945112
+      },
+      "avg_score": 0.9721563850697015,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 31,
+          "2-5": 52,
+          "5-10": 3,
+          "10-20": 2,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.9022222222222221,
+        "mean_age": 3.2596706532921815,
+        "mean_diff": 0.7688176841636751,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.2866310643040597
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 77,
+          "2-5": 5,
+          "5-10": 1,
+          "10-20": 4,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.31111111111111106,
+        "mean_age": 1.9939821874823818,
+        "mean_diff": 0.7294461075329197,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.675834164877571
+      },
+      "avg_score": 0.9812326145908153,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 33,
+          "2-5": 51,
+          "5-10": 1,
+          "10-20": 3,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.8355555555555555,
+        "mean_age": 3.286984439300412,
+        "mean_diff": 0.766880536219829,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.21899582366547
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 80,
+          "2-5": 2,
+          "5-10": 3,
+          "10-20": 2,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.391111111111111,
+        "mean_age": 1.8388964107334105,
+        "mean_diff": 0.7504889537675155,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7663555879948687
+      },
+      "avg_score": 0.9926757058301694,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.5
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.5
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 34,
+          "2-5": 51,
+          "5-10": 1,
+          "10-20": 2,
+          "20-50": 2,
+          "50+": 0
+        },
+        "dist": 0.8355555555555555,
+        "mean_age": 3.1034270833333335,
+        "mean_diff": 0.7798987884160756,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.2255049497635933
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 80,
+          "2-5": 2,
+          "5-10": 3,
+          "10-20": 2,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.391111111111111,
+        "mean_age": 1.8388964107334105,
+        "mean_diff": 0.7504889537675155,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7663555879948687
+      },
+      "avg_score": 0.995930268879231,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 14,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 14,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 35,
+          "2-5": 50,
+          "5-10": 3,
+          "10-20": 1,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.8577777777777778,
+        "mean_age": 2.773452031893004,
+        "mean_diff": 0.8033012743338295,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.2594284149446926
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 81,
+          "2-5": 2,
+          "5-10": 2,
+          "10-20": 2,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.39111111111111113,
+        "mean_age": 1.7055630774000772,
+        "mean_diff": 0.768580315142459,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7754012686823406
+      },
+      "avg_score": 1.0174148418135167,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 45,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 45,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 31,
+          "2-5": 52,
+          "5-10": 4,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.9244444444444444,
+        "mean_age": 2.7223046553497943,
+        "mean_diff": 0.8069287478475324,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.3279088183682106
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 78,
+          "2-5": 3,
+          "5-10": 2,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3466666666666667,
+        "mean_age": 1.960551631926826,
+        "mean_diff": 0.7339821394943248,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.713657736413829
+      },
+      "avg_score": 1.0207832773910197,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 21,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 21,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 33,
+          "2-5": 52,
+          "5-10": 3,
+          "10-20": 1,
+          "20-50": 1,
+          "50+": 0
+        },
+        "dist": 0.9022222222222221,
+        "mean_age": 2.82900758744856,
+        "mean_diff": 0.7993611640107404,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.3019028042275924
+      },
+      "science": {
+        "hist": {
+          "0-1": 3,
+          "1-2": 80,
+          "2-5": 1,
+          "5-10": 3,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.3911111111111111,
+        "mean_age": 1.8884266319268261,
+        "mean_diff": 0.7437684352880832,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7629953287551527
+      },
+      "avg_score": 1.0324490664913726,
+      "primary_n": 90,
+      "science_n": 90
+    },
+    {
+      "params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 30,
+        "explore.gamma": 0.3
+      },
+      "sampling_params": {
+        "epsilon": 0.4,
+        "halfLifeDays": 30,
+        "explore": {
+          "gamma": 0.3
+        }
+      },
+      "primary": {
+        "hist": {
+          "0-1": 0,
+          "1-2": 33,
+          "2-5": 51,
+          "5-10": 3,
+          "10-20": 3,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.88,
+        "mean_age": 2.6334157664609057,
+        "mean_diff": 0.8132329243644748,
+        "modes": {
+          "greedy": 8,
+          "explore": 7,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 1.2866164621822374
+      },
+      "science": {
+        "hist": {
+          "0-1": 4,
+          "1-2": 81,
+          "2-5": 1,
+          "5-10": 2,
+          "10-20": 2,
+          "20-50": 0,
+          "50+": 0
+        },
+        "dist": 0.41333333333333333,
+        "mean_age": 1.7438849652601593,
+        "mean_diff": 0.763380601728608,
+        "modes": {
+          "explore": 7,
+          "greedy": 8,
+          "reserve": 75
+        },
+        "n_items": 90,
+        "score": 0.7950236341976373
+      },
+      "avg_score": 1.0408200481899375,
+      "primary_n": 90,
+      "science_n": 90
+    }
+  ],
+  "best": {
+    "params": {
+      "epsilon": 0.8,
+      "halfLifeDays": 30,
+      "explore.gamma": 0.5
+    },
+    "sampling_params": {
+      "epsilon": 0.8,
+      "halfLifeDays": 30,
+      "explore": {
+        "gamma": 0.5
+      }
+    },
+    "primary": {
+      "hist": {
+        "0-1": 0,
+        "1-2": 34,
+        "2-5": 46,
+        "5-10": 2,
+        "10-20": 5,
+        "20-50": 2,
+        "50+": 1
+      },
+      "dist": 0.7466666666666666,
+      "mean_age": 4.2920748456790125,
+      "mean_diff": 0.6955975286752474,
+      "modes": {
+        "explore": 12,
+        "reserve": 75,
+        "greedy": 3
+      },
+      "n_items": 90,
+      "score": 1.0944654310042903
+    },
+    "science": {
+      "hist": {
+        "0-1": 3,
+        "1-2": 75,
+        "2-5": 3,
+        "5-10": 2,
+        "10-20": 6,
+        "20-50": 0,
+        "50+": 1
+      },
+      "dist": 0.25777777777777783,
+      "mean_age": 3.4397020948897894,
+      "mean_diff": 0.5332832978439906,
+      "modes": {
+        "explore": 12,
+        "reserve": 75,
+        "greedy": 3
+      },
+      "n_items": 90,
+      "score": 0.5244194266997732
+    },
+    "avg_score": 0.8094424288520317,
+    "primary_n": 90,
+    "science_n": 90
+  }
+}
