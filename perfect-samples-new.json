@@ -1,0 +1,299 @@
+[
+  {
+    "id": "1",
+    "title": "Zigzag: Enlarging joint architecture-mapping design space exploration for dnn accelerators",
+    "snippet": "ZigZag is a rapid design-space exploration framework that jointly searches DNN accelerator architectures and their algorithm-to-hardware mappings. It represents workloads, hardware, and mappings with an enhanced nested-loop model, and combines an energy/performance/area estimator with mapping search engines and automatic memory-hierarchy generation. Its support for uneven mappings expands the search space and can find substantially more energy-efficient designs than existing approaches.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": true
+  },
+  {
+    "id": "2",
+    "title": "CiMLoop: A flexible, accurate, and fast compute-in-memory modeling tool",
+    "snippet": "CiMLoop is an open-source, full-stack modeling tool for exploring compute-in-memory systems across devices, circuits, architectures, workloads, and mappings. It provides a flexible way to specify and map workloads to hardware, models energy while accounting for operand values and analog/digital signal representations, and uses a fast statistical model to make broad design-space exploration much cheaper than detailed high-accuracy simulation.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "3",
+    "title": "Dosa: Differentiable model-based one-loop search for dnn accelerators",
+    "snippet": "DOSA combines differentiable performance models with gradient-based optimization to search accelerator hardware parameters and DNN mappings together, rather than exploring these large spaces independently. Its evaluations report better energy-delay-product improvements than random search and Bayesian optimization for a similar sampling budget. The framework can also combine analytical and learned models, demonstrated by jointly tuning buffers and mappings for a real accelerator.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "4",
+    "title": "Computer Architecture's AlphaZero Moment: Automated Discovery in an Encircled World",
+    "snippet": "This position paper argues that the end of predictable transistor scaling makes architecture innovation a much more constrained optimization problem, while human teams can evaluate only a tiny fraction of the possible designs. It proposes automated architecture 'idea factories' that generate and evaluate large numbers of candidates through multi-stage pipelines, continually learning from deployed-system telemetry. The author argues such systems could shorten design cycles from months to weeks.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "5",
+    "title": "DIANA: An end-to-end energy-efficient digital and ANAlog hybrid neural network SoC",
+    "snippet": "DIANA is a low-power neural-network SoC that combines a precision-scalable digital accelerator with an analog in-memory-computing core, a shared-memory subsystem, and a RISC-V host. Since analog and digital execution suit different layer types and precision needs, the system schedules layers across both engines to improve end-to-end inference efficiency at the edge, including layers that are poorly matched to analog-array utilization.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": true
+  },
+  {
+    "id": "6",
+    "title": "How to keep pushing ml accelerator performance? know your rooflines!",
+    "snippet": "This survey examines how ML accelerator designs can improve throughput per area and reduce energy as model sizes and inference costs grow. It develops an enhanced roofline framework for relating compute capabilities, memory systems, and data movement to system performance, then uses examples from modern accelerators to explain operating regimes and identify opportunities for future architecture and technology co-design.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "7",
+    "title": "Gemmini: An agile systolic array generator enabling systematic evaluations of deep-learning architectures",
+    "snippet": "Gemmini is an open-source generator for configurable systolic-array ASIC accelerators centered on matrix multiplication and equipped with functions for neural-network inference. It integrates with the RISC-V Rocket Chip ecosystem, including in-order and out-of-order CPU cores, so researchers can explore hardware design choices systematically. Case studies for edge inference show that selected generated designs can greatly outperform running the same workloads on a host processor.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "8",
+    "title": "Snitch: A tiny pseudo dual-issue processor for area and energy efficient execution of floating-point intensive workloads",
+    "snippet": "Snitch pairs a very small control core with a double-precision floating-point unit to run data-parallel workloads efficiently without sacrificing general-purpose flexibility. Two lightweight ISA extensions support implicit stream-based memory operations and repetition of floating-point instruction sequences, reducing control and instruction overhead. The design approaches dual-issue execution at low additional area cost and is evaluated on parallel scientific and compute-intensive kernels.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "9",
+    "title": "Benchmarking in-memory computing architectures",
+    "snippet": "This work proposes a structured method for comparing in-memory-computing (IMC) designs, decomposing systems into reusable components and defining metrics for performance, energy efficiency, and computation accuracy. Applying the methodology to more than 70 published chips reveals that SRAM-based IMC has strong bank-level efficiency and density, but its advantage narrows at processor level. It also finds that nonvolatile-memory IMC often trails SRAM-based designs and that accuracy and energy-versus-accuracy tradeoffs are frequently underreported.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": true
+  },
+  {
+    "id": "10",
+    "title": "Mixed-signal computing for deep neural network inference",
+    "snippet": "This overview studies mixed analog/digital approaches to DNN inference, where the limited precision often needed for neural computation can make analog arithmetic attractive. It examines memory-like and in-memory compute structures as a way to reduce the data-movement bottleneck, estimates achievable processing-array efficiency, and discusses the signal-to-noise and energy-amortization requirements of analog/digital interfaces. It also explains why efficient arithmetic alone does not guarantee an efficient complete accelerator.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "11",
+    "title": "A heterogeneous in-memory computing cluster for flexible end-to-end inference of real-world deep neural networks",
+    "snippet": "This paper integrates analog in-memory computing into a programmable heterogeneous system intended for practical TinyML inference. The proposed cluster combines eight RISC-V cores with an in-memory-computing accelerator and digital accelerators, allowing workloads to be divided according to each engine's strengths. Evaluation on a MobileNetV2 bottleneck layer reports substantial gains over optimized CPU execution, and a scaled multi-array version is assessed for complete end-to-end MobileNetV2 inference.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "12",
+    "title": "A Reconfigurable Variable-Precision Bipolar/Binary QR-based IMC Accelerator in 22nm FDSOI",
+    "snippet": "This work presents a reconfigurable compute-in-memory accelerator implemented in 22-nm FDSOI, with a QR-based architecture and support for variable-precision bipolar and binary operation. The design targets machine-learning workloads where selectable numeric representation and precision can be used to balance computation requirements with hardware efficiency. Publicly indexed metadata provides limited abstract detail, so this description is intentionally restricted to the stated design scope.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "13",
+    "title": "Minimizing ADC Precision for Analog In-Memory Computing",
+    "snippet": "This work focuses on reducing the analog-to-digital converter precision required in analog in-memory computing. ADC resolution is an important source of energy and implementation cost when analog arrays produce partial-sum outputs, so finding ways to perform useful inference with fewer conversion bits can improve overall accelerator efficiency. The publicly indexed record confirms the topic and authors, but does not expose enough abstract text to support more specific claims about the proposed method.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "14",
+    "title": "Mosaic: in-memory computing and routing for small-world spike-based neuromorphic systems",
+    "snippet": "Mosaic is a neuromorphic architecture designed around small-world connectivity, in which links are dense locally but sparse over long distances. It uses distributed memristors for both in-memory computation and routing in spiking neural networks. The authors fabricated and experimentally demonstrated its building blocks in 130-nm CMOS, reporting much more efficient routing than competing SNN hardware while retaining competitive results on edge benchmarks.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "15",
+    "title": "Fundamentals of numerical relativity for gravitational wave sources",
+    "snippet": "This review introduces the core ideas behind solving Einstein's field equations numerically, explaining how spacetime geometry is represented and evolved on a computer. The two-body problem is used as a central example because simulations of merging compact objects underpin gravitational-wave astronomy. The article aims to make the basic concepts of numerical relativity accessible without assuming specialist familiarity with the computational methods.",
+    "type": "paperlike",
+    "core": false,
+    "category": "GR",
+    "representative": true
+  },
+  {
+    "id": "16",
+    "title": "Gravitational waveforms from spectral Einstein code simulations: Neutron star-neutron star and low-mass black hole-neutron star binaries",
+    "snippet": "This study presents high-accuracy gravitational waveforms from numerical-relativity simulations using the Spectral Einstein Code for compact binaries containing neutron stars. It supplies long, sub-radian-accurate signals for low-mass black-hole–neutron-star systems, including rapidly spinning neutron stars whose fundamental-mode resonance can affect the waveform, and a high-accuracy neutron-star binary waveform. The waveforms are released through the SXS catalog and compared with analytical models used in gravitational-wave data analysis.",
+    "type": "paperlike",
+    "core": false,
+    "category": "GR",
+    "representative": false
+  },
+  {
+    "id": "17",
+    "title": "Deep rotating convection generates the polar hexagon on Saturn",
+    "snippet": "Using a fully nonlinear three-dimensional simulation of deep convection in a rotating gas giant, this study produces polar cyclones, alternating zonal jets, and a polygon-shaped eastward jet at high latitude. The results suggest that organized turbulence and large vortices can pinch and reshape the jet into polygonal forms, offering a self-consistent explanation for how Saturn's persistent north-polar hexagon might arise.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Astro",
+    "representative": true
+  },
+  {
+    "id": "18",
+    "title": "The world as a hologram",
+    "snippet": "This paper develops an early statement of the holographic idea in quantum gravity: the information needed to describe a three-dimensional world may be encoded on a two-dimensional surface, with roughly one degree of freedom per Planck-sized area. It outlines how such a description might work and discusses the implication that particle behavior at energies far above the Planck scale could differ from ordinary point-particle expectations, including consequences for high-energy collisions.",
+    "type": "paperlike",
+    "core": false,
+    "category": "QFT",
+    "representative": true
+  },
+  {
+    "id": "19",
+    "title": "The large-N limit of superconformal field theories and supergravity",
+    "snippet": "This foundational paper argues that certain large-N conformal field theories contain sectors equivalent to supergravity on anti-de Sitter spaces combined with spheres or other compact manifolds. The reasoning uses branes and a low-energy limit in which the brane field theory decouples from the bulk while the near-horizon geometry remains useful. In particular, the 't Hooft limit of four-dimensional N=4 super-Yang–Mills is connected to type-IIB string theory, motivating gauge/gravity duality.",
+    "type": "paperlike",
+    "core": false,
+    "category": "QFT",
+    "representative": false
+  },
+  {
+    "id": "20",
+    "title": "Open3DBench: Open-source benchmark for 3D-IC backend implementation and PPA evaluation",
+    "snippet": "Open3DBench is an open-source framework for evaluating three-dimensional IC backend flows, built on OpenROAD-flow-scripts. It brings together 3D partitioning, placement, routing, parasitic extraction, and thermal analysis, and provides placement methods for regular macro tiling and cross-die wirelength optimization. Its evaluations report improvements over 2D baselines in several physical metrics, while showing that shorter wirelength alone does not necessarily improve overall power, performance, and area.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": true
+  },
+  {
+    "id": "21",
+    "title": "Breaking Thermal Bottleneck in 3D HBM-on-GPU Integration via System-Technology Co-Optimization",
+    "snippet": "This study analyzes the thermal limits of stacking high-bandwidth-memory dies directly above a GPU and evaluates system- and technology-level mitigations in a common simulation framework. Options include removing the HBM base die, merging DRAM dies, reducing GPU frequency, and using double-sided cooling. The reported results show that coordinated choices can substantially reduce peak GPU temperature, helping assess whether 3D HBM-on-GPU integration can deliver better throughput per package area than 2.5D approaches.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "22",
+    "title": "3D IGZO Charge-Coupled Memory DTCO & STCO Analysis for Compute-near-Memory Applications",
+    "snippet": "This work proposes a three-dimensional indium-gallium-zinc-oxide charge-coupled-device block memory for use as a high-capacity on-chip weight buffer in compute-near-memory systems. The sequential-access architecture targets AI and ML workloads that need dense, energy-efficient storage close to computation. The reported design-space analysis indicates substantial area-efficiency and energy-efficiency advantages over SRAM-based alternatives across the evaluated configurations.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "23",
+    "title": "MemPool-3D: Boosting performance and efficiency of shared-L1 memory many-core clusters with 3D integration",
+    "snippet": "MemPool-3D extends a 256-core many-core platform with shared L1 scratchpad memory into a stacked 3D implementation to reduce interconnect length, congestion, and wire delay. The design partitions memory across two tiers to balance die area and utilization, then explores memory capacity and physical parameters in a 28-nm process. A 4-MiB configuration improves matrix-multiplication performance over the 2D baseline and can meet a lower energy budget despite providing more scratchpad capacity.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "24",
+    "title": "Niobium nitride Nb4N5 as a new high‐performance electrode material for supercapacitors",
+    "snippet": "This study evaluates niobium nitride (Nb4N5) as a supercapacitor electrode, targeting the tradeoff between the capacitance of carbon materials and the conductivity and stability of metal oxides or polymers. Nb4N5 nanochannels deliver high areal capacitance with useful rate capability and cycling performance. Mechanistic analysis attributes pseudocapacitive behavior to proton incorporation or chemisorption associated with niobium ions, while an ultrathin carbon coating further improves cycle stability.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Materials",
+    "representative": true
+  },
+  {
+    "id": "25",
+    "title": "Tunable conversion of topological spin texture from domain wall pair for magnetic memory application in specially designed magnetic nanotracks",
+    "snippet": "Micromagnetic simulations investigate how track geometry controls the conversion of domain-wall pairs into skyrmions or fractional skyrmions in a racetrack made from three narrow channels joined to a wider track. Changing the spacing between channels changes which topological textures form, their trajectories, and conversion times. The analysis relates the resulting spin topology to the geometry and competing energy terms, suggesting a way to control skyrmion dynamics for magnetic-memory devices.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Magnetics",
+    "representative": true
+  },
+  {
+    "id": "26",
+    "title": "Dynamic reconfiguration of structural and functional connectivity across core neurocognitive brain networks with development",
+    "snippet": "This study examines how connectivity among the salience, central-executive, and default-mode brain networks changes from childhood to adulthood. Using functional and effective connectivity measures from fMRI, it focuses on the right fronto-insular cortex as a coordinator of interactions between externally oriented attention and internal cognition. The findings indicate stronger coupling among key network nodes and stronger outgoing causal influences from this region in adults than in children, informing models of cognitive maturation and neurodevelopmental disorders.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": true
+  },
+  {
+    "id": "27",
+    "title": "How heterogeneity shapes dynamics and computation in the brain",
+    "snippet": "This perspective argues that neurons remain heterogeneous even within the same transcriptomic or functional cell type, and that this continuous variation should be treated as a potential computational resource rather than ignored by categorical clustering. Drawing on ideas related to disorder in statistical physics, it discusses how within-type differences may influence neural dynamics, information processing, synchronization, and self-organization, with implications for theories of brain computation and neuromorphic systems.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "28",
+    "title": "Chordate roots of the vertebrate nervous system: expanding the molecular toolkit",
+    "snippet": "Comparative developmental and genomic evidence suggests that major features of the vertebrate nervous system evolved by elaborating molecular and anatomical foundations already present in ancestral chordates. Contrasts between vertebrates and amphioxus help trace the origins of structures such as the neural crest, cranial placodes, and the midbrain–hindbrain organizer. Genome duplication, gene regulation, and other molecular mechanisms likely expanded the toolkit that enabled these innovations.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "29",
+    "title": "Sparseness and expansion in sensory representations",
+    "snippet": "This theoretical study examines why some sensory pathways map inputs onto larger downstream populations whose activity is sparse. It analyzes the computational role of this combination for stimuli organized into distinct clusters, where within-cluster differences arise from sensory or neuronal noise. The work studies how expansion and sparse activity can affect the representation and discrimination of behaviorally meaningful stimulus groups.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "30",
+    "title": "Towards end-to-end automation of AI research",
+    "snippet": "This paper presents The AI Scientist, an agentic pipeline intended to automate a machine-learning research project from idea generation through experimentation, analysis, manuscript writing, and self-review. It evaluates both a template-guided mode for research in a defined area and a more open-ended mode that searches for ideas with less human scaffolding. The system produced a manuscript that passed the first review round for a major ML conference workshop, while raising questions about review capacity and research quality control.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "31",
+    "title": "Training slow silicon neurons to control extremely fast robots with spiking reinforcement learning",
+    "snippet": "This work applies spiking reinforcement learning to a fast air-hockey task using a compact spiking-neuron network running on a mixed-signal neuromorphic processor. Hardware and learning rules are co-designed so the controller can learn puck interactions in relatively few trials. Fixed random connectivity supplies temporal processing, while a local e-prop rule trains the readout, enabling event-driven learning and real-time robot control with the computer and neuromorphic chip operating in the loop.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "32",
+    "title": "Bioinspired spiking architecture enables energy constrained touch encoding",
+    "snippet": "This paper presents an artificial tactile system that combines a fiber-Bragg-grating electronic skin with a spiking neural network inspired by early human somatosensory processing. It targets the challenges of scaling robotic touch sensing, including wiring complexity, high energy demand from AI processing, and limited parallelism. The approach encodes tactile information with a modular, event-driven architecture intended to support energy-constrained robotic interaction.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "33",
+    "title": "Analog foundation models",
+    "snippet": "This work adapts large language models for inference on noisy, low-precision analog in-memory-computing hardware, where analog variation and quantization constraints can otherwise erode model quality. Its training approach helps models such as Phi-3-mini and Llama 3.2 1B retain performance close to 4-bit-weight, 8-bit-activation baselines on analog hardware. The resulting models can also be quantized for low-precision digital inference and benefit from test-time compute scaling.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  }
+]

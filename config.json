@@ -54,7 +54,7 @@
     "label": "liked_or_saved",
     "features": ["bias", "type", "author", "medoid"],
     "authors": { "head": 3, "tail": 2, "threshold": 5 },
-    "interests": { "kappa": 20, "maxLikedDays": 100, "mode": "constrained", "minClusters": 1 },
+    "interests": { "kappa": 5, "maxLikedDays": 100, "mode": "constrained", "minClusters": 1 },
     "crossFit": { "folds": 5 },
     "model": {
       "name": "bayes_lr", "maxSweeps": 60, "tol": 0.0001,

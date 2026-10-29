@@ -62,7 +62,8 @@ async function cmdRefit(args) {
 }
 
 async function cmdSelect(args) {
-  const cfg = loadConfig();
+  let cfg = loadConfig();
+  if (args.set) cfg = applyOverrides(cfg, args.set);
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
   if (!args.date) {
     console.error('select requires --date D');

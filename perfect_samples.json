@@ -1,10 +1,299 @@
 [
-  { "id": "1", "title": "Attention Is All You Need", "snippet": "The Transformer architecture for sequence transduction.", "type": "paperlike", "core": true },
-  { "id": "2", "title": "BERT: Pre-training of Deep Bidirectional Transformers", "snippet": "Bidirectional encoder representations from transformers.", "type": "paperlike", "core": true },
-  { "id": "3", "title": "Scaling Laws for Neural Language Models", "snippet": "Empirical study of how model performance scales with compute, data, and parameters.", "type": "paperlike", "core": true },
-  { "id": "4", "title": "LoRA: Low-Rank Adaptation of Large Language Models", "snippet": "Efficient fine-tuning via low-rank decomposition.", "type": "paperlike", "core": true },
-  { "id": "5", "title": "Chain-of-Thought Prompting Elicits Reasoning", "snippet": "Step-by-step reasoning improves LLM performance on complex tasks.", "type": "paperlike", "core": true },
-  { "id": "6", "title": "RAG: Retrieval-Augmented Generation", "snippet": "Combining retrieval with generation for knowledge-intensive tasks.", "type": "paperlike", "core": false },
-  { "id": "7", "title": "Mixture of Experts for Efficient Training", "snippet": "Sparse activation enables scaling models efficiently.", "type": "paperlike", "core": false },
-  { "id": "8", "title": "FlashAttention: Fast and Memory-Efficient Attention", "snippet": "IO-aware attention algorithm for faster training.", "type": "paperlike", "core": false }
+  {
+    "id": "1",
+    "title": "Zigzag: Enlarging joint architecture-mapping design space exploration for dnn accelerators",
+    "snippet": "Building efficient embedded deep learning systems requires a tight co-design between DNN algorithms, hardware, and algorithm-to-hardware mapping, a.k.a. dataflow. However, owing to the large joint design space, finding an optimal solution through physical implementation becomes infeasible. To tackle this problem, several design space exploration (DSE) frameworks have emerged recently, yet they either suffer from long runtimes or a limited exploration space. This article introduces ZigZag, a rapid DSE framework for DNN accelerator architecture and mapping. ZigZag extends the common DSE with uneven mapping opportunities and smart mapping search strategies. Uneven mapping decouples operands (W/I/O), memory hierarchy, and mappings (temporal/spatial), opening up a whole new space for DSE, and thus better design points are found by ZigZag compared to other SotAs. For this, ZigZag uses an enhanced nested-for-loop format as a uniform representation to integrate algorithm, accelerator, and algorithm-to-accelerator mapping. ZigZag consists of three key components: 1) an analytical energy-performance-area Hardware Cost Estimator, 2) two Mapping Search Engines that support spatial and temporal even/uneven mapping search, and 3) an Architecture Generator that auto-explores the wide memory hierarchy design space. Benchmarking experiments against published works, in-house accelerator, and existing DSE frameworks, together with three case studies, show the reliability and capability of ZigZag. Up to 64 percent more energy-efficient solutions are found compared to other SotAs, due to ZigZag's uneven mapping capabilities.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": true
+  },
+  {
+    "id": "2",
+    "title": "CiMLoop: A flexible, accurate, and fast compute-in-memory modeling tool",
+    "snippet": "Compute-In-Memory (CiM) is a promising solution to accelerate Deep Neural Networks (DNNs) as it can avoid energy-intensive DNN weight movement and use memory arrays to perform low-energy, high-density computations. These benefits have inspired research across the CiM stack, but CiM research often focuses on only one level of the stack (i.e., devices, circuits, architecture, workload, or mapping) or only one design point (e.g., one fabricated chip). There is a need for a full-stack modeling tool to evaluate design decisions in the context of full systems (e.g., see how a circuit impacts system energy) and to perform rapid early -stage exploration of the CiM co-design space. To address this need, we propose CiMLoop: an open-source tool to model diverse CiM systems and explore decisions across the CiM stack. CiMLoop introduces (1) a flexible specification that lets users describe, model, and map workloads to both circuits and architecture, (2) an accurate energy model that captures the interaction between DNN operand values, hardware data representations, and analog/digital values propagated by circuits, and (3) a fast statistical model that can explore the design space orders-of-magnitude more quickly than other high-accuracy models. Using CiMLoop, researchers can evaluate design choices at different levels of the CiM stack, co-design across all levels, fairly compare different implementations, and rapidly explore the design space.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "3",
+    "title": "Dosa: Differentiable model-based one-loop search for dnn accelerators",
+    "snippet": "In the hardware design space exploration process, it is critical to optimize both hardware parameters and algorithm-to-hardware mappings. Previous work has largely approached this simultaneous optimization problem by separately exploring the hardware design space and the mapspace—both individually large and highly nonconvex spaces—independently. The resulting combinatorial explosion has created significant difficulties for optimizers. In this paper, we introduce DOSA, which consists of differentiable performance models and a gradient descent-based optimization technique to simultaneously explore both spaces and identify high-performing design points. Experimental results demonstrate that DOSA outperforms random search and Bayesian optimization by 2.80 × and 12.59 ×, respectively, in improving DNN model energy-delay product, given a similar number of samples. We also demonstrate the modularity and flexibility of DOSA by augmenting our analytical model with a learned model, allowing us to optimize buffer sizes and mappings of a real DNN accelerator and attain a 1.82 × improvement in energy-delay product.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "4",
+    "title": "Computer Architecture's AlphaZero Moment: Automated Discovery in an Encircled World",
+    "snippet": "The end of Moore's Law and Dennard scaling has fundamentally changed the economics of computer architecture. With transistor scaling delivering diminishing returns, architectural innovation is now the primary - and perhaps only - remaining lever for performance improvement. However, we argue that human-driven architecture research is fundamentally ill-suited for this new era. The architectural design space is vast (effectively infinite for practical purposes), yet human teams explore perhaps 50-100 designs per generation, sampling less than 0.001% of possibilities. This approach worked during the abundance era when Moore's Law provided a rising tide that lifted all designs. In the current scarcity paradigm, where every architecture must deliver 2X performance improvements using essentially the same transistor budget, systematic exploration becomes critical. We propose a concrete alternative: automated idea factories that generate and evaluate thousands of candidate architectures weekly through multi-tiered evaluation pipelines, learning from deployed telemetry data in a continuous feedback loop. Early results suggest that such systems can compress architectural design cycles from double-digit months to single-digit weeks by exploring orders of magnitude more candidates than any human team, and do it much faster. We predict that within 2 years, purely human-driven architecture research will be as obsolete as human chess players competing against engines.",
+    "type": "paperlike",
+    "core": true,
+    "category": "DSE",
+    "representative": false
+  },
+  {
+    "id": "5",
+    "title": "DIANA: An end-to-end energy-efficient digital and ANAlog hybrid neural network SoC",
+    "snippet": "DIgital-ANAlog (DIANA), a heterogeneous multi-core accelerator, combines a reduced instruction set computer - five (RISC-V) host processor with an analog in-memory computing (AIMC) artificial intelligence (AI) accelerator and a digital reconfigurable deep neural network (DNN) accelerator in a single system-on-chip (SoC) to support a wide variety of neural network (NN) workloads. AIMC cores can bring extreme computational parallelism and efficiency at the expense of accuracy and dataflow flexibility. Digital AI co-processors, on the other hand, guarantee accuracy through deterministic compute, but cannot achieve the same computational density and efficiency. DIANA exploits this fundamental tradeoff by integrating both types of cores in a shared and optimized memory system, to enable seamless execution of the workloads on the parallel cores. The system’s performance benefits further from pipelined parallel execution across both accelerator cores and enhanced AIMC spatial unrolling techniques, leading to drastically reduced execution latency and reduced memory footprints. The design has been implemented in a 22-nm technology and achieves peak efficiencies of 600 TOP/s/W for the AIMC core (I/W/O: 7/1.5/6 bit) and 14 TOP/s/W (I/W/O: 8/8/8 bit) for the digital accelerator, respectively. End-to-end performance evaluation of CIFAR-10 and ImageNet classification workloads is carried out on the chip, reporting 7.02 and 5.56 TOP/s/W, respectively, at the system level.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": true
+  },
+  {
+    "id": "6",
+    "title": "How to keep pushing ml accelerator performance? know your rooflines!",
+    "snippet": "The rapidly growing importance of machine learning (ML) applications, coupled with their ever-increasing model size and inference energy footprint, has created a strong need for specialized ML hardware architectures. Numerous ML accelerators have been explored and implemented, primarily to increase task-level throughput per unit area and reduce task-level energy consumption. This article surveys key trends toward these objectives for more efficient ML accelerators and provides a unifying framework to understand how compute and memory technologies/architectures interact to enhance system-level efficiency and performance. To achieve this, this article introduces an enhanced version of the roofline model and applies it to ML accelerators as an effective tool for understanding where various execution regimes fall within roofline bounds and how to maximize performance and efficiency under the roofline. Key concepts are illustrated with examples from state-of-the-art (SOTA) designs, with a view toward open research opportunities to further advance accelerator performance.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "7",
+    "title": "Gemmini: An agile systolic array generator enabling systematic evaluations of deep-learning architectures",
+    "snippet": "Advances in deep learning and neural networks have resulted in rapid development of hardware accelerators that support them. A large majority of ASIC accelerators, however, target a single hardware design point to accelerate the main computational kernels of deep neural networks such as convolutions or matrix multiplication. On the other hand, the spectrum of use-cases for neural network accelerators, ranging from edge devices to cloud, presents a prime opportunity for agile hardware design and generator methodologies. We present Gemmini1 - an open source and agile systolic array generator enabling systematic evaluations of deep-learning architectures. Gemmini generates a custom ASIC accelerator for matrix multiplication based on a systolic array architecture, complete with additional functions for neural network inference. Gemmini runs with the RISC-V ISA, and is integrated with the Rocket Chip System-on-Chip generator ecosystem, including Rocket in-order cores and BOOM out-of-order cores. Through an elaborate design space exploration case study, this work demonstrates the selection processes of various parameters for the use-case of inference on edge devices. Selected design points achieve two to three orders of magnitude speedup in deep neural network inference compared to the baseline execution on a host processor. Gemmini-generated accelerators were used in the fabrication of test systems-on-chip in TSMC 16nm and Intel 22FFL process technologies.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "8",
+    "title": "Snitch: A tiny pseudo dual-issue processor for area and energy efficient execution of floating-point intensive workloads",
+    "snippet": "Data-parallel applications, such as data analytics, machine learning, and scientific computing, are placing an ever-growing demand on floating-point operations per second on emerging systems. With increasing integration density, the quest for energy efficiency becomes the number one design concern. While dedicated accelerators provide high energy efficiency, they are over-specialized and hard to adjust to algorithmic changes. We propose an architectural concept that tackles the issues of achieving extreme energy efficiency while still maintaining high flexibility as a general-purpose compute engine. The key idea is to pair a tiny 10kGE (kilo gate equivalent) control core, called Snitch, with a double-precision floating-point unit (FPU) to adjust the compute to control ratio. While traditionally minimizing non-floating-point unit (FPU) area and achieving high floating-point utilization has been a trade-off, with Snitch, we achieve them both, by enhancing the ISA with two minimally intrusive extensions: stream semantic registers (SSR) and a floating-point repetition instruction (FREP). SSRs allow the core to implicitly encode load/store instructions as register reads/writes, eliding many explicit memory instructions. The FREP extension decouples the floating-point and integer pipeline by sequencing instructions from a micro-loop buffer. These ISA extensions significantly reduce the pressure on the core and free it up for other tasks, making Snitch and FPU effectively dual-issue at a minimal incremental cost of 3.2 percent. The two low overhead ISA extensions make Snitch more flexible than a contemporary vector processor lane, achieving a 2x energy-efficiency improvement. We have evaluated the proposed core and ISA extensions on an octa-core cluster in 22 nm technology. We achieve more than 6x multi-core speed-up and a 3.5x gain in energy efficiency on several parallel microkernels.",
+    "type": "paperlike",
+    "core": true,
+    "category": "Accelerators",
+    "representative": false
+  },
+  {
+    "id": "9",
+    "title": "Benchmarking in-memory computing architectures",
+    "snippet": "In-memory computing (IMC) architectures have emerged as a compelling platform to implement energy-efficient machine learning (ML) systems. However, today, the energy efficiency gains provided by IMC designs seem to be leveling off and it is not clear what the limiting factors are. The conceptual complexity of IMCs combined with the absence of a rigorous benchmarking methodology makes it difficult to gauge progress and identify bottlenecks in this exciting field. This article presents a benchmarking methodology for IMCs comprising: 1) a compositional view of IMCs that enables one to parse an IMC design into its canonical components; 2) a set of benchmarking metrics to quantify the performance, efficiency, and accuracy of IMCs; and 3) a strategy for analyzing the reported IMC data and metrics. We apply the proposed benchmarking methodology on an extensive database of IMC metrics extracted from > 70 IC designs published since 2018, in order to infer and comprehend trends in this area. Our benchmarking effort indicates: 1) SRAM-based IMCs show a clear win in terms of energy efficiency and compute density over digital accelerators at the bank level but the energy efficiency gap reduces dramatically when comparing at the processor level; 2) eNVM-based IMCs lag behind SRAM-based IMCs in terms of both energy efficiency and compute density, and surprisingly lag digital accelerators in terms of compute density; 3) the compute (bank-level) accuracy of IMCs, though a critical metric, is pervasively neglected in publications as is the energy versus accuracy tradeoff inherent to IMCs.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": true
+  },
+  {
+    "id": "10",
+    "title": "Mixed-signal computing for deep neural network inference",
+    "snippet": "Modern deep neural networks (DNNs) require billions of multiply-accumulate operations per inference. Given that these computations demand relatively low precision, it is feasible to consider analog computing, which can be more efficient than digital in the low-SNR regime. This overview article investigates the potential of mixed analog/digital computing approaches in the context of modern DNN processor architectures, which are typically limited by memory access. We discuss how memory-like and in-memory compute fabrics may help alleviate this bottleneck and derive asymptotic efficiency limits at the processing array level. It is shown that single-digit fJ/op energy efficiencies are feasible for 4-bit mixed-signal arithmetic. In this analysis, special consideration is given to the SNR and amortization requirements of the analog-digital interfaces. In addition, we consider the pros and cons for a variety of implementation styles and highlight the challenge of retaining high compute efficiency for a complete DNN accelerator design.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "11",
+    "title": "A heterogeneous in-memory computing cluster for flexible end-to-end inference of real-world deep neural networks",
+    "snippet": "Deployment of modern TinyML tasks on small battery-constrained IoT devices requires high computational energy efficiency. Analog In-Memory Computing (IMC) using non-volatile memory (NVM) promises major efficiency improvements in deep neural network (DNN) inference and serves as on-chip memory storage for DNN weights. However, IMC's functional flexibility limitations and their impact on performance, energy, and area efficiency are not yet fully understood at the system level. To target practical end-to-end IoT applications, IMC arrays must be enclosed in heterogeneous programmable systems, introducing new system-level challenges which we aim at addressing in this work. We present a heterogeneous tightly-coupled clustered architecture integrating 8 RISC-V cores, an in-memory computing accelerator (IMA), and digital accelerators. We benchmark the system on a highly heterogeneous workload such as the Bottleneck layer from a MobileNetV2, showing 11.5x performance and 9.5x energy efficiency improvements, compared to highly optimized parallel execution on the cores. Furthermore, we explore the requirements for end-to-end inference of a full mobile-grade DNN (MobileNetV2) in terms of IMC array resources, by scaling up our heterogeneous architecture to a multi-array accelerator. Our results show that our solution, on the end-to-end inference of the MobileNetV2, is one order of magnitude better in terms of execution latency than existing programmable architectures and two orders of magnitude better than state-of-the-art heterogeneous solutions integrating in-memory computing analog cores.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "12",
+    "title": "A Reconfigurable Variable-Precision Bipolar/Binary QR-based IMC Accelerator in 22nm FDSOI",
+    "snippet": "In-memory computing (IMC) hardware is crucial for enabling low-power neural network (NN) inference on edge devices. The charge redistribution (QR) IMC compute model dominates state-of-the-art (SOTA) IMC hardware implementations. However, existing QR IMC implementations are inflexible in terms of supportable bit-precisions and weight data types. On the other hand, different NN models have been found to require different optimal bit-precisions for energy efficiency. Additionally, challenges such as VTH variations arise in deeper tech nodes. Here, we introduce a variable-precision QR-based IMC accelerator based on a 10T1C bitcell that supports both bipolar and binary weights. We achieve a maximum energy efficiency close to recent SOTA at 516 TOPS/W, 409.6 GOPS at a compute SNR of 21.03 dB.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "13",
+    "title": "Minimizing ADC Precision for Analog In-Memory Computing",
+    "snippet": "Analog in-memory computing (AIMC) is an energy-efficient accelerator architecture for AI workloads. However, its computational accuracy is limited by various analog non-idealities and quantization errors in the column ADCs. We propose a novel quantization method that enhances the accuracy of AIMCs by accounting for the AIMC-specific signal distribution at the ADC input and by employing the compute signal-to-noise ratio (CSNR) as the optimization metric. We derive analytical expressions to estimate the CSNR of AIMCs and validate them using behavioral simulations of a 28nm SRAM-based AIMC. We show that for a 256-dimensional binary dot product, the proposed method reduces ADC precision requirements by 3b while improving CSNR by 6dB over prior methods.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "14",
+    "title": "Mosaic: in-memory computing and routing for small-world spike-based neuromorphic systems",
+    "snippet": "The brain’s connectivity is locally dense and globally sparse, forming a small-world graph—a principle prevalent in the evolution of various species, suggesting a universal solution for efficient information routing. However, current artificial neural network circuit architectures do not fully embrace small-world neural network models. Here, we present the neuromorphic Mosaic: a non-von Neumann systolic architecture employing distributed memristors for in-memory computing and in-memory routing, efficiently implementing small-world graph topologies for Spiking Neural Networks (SNNs). We’ve designed, fabricated, and experimentally demonstrated the Mosaic’s building blocks, using integrated memristors with 130 nm CMOS technology. We show that thanks to enforcing locality in the connectivity, routing efficiency of Mosaic is at least one order of magnitude higher than other SNN hardware platforms. This is while Mosaic achieves a competitive accuracy in a variety of edge benchmarks. Mosaic offers a scalable approach for edge systems based on distributed spike-based computing and in-memory routing.",
+    "type": "paperlike",
+    "core": true,
+    "category": "IMC",
+    "representative": false
+  },
+  {
+    "id": "15",
+    "title": "Fundamentals of numerical relativity for gravitational wave sources",
+    "snippet": "Einstein’s theory of general relativity affords an enormously successful description of gravity. The theory encodes the gravitational interaction in the metric, a tensor field on spacetime that satisfies partial differential equations known as the Einstein equations. This review introduces some of the fundamental concepts of numerical relativity—solving the Einstein equations on the computer—in simple terms. As a primary example, we consider the solution of the general relativistic two-body problem, which features prominently in the new field of gravitational wave astronomy.",
+    "type": "paperlike",
+    "core": false,
+    "category": "GR",
+    "representative": true
+  },
+  {
+    "id": "16",
+    "title": "Gravitational waveforms from spectral Einstein code simulations: Neutron star-neutron star and low-mass black hole-neutron star binaries",
+    "snippet": "Gravitational waveforms from numerical simulations are a critical tool to test and analytically calibrate the waveform models used to study the properties of merging compact objects. In this paper, we present a series of high-accuracy waveforms produced with the spectral Einstein code (SpEC) for systems involving at least one neutron star. We provide for the first time waveforms with subradian accuracy over more than twenty cycles for low-mass black hole-neutron star binaries, including binaries with nonspinning objects, and binaries with rapidly spinning neutron stars that maximize the impact on the gravitational wave signal of the near-resonant growth of the fundamental excitation mode of the neutron star (f-mode). We also provide for the first time with SpEC a high-accuracy neutron star-neutron star waveform. These waveforms are made publicly available as part of the SxS catalogue. We compare our results to analytical waveform models currently implemented in data analysis pipelines. For most simulations, the models lie outside of the predicted numerical errors in the last few orbits before merger, but do not show systematic deviations from the numerical results: comparing different models appears to provide reasonable estimates of the modeling errors. The sole exception is the equal-mass simulation using a rapidly counterrotating neutron star to maximize the impact of the excitation of the f-mode, for which all models perform poorly. This is however expected, as even the single model that takes f-mode excitation into account ignores the significant impact of the neutron star spin on the f-mode excitation frequency.",
+    "type": "paperlike",
+    "core": false,
+    "category": "GR",
+    "representative": false
+  },
+  {
+    "id": "17",
+    "title": "Deep rotating convection generates the polar hexagon on Saturn",
+    "snippet": "Numerous land- and space-based observations have established that Saturn has a persistent hexagonal flow pattern near its north pole. While observations abound, the physics behind its formation is still uncertain. Although several phenomenological models have been able to reproduce this feature, a self-consistent model for how such a large-scale polygonal jet forms in the highly turbulent atmosphere of Saturn is lacking. Here, we present a three-dimensional (3D) fully nonlinear anelastic simulation of deep thermal convection in the outer layers of gas giant planets that spontaneously generates giant polar cyclones, fierce alternating zonal flows, and a high-latitude eastward jet with a polygonal pattern. The analysis of the simulation suggests that self-organized turbulence in the form of giant vortices pinches the eastward jet, forming polygonal shapes. We argue that a similar mechanism is responsible for exciting Saturn’s hexagonal flow pattern.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Astro",
+    "representative": true
+  },
+  {
+    "id": "18",
+    "title": "The world as a hologram",
+    "snippet": "According to 't Hooft the combination of quantum mechanics and gravity requires the three dimensional world to be an image of data that can be stored on a two dimensional projection much like a holographic image. The two dimensional description only requires one discrete degree of freedom per Planck area and yet it is rich enough to describe all three dimensional phenomena. After outlining 't Hooft's proposal I give a preliminary informal description of how it may be implemented. One finds a basic requirement that particles must grow in size as their momenta are increased far above the Planck scale. The consequences for high energy particle collisions are described. The phenomena of particle growth with momentum was previously discussed in the context of string theory and was related to information spreading near black hole horizons. The considerations of this paper indicate that the effect is much more rapid at all but the earliest times. In fact the rate of spreading is found to saturate the bound from causality. Finally we consider string theory as a possible realization of 't Hooft's idea. The light front lattice string model of Klebanov and Susskind is reviewed and its similarities with the holographic theory are demonstrated. The agreement between the two requires unproven but plausible assumptions about the nonperturbative behavior of string theory. Very similar ideas to those in this paper have been long held by Charles Thorn.",
+    "type": "paperlike",
+    "core": false,
+    "category": "QFT",
+    "representative": true
+  },
+  {
+    "id": "19",
+    "title": "The large-N limit of superconformal field theories and supergravity",
+    "snippet": "We show that the large N limit of certain conformal field theories in various dimensions include in their Hilbert space a sector describing supergravity on the product of Anti-deSitter spacetimes, spheres and other compact manifolds. This is shown by taking some branes in the full M/string theory and then taking a low energy limit where the field theory on the brane decouples from the bulk. We observe that, in this limit, we can still trust the near horizon geometry for large N. The enhanced supersymmetries of the near horizon geometry correspond to the extra supersymmetry generators present in the superconformal group (as opposed to just the super-Poincare group). The 't Hooft limit of 4-d N=4 super-Yang-Mills at the conformal point is shown to contain strings: they are IIB strings. We conjecture that compactifications of M/string theory on various Anti-deSitter spacetimes are dual to various conformal field theories. This leads to a new proposal for a definition of M-theory which could be extended to include five non-compact dimensions.",
+    "type": "paperlike",
+    "core": false,
+    "category": "QFT",
+    "representative": false
+  },
+  {
+    "id": "20",
+    "title": "Open3DBench: Open-source benchmark for 3D-IC backend implementation and PPA evaluation",
+    "snippet": "This work introduces Open3DBench, an open-source 3D-IC backend implementation benchmark built upon the OpenROAD-flow-scripts framework, enabling comprehensive evaluation of power, performance, area, and thermal metrics. Our proposed flow supports modular integration of 3D partitioning, placement, 3D routing, RC extraction, and thermal simulation, aligning with advanced 3D flows that rely on commercial tools and in-house scripts. We present two foundational 3D placement algorithms: Open3D-Tiling, which emphasizes regular macro placement, and Open3D-DMP, which enhances wirelength optimization through cross-die co-placement with analytical placer DREAMPlace. Experimental results show significant improvements in area (51.19%), wirelength (24.06%), timing (30.84%), and power (5.72%) compared to 2D flows. The results also highlight that better wirelength does not necessarily lead to PPA gain, emphasizing the need of developing PPA-driven methods. Open3DBench offers a standardized, reproducible platform for evaluating 3D EDA methods, effectively bridging the gap between open-source tools and commercial solutions in 3D-IC design.",
+    "type": "paperlike",
+    "core": true,
+    "category": "3D Accelerators",
+    "representative": true
+  },
+  {
+    "id": "21",
+    "title": "Breaking Thermal Bottleneck in 3D HBM-on-GPU Integration via System-Technology Co-Optimization",
+    "snippet": "The integration of High Bandwidth Memory (HBM) stacks directly atop GPUs offers bandwidth and package density but introduces severe thermal constraints. This work presents a thermal analysis and co-optimization approach for 3D HBM-on-GPU architectures under realistic power and packaging conditions. Within a consistent simulation environment, we evaluate a suite of technology- and system-level mitigation strategies, including HBM base die removal, HBM DRAM die merging, GPU frequency scaling, and doublesided cooling. Results show that peak GPU temperature can be reduced from 141.7°C to 70.8°C, with potential for improved throughput density (performance per unit package area) over 2.5D integration. This study highlights the importance of cross-layer thermal co-design and demonstrates the viability of HBM-on-GPU 3D stacking.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "22",
+    "title": "3D IGZO Charge-Coupled Memory DTCO & STCO Analysis for Compute-near-Memory Applications",
+    "snippet": "The demand for high-capacity and energy-efficient memory solutions has surged in the era of data-centric computing, particularly for Artificial Intelligence (AI) and Machine Learning (ML) workloads. This paper introduces a novel memory architecture leveraging Charge-Coupled Device (CCD) technology, engineered in a sequential-access block memory configuration, to enhance Compute-near-Memory (CnM) systems. We propose an optimized 3D IGZO CCD block memory as an on-chip weight buffer for high-capacity CnM systems. Our approach achieves 2.95−131.26× improvement in area efficiency and 1.32−4.33× improvement in energy efficiency compared to SRAM solutions.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "23",
+    "title": "MemPool-3D: Boosting performance and efficiency of shared-L1 memory many-core clusters with 3D integration",
+    "snippet": "Three-dimensional integrated circuits promise power, performance, and footprint gains compared to their 2D counter-parts, thanks to drastic reductions in the interconnects' length through their smaller form factor. We can leverage the potential of 3D integration by enhancing MemPool, an open-source many-core design with 256 cores and a shared pool of L1 scratchpad memory connected with a low-latency interconnect. MemPool's baseline 2D design is severely limited by routing congestion and wire propagation delay, making the design ideal for 3D integration. In architectural terms, we increase MemPool's scratchpad memory capacity beyond the sweet spot for 2D designs, improving performance in a common digital signal processing kernel. We propose a 3D MemPool design that leverages a smart partitioning of the memory resources across two layers to balance the size and utilization of the stacked dies. In this paper, we explore the architectural and the technology parameter spaces by analyzing the power, performance, area, and energy efficiency of MemPool instances in 2D and 3D with 1 MiB, 2 MiB, 4 MiB, and 8 MiB of scratchpad memory in a commercial 28 nm technology node. We observe a performance gain of 9.1% when running a matrix multiplication on MemPool-3D with 4 MiB of scratchpad memory compared to the MemPool 2D counterpart. In terms of energy efficiency, we can implement the MemPool-3D instance with 4 MiB of L1 memory on an energy budget 15 % smaller than its 2D counterpart, and 3.7 % smaller than the MemPool-2D instance with a fourth of the L1 scratchpad memory capacity.",
+    "type": "paperlike",
+    "core": false,
+    "category": "3D Accelerators",
+    "representative": false
+  },
+  {
+    "id": "24",
+    "title": "Niobium nitride Nb4N5 as a new high‐performance electrode material for supercapacitors",
+    "snippet": "Supercapacitors suffer either from low capacitance for carbon or derivate electrodes or from poor electrical conductivity and electrochemical stability for metal oxide or conducting polymer electrodes. Transition metal nitrides possess fair electrical conductivity but superior chemical stability, which may be desirable candidates for supercapacitors. Herein, niobium nitride, Nb4N5, is explored to be an excellent capacitive material for the first time. An areal capacitance of 225.8 mF cm−2, with a reasonable rate capability (60.8% retention from 0.5 to 10 mA cm−2) and cycling stability (70.9% retention after 2000 cycles), is achieved in Nb4N5 nanochannels electrode with prominent electrical conductivity and electrochemical activity. Faradaic pseudocapacitance is confirmed by the mechanistic studies, deriving from the proton incorporation/chemisorption reaction owing to the copious +5 valence Nb ions in Nb4N5. Moreover, this Nb4N5 nanochannels electrode with an ultrathin carbon coating exhibits nearly 100% capacitance retention after 2000 CV cycles, which is an excellent cycling stability for metal nitride materials. Thus, the Nb4N5 nanochannels are qualified for a candidate for supercapacitors and other energy storage applications.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Materials",
+    "representative": true
+  },
+  {
+    "id": "25",
+    "title": "Tunable conversion of topological spin texture from domain wall pair for magnetic memory application in specially designed magnetic nanotracks",
+    "snippet": "Topological spin textures have drawn intense attention due to interesting fundamental physics and possible application in non-volatile information carriers as well as logic gate devices. Here, in a specially designed race track that consists of three narrow nanotracks connected to a wide nanotrack, we investigate the role of geometry in domain wall (DW) pair to skyrmion conversion using micromagnetic simulation. In particular, tunable DW to skyrmion or fractional skyrmion conversion is achieved for a selected material parameter with a separation length of 10 or 30 nm (or combination of both) between the narrow nanochannels. By suitably varying the spacing between the narrow nanotracks symmetrically and asymmetrically, we control the dynamics of skyrmions and fractional skyrmions along with the trajectory. Interestingly, if the separation length between the top and middle (or middle and bottom) nanochannel is 30 nm, a fractional skyrmion is formed. The DW pair to skyrmion conversion time depends on the separation between the narrow nanochannels, e.g., for 10 nm separation, the conversion time of DW pair to skyrmion from the top nanochannel is ∼0.3 ns, and the same for the 30 nm separation is ∼2 ns. Analysis of the topological number of spin texture suggests the creation of two skyrmions in the case of 10 nm separation between the narrow nanochannels, whereas for 30 nm separation, a skyrmion and a fractional skyrmion are formed. Furthermore, the analysis of total energy and other energy terms shows a non-monotonic variation during the conversion of DW to skyrmion at the junction. Finally, the increase or decrease in the total energy value depends on the formation of skyrmions or fractional skyrmions. Thus, we infer that the enforced geometrical constraints and the interplay of various energies play a crucial role in controlling the topology and skyrmion formation. Based on these findings, we believe that a skyrmion racetrack made up of three nanochannels will help achieve efficient controllable skyrmion dynamics, which may have application potential in magnetic memory operations.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Magnetics",
+    "representative": true
+  },
+  {
+    "id": "26",
+    "title": "Dynamic reconfiguration of structural and functional connectivity across core neurocognitive brain networks with development",
+    "snippet": "Brain structural and functional development, throughout childhood and into adulthood, underlies the maturation of increasingly sophisticated cognitive abilities. High-level attentional and cognitive control processes rely on the integrity of, and dynamic interactions between, core neurocognitive networks. The right fronto-insular cortex (rFIC) is a critical component of a salience network (SN) that mediates interactions between large-scale brain networks involved in externally oriented attention [central executive network (CEN)] and internally oriented cognition [default mode network (DMN)]. How these systems reconfigure and mature with development is a critical question for cognitive neuroscience, with implications for neurodevelopmental pathologies affecting brain connectivity. Using functional and effective connectivity measures applied to fMRI data, we examine interactions within and between the SN, CEN, and DMN. We find that functional coupling between key network nodes is stronger in adults than in children, as are causal links emanating from the rFIC. Specifically, the causal influence of the rFIC on nodes of the SN and CEN was significantly greater in adults compared with children. Notably, these results were entirely replicated on an independent dataset of matched children and adults. Developmental changes in functional and effective connectivity were related to structural connectivity along these links. Diffusion tensor imaging tractography revealed increased structural integrity in adults compared with children along both within- and between-network pathways associated with the rFIC. These results suggest that structural and functional maturation of rFIC pathways is a critical component of the process by which human brain networks mature during development to support complex, flexible cognitive processes in adulthood.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": true
+  },
+  {
+    "id": "27",
+    "title": "How heterogeneity shapes dynamics and computation in the brain",
+    "snippet": "Much effort has been spent clustering neurons into transcriptomic or functional cell types and characterizing the differences between them. Beyond subdividing neurons into categories, we must recognize that no two neurons are identical and that graded physiological or transcriptomic properties exist within cells of a given type. This often overlooked within-type heterogeneity is a specific neuronal implementation of what statistical physics refers to as disorder and exhibits rich computational properties, the identification of which may shed crucial insights into theories of brain function. In this perspective article, we address this gap by highlighting theoretical frameworks for the study of neural tissue heterogeneity and discussing the benefits and implications of within-type heterogeneity for neural network dynamics, computation, and self-organization.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "28",
+    "title": "Chordate roots of the vertebrate nervous system: expanding the molecular toolkit",
+    "snippet": "The vertebrate brain is highly complex with millions to billions of neurons. During development, the neural plate border region gives rise to the neural crest, cranial placodes and, in anamniotes, to Rohon-Beard sensory neurons, whereas the boundary region of the midbrain and hindbrain develops organizer properties. Comparisons of developmental gene expression and neuroanatomy between vertebrates and the basal chordate amphioxus, which has only thousands of neurons and lacks a neural crest, most placodes and a midbrain–hindbrain organizer, indicate that these vertebrate features were built on a foundation already present in the ancestral chordate. Recent advances in genomics have provided insights into the elaboration of the molecular toolkit at the invertebrate–vertebrate transition that may have facilitated the evolution of these vertebrate characteristics.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "29",
+    "title": "Sparseness and expansion in sensory representations",
+    "snippet": "In several sensory pathways, input stimuli project to sparsely active downstream populations that have more neurons than incoming axons. Here, we address the computational benefits of expansion and sparseness for clustered inputs, where different clusters represent behaviorally distinct stimuli and intracluster variability represents sensory or neuronal noise. Through analytical calculations and numerical simulations, we show that expansion implemented by feed-forward random synaptic weights amplifies variability in the incoming stimuli, and this noise enhancement increases with sparseness of the expanded representation. In addition, the low dimensionality of the input layer generates overlaps between the induced representations of different stimuli, limiting the benefit of expansion. Highly sparse expansive representations obtained through synapses that encode the clustered structure of the input reduce both intrastimulus variability and the excess overlaps between stimuli, enhancing the ability of downstream neurons to perform classification and recognition tasks. Implications for olfactory, cerebellar, and visual processing are discussed.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Neuroscience",
+    "representative": false
+  },
+  {
+    "id": "30",
+    "title": "Towards end-to-end automation of AI research",
+    "snippet": "The automation of science is a long-standing ambition in artificial intelligence (AI) research1,2. Although the community has made substantial progress in automating individual components of the scientific process, a system that autonomously navigates the entire research life cycle—from conception to publication—has remained out of reach. Here we present a pipeline for automating the entire scientific process end to end. We present The AI Scientist, which creates research ideas, writes code, runs experiments, plots and analyses data, writes the entire scientific manuscript, and performs its own peer review. Its ideas, execution and presentation are of sufficient quality that the manuscript generated by this AI system passed the first round of peer review for a workshop of a top-tier machine learning conference. The workshop had an acceptance rate of 70%. Our system leverages modern foundation models3,4,5 within a complex agentic system. We evaluate The AI Scientist in two settings: a focused mode using human-provided code templates as an initial scaffold for conducting research on a specific topic and a template-free, open-ended mode that leverages agentic search for wider scientific exploration6,7. Both settings produce diverse ideas and automatically test, report on and evaluate them. This achievement demonstrates the growing capacity of AI for making scientific contributions and signifies a potential paradigm shift in how research is conducted. As with any impactful new technology, there could be important risks, including taxing overwhelmed review systems and adding noise to the scientific literature. However, if developed responsibly, such autonomous systems could greatly accelerate scientific discovery.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "31",
+    "title": "Training slow silicon neurons to control extremely fast robots with spiking reinforcement learning",
+    "snippet": "Air hockey demands split-second decisions at high puck velocities, a challenge we address with a compact network of spiking neurons running on a mixed-signal analog/digital neuromorphic processor. By co-designing hardware and learning algorithms, we train the system to achieve successful puck interactions through reinforcement learning in a remarkably small number of trials. The network leverages fixed random connectivity to capture the task’s temporal structure and adopts a local e-prop learning rule in the readout layer to exploit event-driven activity for fast and efficient learning. The result is real-time learning with a setup comprising a computer and the neuromorphic chip in-the-loop, enabling practical training of spiking neural networks for robotic autonomous systems. This work bridges neuroscience-inspired hardware with real-world robotic control, showing that brain-inspired approaches can tackle fast-paced interaction tasks while supporting always-on learning in intelligent machines.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "32",
+    "title": "Bioinspired spiking architecture enables energy constrained touch encoding",
+    "snippet": "The sense of touch is essential for safe interactions with the external world, enabling humans to rapidly detect and localize physical stimuli. Biological systems achieve these abilities through hundreds of thousands of mechanoreceptors distributed across the skin and efficiently processing vast streams of tactile information. Replicating these affordances in autonomous systems is crucial for advancing robotics. However, current tactile sensing solutions face critical challenges, including excessive wiring, high energy demnds of AI computing, and limitations in scalability and parallel processing. Here, we present a modular artificial tactile system combining a Fiber Bragg Grating-based e-skin with a spiking neural network (SNN) that mimics the early stages of the human somatosensory system. Our architecture achieves up to 10× localization super-resolution, improving localization accuracy by 32% over state-of-the-art deep learning methods and effectively generalizing to multitouch and dynamic conditions. Crucially, when implemented on a neuromorphic chip, the SNN demonstrates robustness to the constrained resolution and mismatches of analog neurons, bolstering highly parallel and sub-mWatt hardwired computation. Bioinspired connectivity is shown to functionally influence tactile processing, offering mechanistic insights in a framework that bridges physiological hypotheses, modeling, and validation in a real-world tactile scenario. These results demonstrate a scalable, energetically sustainable solution for touch perception, with immediate applications in autonomous systems requiring safe human interaction and operation in dynamic environments.",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  },
+  {
+    "id": "33",
+    "title": "Analog foundation models",
+    "snippet": "Analog in-memory computing (AIMC) is a promising compute paradigm to improve speed and power efficiency of neural network inference beyond the limits of conventional von Neumann-based architectures. However, AIMC introduces fundamental challenges such as noisy computations and strict constraints on input and output quantization. Because of these constraints and imprecisions, off-the-shelf LLMs are not able to achieve 4-bit-level performance when deployed on AIMC-based hardware. While researchers previously investigated recovering this accuracy gap on small, mostly vision-based models, a generic method applicable to LLMs pre-trained on trillions of tokens does not yet exist. In this work, we introduce a general and scalable method to robustly adapt LLMs for execution on noisy, low-precision analog hardware. Our approach enables state-of-the-art models — including Phi-3-mini-4k-instruct and Llama-3.2-1B-Instruct — to retain performance comparable to 4-bit weight, 8-bit activation baselines, despite the presence of analog noise and quantization constraints. Additionally, we show that as a byproduct of our training methodology, analog foundation models can be quantized for inference on low-precision digital hardware. Finally, we show that our models also benefit from test-time compute scaling, showing better scaling behavior than models trained with 4-bit weight and 8-bit static input quantization. Our work bridges the gap between high-capacity LLMs and efficient analog hardware, offering a path toward energy-efficient foundation models. ",
+    "type": "paperlike",
+    "core": false,
+    "category": "Miscellaneous Seeds",
+    "representative": false
+  }
 ]

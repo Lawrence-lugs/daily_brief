@@ -91,7 +91,7 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
  */
 function buildFitKey(perfectSamples, likedIds, trainingRows, cfg) {
   const payload = [
-    perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core]).sort(),
+    perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core, ps.representative]).sort(),
     likedIds.slice().sort(),
     trainingRows.map((r) => [r.item_id, r.y, r.source_type, (r.authors || []).join(',')]).sort(),
     cfg.interests,
@@ -142,7 +142,12 @@ export async function ensureFitted(store, cfg, { persist = true, force = false }
     const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
     const emb = store.getEmbedding(id);
     if (emb) {
-      perfectWithVecs.push({ id, vec: emb.vec, core: ps.core });
+      // Default representative=true for backward compatibility (old behavior: all perfect samples blocked clustering)
+      const representative = ps.representative ?? true;
+      if (ps.representative === undefined) {
+        console.error(`[refit] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
+      }
+      perfectWithVecs.push({ id, vec: emb.vec, core: ps.core, representative });
     } else {
       console.error(`[refit] WARNING: perfect sample ${id} has no embedding`);
     }
@@ -316,7 +321,13 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
     const rawId = ps.id;
     const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
     const emb = store.getEmbedding(id);
-    if (emb) perfectWithVecs.push({ id, vec: emb.vec, core: ps.core });
+    if (emb) {
+      const representative = ps.representative ?? true;
+      if (ps.representative === undefined) {
+        console.error(`[eval] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
+      }
+      perfectWithVecs.push({ id, vec: emb.vec, core: ps.core, representative });
+    }
   }
 
   // Get liked items with vectors

@@ -3,7 +3,7 @@ import { wardCut, weightedMedoid } from './agglo.js';
 import { dot } from './vec.js';
 
 /**
- * @param {{id:string, vec:Float32Array, core:boolean}[]} perfect
+ * @param {{id:string, vec:Float32Array, core:boolean, representative?:boolean}[]} perfect
  * @param {{id:string, vec:Float32Array}[]} liked        already filtered to max_liked_days, deduped
  * @param {{kappa:number, mode?:string, minClusters?:number, maxHeight?:number}} cfg
  */
@@ -15,8 +15,8 @@ export function buildInterests(perfect, liked, cfg) {
   ];
   if (!pts.length) throw new Error('no perfect samples and no liked items: cannot build interests');
   const X = pts.map((p) => p.vec), w = pts.map((p) => p.w);
-  const perfIdx = new Set(); pts.forEach((p, i) => p.perfect && perfIdx.add(i));
-  const { clusters, stopHeight } = wardCut(X, perfIdx, cfg);
+  const repIdx = new Set(); pts.forEach((p, i) => { if (p.perfect && p.representative) repIdx.add(i); });
+  const { clusters, stopHeight } = wardCut(X, repIdx, cfg);
   return {
     stopHeight,
     clusters: clusters.map((idx, id) => {

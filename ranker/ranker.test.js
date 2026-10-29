@@ -20,35 +20,115 @@ test('wardCut fixed-k recovers the blobs', () => {
   for (const cl of clusters) assert.equal(new Set(cl.map((i) => Math.floor(i / 6))).size, 1);
 });
 
-test("'stop' halts before two perfect samples share a cluster", () => {
+test("'stop' halts before two representative samples share a cluster", () => {
   const X = [...A, ...B, ...C];
-  const perfect = new Set([0, 6]);                       // one in A, one in B
-  const { clusters, stopHeight, heights } = wardCut(X, perfect, { mode: 'stop' });
+  const representative = new Set([0, 6]);                       // one in A, one in B
+  const { clusters, stopHeight, heights } = wardCut(X, representative, { mode: 'stop' });
   assert.ok(stopHeight >= Math.max(...heights));         // merges are monotone: stopped at the first violating (highest so far) merge
   const cl0 = clusters.find((c) => c.includes(0)), cl6 = clusters.find((c) => c.includes(6));
   assert.notEqual(cl0, cl6);                             // never share a cluster
   assert.ok(clusters.length >= 2 && clusters.length <= 3);   // which blob C joins first is a tie
 });
 
-test("'constrained' keeps merging non-perfect clusters past the first violation", () => {
+test("'constrained' keeps merging non-representative clusters past the first violation", () => {
   const X = [...A, ...B, ...C];
   const { clusters } = wardCut(X, new Set([0, 6]), { mode: 'constrained' });
   assert.equal(clusters.length, 2);                      // C joins A or B; A and B stay apart
 });
 
 test('cold start: only perfect samples => one cluster each, medoid = itself', () => {
-  const perfect = [{ id: 'ps:1', vec: A[0], core: true }, { id: 'ps:2', vec: B[0], core: false }];
+  const perfect = [{ id: 'ps:1', vec: A[0], core: true, representative: true }, { id: 'ps:2', vec: B[0], core: false, representative: true }];
   const it = buildInterests(perfect, [], { kappa: 20, mode: 'stop' });
   assert.equal(it.clusters.length, 2);
   assert.deepEqual(it.clusters.map((c) => c.core).sort(), [false, true]);
 });
 
 test('perfect sample (weight 20) dominates its cluster medoid', () => {
-  const perfect = [{ id: 'ps:1', vec: A[0], core: true }];
+  const perfect = [{ id: 'ps:1', vec: A[0], core: true, representative: true }];
   const liked = A.slice(1).map((vec, i) => ({ id: `l${i}`, vec }));
   const it = buildInterests(perfect, liked, { kappa: 20, mode: 'stop', minClusters: 1 });
   assert.equal(it.clusters.length, 1);
   assert.equal(it.clusters[0].medoid, 'ps:1');
+});
+
+test('non-representative perfect samples do not block clustering', () => {
+  const X = [...A, ...B, ...C];
+  // 0 in A, 6 in B are non-representative perfect samples; they should cluster freely
+  // Only representative samples (none in this test) block merges
+  const { clusters } = wardCut(X, new Set(), { mode: 'stop' });
+  assert.equal(clusters.length, 1); // all merge into one
+});
+
+test('mixed: one representative blocks only other representatives', () => {
+  const X = [...A, ...B, ...C];
+  // 0 (in A) is representative, 6 (in B) is not
+  // A and B CAN merge because only ONE of them has a representative sample
+  // C can merge with A+B
+  const { clusters } = wardCut(X, new Set([0]), { mode: 'stop' });
+  // Since only 0 is representative, 6 (in B) is not blocked from merging with 0
+  // So A and B merge, then C merges with A+B -> 1 cluster
+  assert.equal(clusters.length, 1);
+  // Verify that the representative sample 0 is in the cluster
+  const cl0 = clusters.find((c) => c.includes(0));
+  assert.ok(cl0 !== undefined);
+});
+
+test('non-representative perfect sample clusters with representative one', () => {
+  // Non-rep perfect sample should be able to merge with a rep perfect sample
+  const perfect = [
+    { id: 'ps:rep', vec: A[0], core: true, representative: true },
+    { id: 'ps:nonrep', vec: A[1], core: false, representative: false },
+    { id: 'ps:other', vec: B[0], core: true, representative: true },
+  ];
+  const it = buildInterests(perfect, [], { kappa: 20, mode: 'stop' });
+  // rep samples (0 and 2) must be in different clusters
+  // non-rep (1) can merge with either
+  assert.equal(it.clusters.length, 2);
+  const clRep1 = it.clusters.find((c) => c.members.includes('ps:rep'));
+  const clRep2 = it.clusters.find((c) => c.members.includes('ps:other'));
+  assert.notEqual(clRep1, clRep2);
+  // non-rep should be in one of the two clusters
+  const nonRepCluster = it.clusters.find((c) => c.members.includes('ps:nonrep'));
+  assert.ok(nonRepCluster === clRep1 || nonRepCluster === clRep2);
+});
+
+test('single representative sample never blocks (no other rep to conflict)', () => {
+  const X = [...A, ...B, ...C];
+  const { clusters } = wardCut(X, new Set([0]), { mode: 'stop' });
+  // Only one rep -> no conflict possible -> all merge into 1
+  assert.equal(clusters.length, 1);
+});
+
+test('all perfect samples non-representative => no blocking', () => {
+  // This is equivalent to empty representative set
+  const X = [...A, ...B, ...C];
+  const { clusters } = wardCut(X, new Set(), { mode: 'stop' });
+  assert.equal(clusters.length, 1);
+});
+
+test('constrained mode: multiple representatives in same cluster block merge with other rep cluster', () => {
+  // Two reps in A, one in B -> A and B must stay separate
+  const X = [...A, ...B, ...C];
+  const { clusters } = wardCut(X, new Set([0, 1, 6]), { mode: 'constrained' });
+  // A has 2 reps (0,1), B has 1 rep (6) -> they block each other
+  // C can join either
+  const cl0 = clusters.find((c) => c.includes(0));
+  const cl6 = clusters.find((c) => c.includes(6));
+  assert.notEqual(cl0, cl6);
+  assert.ok(clusters.length === 2 || clusters.length === 3); // C joins A or B, or stays separate
+});
+
+test('constrained mode: non-rep clusters merge freely, but rep cluster can absorb them', () => {
+  // Rep at 0 (A), non-rep clusters B and C -> A can merge with B and C since they have no reps
+  const X = [...A, ...B, ...C];
+  const { clusters } = wardCut(X, new Set([0]), { mode: 'constrained' });
+  // In constrained mode, a cluster WITH a rep CAN merge with a cluster WITHOUT a rep
+  // So A merges with B, then (A+B) merges with C -> 1 cluster
+  assert.equal(clusters.length, 1);
+  const cl0 = clusters.find((c) => c.includes(0));
+  assert.ok(cl0 !== undefined);
+  assert.ok(cl0.includes(7)); // B merged in
+  assert.ok(cl0.includes(13)); // C merged in
 });
 
 test('topDistances is ascending and padded', () => {
