@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { buildTrainingSet, chronoSplit } from './trainer.js';
 import { SparseBayesLogReg, auc, logLoss } from './model.js';
 import { encode } from './features.js';
+import { topDistances } from './interests.js';
 
 const ENCODING_VERSION = 1; // bump when encode() schema changes
 
@@ -252,16 +253,35 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
       missingEmb++;
       continue;
     }
-    // TODO: encode features, predict, nearest cluster
+    // Encode features
+    const ctx = { interests, authorCfg: cfg.authors };
+    const { keys, vals } = encode({ ...item, vec: emb.vec }, ctx, cfg.features);
+    // Predict
+    const pred = model.predict(keys, vals);
+    // Nearest cluster
+    const { cid } = topDistances(interests, emb.vec, 1)[0];
+    const core = interests.clusters[cid]?.core ?? false;
+    // Age in days
+    const published = item.published ? Date.parse(item.published) : null;
+    const firstSeen = item.first_seen ? Date.parse(item.first_seen) : null;
+    const ageDays = Math.max(0, (now - (published || firstSeen || now)) / 86400000);
+    // Days since shown
+    let daysSinceShown = null;
+    const last = lastShown.get(item.id);
+    if (last) {
+      daysSinceShown = (Date.parse(dateKey + 'T00:00:00.000Z') - Date.parse(last)) / 86400000;
+      if (daysSinceShown < 0) daysSinceShown = 0;
+    }
+    
     candidates.push({
       id: item.id,
       title: item.title,
       source_type: item.source_type,
-      p: 0.5, // placeholder
-      age_days: 0,
-      days_since_shown: null,
-      cluster: -1,
-      core: false,
+      p: pred.p,
+      age_days: ageDays,
+      days_since_shown: daysSinceShown,
+      cluster: cid,
+      core,
     });
   }
   if (missingEmb > 0) console.error(`[prepareCandidates] ${missingEmb} pool items missing embeddings, skipped`);

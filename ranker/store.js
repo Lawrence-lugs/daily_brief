@@ -30,7 +30,7 @@ const SQL = {
        SELECT MAX(t2.story_id) FROM training_examples t2 WHERE t2.item_id = t.item_id
      )
      GROUP BY t.item_id ORDER BY t.date, t.item_id`,
-  pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id`,
+  pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id ORDER BY p.item_id`,
   prune: `DELETE FROM embeddings WHERE item_id NOT LIKE 'ps:%' AND item_id NOT IN
             (SELECT item_id FROM candidate_pool UNION SELECT item_id FROM stories)`,
   embeddingById: `SELECT item_id, model, text_hash, dim, vec FROM embeddings WHERE item_id = ?`,

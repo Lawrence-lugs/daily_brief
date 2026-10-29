@@ -75,7 +75,8 @@
       "epsilon": 0.25, "halfLifeDays": 7,
       "desks": { "core": "primary", "side": "science" },
       "explore": { "gamma": 0.5, "floor": 0.01 },
-      "dedupe": { "hardWindowDays": 2, "t0": 7, "scale": 2 }
+      "dedupe": { "hardWindowDays": 2, "t0": 7, "scale": 2 },
+      "slots": { "primary": 5, "science": 5, "reserve": 25 }
     }
   }
 }

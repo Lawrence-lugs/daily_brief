@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
+import { selectBrief, mulberry32 } from './sampler.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const CONFIG_FILE = resolve(__dirname, '..', 'config.json');
@@ -63,6 +64,10 @@ async function cmdRefit(args) {
 async function cmdSelect(args) {
   const cfg = loadConfig();
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
+  if (!args.date) {
+    console.error('select requires --date D');
+    process.exit(1);
+  }
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
@@ -71,9 +76,24 @@ async function cmdSelect(args) {
       console.error('[select] interests not built, exiting with code 3');
       process.exit(3);
     }
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, new Date());
-    // TODO: selectBrief
-    console.log(JSON.stringify({ primary: [], science: [] }));
+    // Use deterministic time (noon on dateKey) for age calculation so same seed = same output
+    const now = new Date(args.date + 'T12:00:00.000Z');
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now);
+    const rng = mulberry32(cfg.seed ?? Date.now());
+    const out = selectBrief(candidates, cfg.sampling, rng);
+    // Output format: { desk: [{id, mode, p, V, cluster, core}] }
+    const result = {};
+    for (const [desk, items] of Object.entries(out)) {
+      result[desk] = items.map((c) => ({
+        id: c.id,
+        mode: c.mode,
+        p: c.p,
+        V: c.V,
+        cluster: c.cluster,
+        core: c.core,
+      }));
+    }
+    console.log(JSON.stringify(result));
   } finally {
     store.close();
   }
@@ -91,9 +111,11 @@ async function cmdSimulate(args) {
   const store = new Store(DB_FILE);
   try {
     const fittedResult = await ensureFitted(store, cfg, { persist: false });
-    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, new Date());
-    // TODO: simulate
-    console.log(JSON.stringify({ runs: cfg.runs, summary: 'TODO' }));
+    const now = new Date(args.date + 'T12:00:00.000Z');
+    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now);
+    const { simulate } = await import('./simulate.js');
+    const result = simulate(candidates, cfg.sampling, cfg.runs ?? 200, cfg.seed ?? 1);
+    console.log(JSON.stringify(result, null, 2));
   } finally {
     store.close();
   }
