@@ -154,9 +154,17 @@ def canonical_url(url: str) -> str:
                                     urllib.parse.urlencode(q), ""))
 
 
+def split_authors(text: str) -> list[str]:
+    """arXiv dc:creator is ONE string 'Alice Smith, Bob Jones'. Split only when every piece has a space,
+    so 'Smith, John' stays whole."""
+    text = strip_html(text or "")
+    parts = [p.strip() for p in re.split(r",|\band\b", text) if p.strip()]
+    return parts if len(parts) > 1 and all(" " in p for p in parts) else ([text] if text else [])
+
+
 def make_item(
     url, title, snippet, published, source, hint_sub, weight, extra_rel=1.0,
-    source_type="researchlike",
+    source_type="researchlike", authors=None,
 ):
     url = canonical_url(url)
     return {
@@ -169,6 +177,7 @@ def make_item(
         "source_type": source_type,
         "hint": hint_sub,
         "weight": weight * extra_rel,
+        "authors": list(authors or []),
     }
 
 
@@ -187,10 +196,14 @@ def parse_feed(
             continue
         f: dict[str, str] = {}
         link = ""
+        authors = []
         for ch in node:
             t = local(ch.tag)
             if t == "link":
                 link = link or ch.get("href") or (ch.text or "")
+            elif t in ("creator", "author"):
+                nm = next((g.text for g in ch if local(g.tag) == "name"), None) or ch.text or ""
+                authors += split_authors(nm)
             elif t in ("title", "description", "summary", "content", "encoded",
                        "pubDate", "published", "updated", "date"):
                 f.setdefault(t, ch.text or "")
@@ -199,7 +212,7 @@ def parse_feed(
         date = parse_date(f.get("pubDate") or f.get("published") or f.get("updated") or f.get("date"))
         if title and link.startswith("http"):
             out.append(make_item(link, title, body, date, name, hint, weight,
-                                 source_type=source_type))
+                                 source_type=source_type, authors=authors))
     return out
 
 

@@ -3,6 +3,7 @@ import datetime as dt, json, sys, tempfile, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db
+from fetch.fetcher import split_authors
 
 NOW = dt.datetime(2026, 10, 26, 12, 0, tzinfo=dt.timezone.utc)
 
@@ -79,6 +80,39 @@ class T(unittest.TestCase):
         db.upsert_pool(self.c, [old, item("new")], NOW)
         self.assertEqual(db.prune_pool(self.c, NOW, 60), 1)
         self.assertEqual([p["id"] for p in db.load_pool(self.c)], ["new"])
+
+    def test_split_authors(self):
+        self.assertEqual(split_authors("Alice Smith, Bob Jones"), ["Alice Smith", "Bob Jones"])
+        self.assertEqual(split_authors("Smith, John"), ["Smith, John"])
+        self.assertEqual(split_authors("A. Smith, B. Jones"), ["A. Smith", "B. Jones"])
+        self.assertEqual(split_authors("Alice Smith and Bob Jones"), ["Alice Smith", "Bob Jones"])
+        self.assertEqual(split_authors(""), [])
+        self.assertEqual(split_authors(None), [])
+
+    def test_item_meta_upsert(self):
+        # upsert_pool should write authors to item_meta
+        db.upsert_pool(self.c, [item("a", authors=["Alice Smith", "Bob Jones"])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='a'").fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(json.loads(row["authors"]), ["Alice Smith", "Bob Jones"])
+        
+        # Second upsert with different authors should update (since not empty)
+        db.upsert_pool(self.c, [item("a", authors=["Alice Smith", "Charlie Brown"])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='a'").fetchone()
+        self.assertEqual(json.loads(row["authors"]), ["Alice Smith", "Charlie Brown"])
+        
+        # Empty authors should NOT overwrite existing
+        db.upsert_pool(self.c, [item("a", authors=[])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='a'").fetchone()
+        self.assertEqual(json.loads(row["authors"]), ["Alice Smith", "Charlie Brown"])
+        
+        # item_meta survives pool pruning
+        old = item("old", authors=["Old Author"], published=(NOW - dt.timedelta(days=100)).isoformat())
+        db.upsert_pool(self.c, [old, item("new", authors=["New Author"])], NOW)
+        db.prune_pool(self.c, NOW, 60)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='old'").fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(json.loads(row["authors"]), ["Old Author"])
 
 if __name__ == "__main__":
     unittest.main()

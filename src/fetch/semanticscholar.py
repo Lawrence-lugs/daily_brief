@@ -66,6 +66,8 @@ def _s2_items(f: Fetcher, spec: dict) -> list[dict]:
             item.get("publicationDate")
             or str(item.get("year", ""))
         )
+        
+        authors = [a["name"] for a in item.get("authors") or [] if a.get("name")]
 
         out.append(make_item(
             url,
@@ -76,6 +78,7 @@ def _s2_items(f: Fetcher, spec: dict) -> list[dict]:
             spec["subtopic"],
             spec["weight"],
             source_type=spec.get("type", "researchlike"),
+            authors=authors,
         ))
 
     return out

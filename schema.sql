@@ -80,4 +80,22 @@ WHERE s.story_id = (
   SELECT MAX(s2.story_id) FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
   WHERE b2.date = b.date AND s2.item_id = s.item_id);
 
-PRAGMA user_version = 1;
+-- embeddings: item_id is a pool/story item_id, or 'ps:<id>' for perfect samples. Never pruned with the pool.
+CREATE TABLE IF NOT EXISTS embeddings (
+  item_id   TEXT PRIMARY KEY,
+  model     TEXT NOT NULL,
+  text_hash TEXT NOT NULL,          -- sha1[:12] of the embedded text; re-embed when it changes
+  dim       INTEGER NOT NULL,
+  vec       BLOB NOT NULL           -- Float32Array(384), L2-normalised
+);
+-- authors survive pool pruning (needed to retrain on old stories)
+CREATE TABLE IF NOT EXISTS item_meta (
+  item_id TEXT PRIMARY KEY,
+  authors TEXT NOT NULL DEFAULT '[]'   -- JSON array of raw author strings
+);
+-- fitted artefacts: 'fit_key', 'interests', 'model'
+CREATE TABLE IF NOT EXISTS ranker_state (
+  key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+
+PRAGMA user_version = 2;

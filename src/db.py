@@ -98,6 +98,14 @@ def upsert_pool(conn, fresh: list[dict], now: dt.datetime) -> int:
                  it["source"], it.get("source_type", "commentary"), it["subtopic"], it["desk"],
                  it["rel"], now.isoformat()),
             )
+            # Upsert authors into item_meta (survives pool pruning)
+            authors_json = json.dumps(it.get("authors") or [], ensure_ascii=False)
+            if authors_json != "[]":
+                conn.execute(
+                    """INSERT INTO item_meta(item_id, authors) VALUES (?,?)
+                       ON CONFLICT(item_id) DO UPDATE SET authors=excluded.authors WHERE excluded.authors <> '[]'""",
+                    (it["id"], authors_json),
+                )
     return added
 
 
