@@ -50,6 +50,69 @@ def load_json(path: Path, default=None):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def select_lr(
+    date_key: str,
+    seed: int | None,
+    cfg: dict,
+    src: dict,
+    pool: list[dict],
+    now: dt.datetime,
+) -> dict[str, list[dict]]:
+    """Call the Node ranker CLI `select` command and return selected items per desk.
+
+    Returns {desk: [items with mode, p, V, cluster, core]} merged with pool fields.
+    Raises RuntimeError on failure.
+    """
+    import subprocess
+    cmd = ["node", "ranker/cli.js", "select", "--date", date_key]
+    if seed is not None:
+        cmd.extend(["--seed", str(seed)])
+    # Override config for sampling slots from src
+    sampling = cfg.get("ranker", {}).get("sampling", {})
+    if "slots" in sampling:
+        slots = sampling["slots"]
+        cmd.extend(["--set", f"sampling.slots.primary={slots.get('primary', 5)}"])
+        cmd.extend(["--set", f"sampling.slots.science={slots.get('science', 5)}"])
+        cmd.extend(["--set", f"sampling.slots.reserve={slots.get('reserve', 25)}"])
+    if "desks" in sampling:
+        desks = sampling["desks"]
+        cmd.extend(["--set", f"sampling.desks.core={desks.get('core', 'primary')}"])
+        cmd.extend(["--set", f"sampling.desks.side={desks.get('side', 'science')}"])
+
+    # Run from PROJECT_ROOT so perfect_samples.json and config.json paths resolve correctly
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ranker select failed (exit {result.returncode}): {result.stderr}")
+    try:
+        selected = json.loads(result.stdout.strip())
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"ranker select output not valid JSON: {e}\nstdout: {result.stdout}\nstderr: {result.stderr}")
+
+    # Merge ranker output (id, mode, p, V, cluster, core) with pool data
+    pool_by_id = {p["id"]: p for p in pool}
+    result_dict = {}
+    for desk, items in selected.items():
+        merged = []
+        for ranker_item in items:
+            pool_item = pool_by_id.get(ranker_item["id"])
+            if not pool_item:
+                log(f"[lr] WARNING: selected item {ranker_item['id']} not in pool, skipping")
+                continue
+            # Combine pool fields with ranker fields
+            merged_item = {**pool_item}
+            merged_item["mode"] = ranker_item["mode"]
+            merged_item["p"] = ranker_item["p"]
+            merged_item["V"] = ranker_item["V"]
+            merged_item["cluster"] = ranker_item["cluster"]
+            merged_item["core"] = ranker_item["core"]
+            # Compute age_days and kind for consistency with keyword path
+            merged_item["age_days"] = age_days(merged_item, now)
+            merged_item["kind"] = sel.kind_of(merged_item, {**sel.DEFAULTS, **cfg["selection"]})
+            merged.append(merged_item)
+        result_dict[desk] = merged
+    return result_dict
+
+
 def db_path(cfg: dict) -> Path:
     return PROJECT_ROOT / cfg.get("db_file", "daily_brief.db")
 
@@ -116,6 +179,7 @@ def main() -> int:
     ap.add_argument("--no-fetch", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--seed", type=int)
+    ap.add_argument("--engine", choices=["keyword", "lr"], help="Selection engine: keyword (legacy) or lr (logistic regression)")
     # Hidden trigger used by the detached background refresh spawned by fetch_all.
     ap.add_argument("--refresh-api-feeds", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--no-refresh-api-feeds", action="store_false", dest="refresh_api_auto",
@@ -174,21 +238,41 @@ def main() -> int:
         p["rejected"] = max(0, p["rejected"] - sd_rej.get(p["id"], 0))
         p["age_days"] = age_days(p, now)
 
-    # 2. epsilon-greedy selection per desk
+    # 2. Selection per desk (keyword or LR engine)
     n, k = cfg["stories_per_desk"], cfg["reserve_per_desk"]
     selected: dict[str, list[dict]] = {}
-    for desk, spec in src["desks"].items():
-        cands_all = [p for p in pool if p["subtopic"] in spec["subtopics"]]
-        picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng,
-                              minimum_types={"newslike": 1, "paperlike": 2})
-        chosen = [dict(i, mode=m) for i, m in picks]
-        reserve = [dict(i, mode="reserve") for i in sel.pick_reserves(
-            cands_all, {i["id"] for i, _ in picks}, k, scfg, minimum_types={"newslike": 1})]
-        selected[desk] = chosen + reserve
-        for c in selected[desk]:
-            c["kind"] = sel.kind_of(c, scfg)
-        log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) "
-            f"+ {len(reserve)} reserve")
+    engine = args.engine or cfg.get("ranker", {}).get("engine", "keyword")
+    log(f"selection engine: {engine}")
+
+    if engine == "lr":
+        # LR engine: call Node ranker CLI
+        try:
+            selected = select_lr(date_key, args.seed, cfg, src, pool, now)
+            # Count picks vs reserves for logging
+            for desk, items in selected.items():
+                picks = [i for i in items if i["mode"] != "reserve"]
+                reserves = [i for i in items if i["mode"] == "reserve"]
+                explore = sum(1 for i in picks if i["mode"] == "explore")
+                log(f"{desk}: {len(picks)} picked ({explore} explore) + {len(reserves)} reserve")
+        except Exception as e:
+            warn(f"LR selection failed: {e}. Falling back to keyword engine.")
+            engine = "keyword"
+            # Fall through to keyword selection
+
+    if engine == "keyword":
+        # Keyword engine: legacy epsilon-greedy per desk
+        for desk, spec in src["desks"].items():
+            cands_all = [p for p in pool if p["subtopic"] in spec["subtopics"]]
+            picks = sel.pick_desk(cands_all, spec["subtopics"], n, scfg, rng,
+                                  minimum_types={"newslike": 1, "paperlike": 2})
+            chosen = [dict(i, mode=m) for i, m in picks]
+            reserve = [dict(i, mode="reserve") for i in sel.pick_reserves(
+                cands_all, {i["id"] for i, _ in picks}, k, scfg, minimum_types={"newslike": 1})]
+            selected[desk] = chosen + reserve
+            for c in selected[desk]:
+                c["kind"] = sel.kind_of(c, scfg)
+            log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) "
+                f"+ {len(reserve)} reserve")
 
     # 3. LLM edit
     llm: LLM | None = None
@@ -211,9 +295,11 @@ def main() -> int:
     system = system.replace("{{max_agent_output_items_per_desk}}", str(max_cap))
     for desk, spec in src["desks"].items():
         result = None
+        # For LR engine, only show picks (not reserves) to the LLM; reserves backfill rejections
+        cands_for_llm = [c for c in selected[desk] if c["mode"] != "reserve"] if engine == "lr" else selected[desk]
         if llm:
             try:
-                result = llm.chat(system, build_user_message(spec["title"], n, selected[desk], today_s,
+                result = llm.chat(system, build_user_message(spec["title"], n, cands_for_llm, today_s,
                                                              keep_cap=max_cap))
             except LLMUnavailable as e:
                 warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
@@ -232,6 +318,7 @@ def main() -> int:
     models = sorted(set(llm.models)) if llm and llm.models else []
     meta = {
         "model": ", ".join(models) if models else "no model (raw items)",
+        "engine": engine,
         "n_fresh": sum(s["kind"] == "fresh" for s in all_stories),
         "n_archive": sum(s["kind"] == "archive" for s in all_stories),
         "n_explore": sum(s.get("mode") == "explore" for s in all_stories),

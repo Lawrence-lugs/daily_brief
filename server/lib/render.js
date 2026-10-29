@@ -77,11 +77,12 @@ export function makeRenderer({ templatesDir, cssFile, paperName }) {
       : stale ? `Latest brief is from ${brief.date} (not today)` : `Brief for ${brief.date}`;
     const options = briefs.map((b) => {
       const t = new Date(b.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const engine = b.engine ? ` [${b.engine}]` : '';
       const sel = brief && b.brief_id === brief.brief_id ? ' selected' : '';
-      return `<option value="${b.brief_id}"${sel}>${esc(b.date)} ${t}</option>`;
+      return `<option value="${b.brief_id}"${sel}>${esc(b.date)} ${t}${engine}</option>`;
     }).join('');
     const footer = brief
-      ? `Edited by ${meta.model}. ${meta.n_fresh} recent, ${meta.n_archive} from the archive. ` +
+      ? `Edited by ${meta.model} (${meta.engine ?? 'keyword'}). ${meta.n_fresh} recent, ${meta.n_archive} from the archive. ` +
         `${meta.n_explore} explore picks (epsilon ${meta.epsilon}). Candidate pool: ${meta.pool} items. Sources: ${meta.sources}.`
       : '';
     return fill(tpl('page.html'), {

@@ -19,7 +19,7 @@ export function makeQueries(db) {
     latestOnDate: db.prepare('SELECT brief_id FROM briefs WHERE date = ? ORDER BY brief_id DESC LIMIT 1'),
     brief: db.prepare('SELECT * FROM briefs WHERE brief_id = ?'),
     stories: db.prepare('SELECT * FROM stories WHERE brief_id = ? ORDER BY desk, position'),
-    list: db.prepare('SELECT brief_id, date, generated_at, model FROM briefs ORDER BY brief_id DESC LIMIT ?'),
+    list: db.prepare('SELECT brief_id, date, generated_at, model, meta FROM briefs ORDER BY brief_id DESC LIMIT ?'),
     story: db.prepare('SELECT story_id, liked, saved FROM stories WHERE story_id = ?'),
     training: db.prepare('SELECT * FROM training_examples ORDER BY story_id'),
   };
@@ -45,7 +45,10 @@ export function makeQueries(db) {
     },
 
     listBriefs(limit = 30) {
-      return S.list.all(limit).map((r) => ({ ...r }));
+      return S.list.all(limit).map((r) => {
+        const meta = r.meta ? JSON.parse(r.meta) : {};
+        return { ...r, engine: meta.engine ?? 'keyword' };
+      });
     },
 
     /** Set one flag; value is boolean. Returns {story_id, liked, saved} or null if no such story. */
