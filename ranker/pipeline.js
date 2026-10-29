@@ -158,6 +158,19 @@ export async function ensureFitted(store, cfg, { persist = true, force = false }
     }
   }
 
+  // Cold start: no perfect samples and no liked items -> return empty interests + prior-only model
+  if (perfectWithVecs.length === 0 && likedWithVecs.length === 0) {
+    console.error('[refit] cold start: no perfect samples and no liked items, using prior only');
+    const interests = { stopHeight: null, clusters: [] };
+    const model = new SparseBayesLogReg(cfg.model);
+    if (persist) {
+      store.setState('fit_key', fitKey);
+      store.setState('interests', JSON.stringify(interests));
+      store.setState('model', JSON.stringify(model.toJSON()));
+    }
+    return { interests, model, fitKey, fromCache: false };
+  }
+
   // Build interests (full) and cross-fitted training examples
   const { examples, full: interests } = buildTrainingSet({
     perfect: perfectWithVecs,
@@ -166,6 +179,12 @@ export async function ensureFitted(store, cfg, { persist = true, force = false }
     vecs: embById,
     cfg,
   });
+
+  // Log dropped training rows (missing embeddings)
+  const rowsWithEmb = trainingRows.filter((r) => embById.has(r.item_id)).length;
+  if (rowsWithEmb < trainingRows.length) {
+    console.error(`[refit] WARNING: ${trainingRows.length - rowsWithEmb} training rows skipped (missing embeddings)`);
+  }
 
   // Diagnostics logging (as per PLAN)
   const coreClusters = interests.clusters.filter((c) => c.core).length;
