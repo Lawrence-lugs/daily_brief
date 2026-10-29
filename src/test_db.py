@@ -88,6 +88,16 @@ class T(unittest.TestCase):
         self.assertEqual(split_authors("Alice Smith and Bob Jones"), ["Alice Smith", "Bob Jones"])
         self.assertEqual(split_authors(""), [])
         self.assertEqual(split_authors(None), [])
+        # New edge cases
+        self.assertEqual(split_authors("Alice Smith; Bob Jones"), ["Alice Smith", "Bob Jones"])  # semicolon
+        # "Smith, John; Doe, Jane" -> semicolon normalized to comma -> "Smith, John, Doe, Jane"
+        # parts are "Smith", "John", "Doe", "Jane" (no spaces) -> stays whole (normalized)
+        self.assertEqual(split_authors("Smith, John; Doe, Jane"), ["Smith, John, Doe, Jane"])
+        self.assertEqual(split_authors("Smith, John et al."), ["Smith, John"])  # et al. stripped
+        self.assertEqual(split_authors("Alice Smith, Bob Jones et al."), ["Alice Smith", "Bob Jones"])
+        self.assertEqual(split_authors("Étienne Müller, Jean Dupont"), ["Étienne Müller", "Jean Dupont"])  # Unicode
+        # Semicolon with spaces works
+        self.assertEqual(split_authors("Alice Smith; Bob Jones; Carol White"), ["Alice Smith", "Bob Jones", "Carol White"])
 
     def test_item_meta_upsert(self):
         # upsert_pool should write authors to item_meta
@@ -113,6 +123,28 @@ class T(unittest.TestCase):
         row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='old'").fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(json.loads(row["authors"]), ["Old Author"])
+
+    def test_item_meta_first_empty_then_populated(self):
+        # First upsert with no authors -> no row created
+        db.upsert_pool(self.c, [item("x", authors=[])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='x'").fetchone()
+        self.assertIsNone(row)
+        
+        # Second upsert with authors -> INSERT happens (no conflict)
+        db.upsert_pool(self.c, [item("x", authors=["Late Author"])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='x'").fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(json.loads(row["authors"]), ["Late Author"])
+
+    def test_item_meta_authors_none_vs_empty(self):
+        # authors=None and authors=[] should both be treated as empty
+        db.upsert_pool(self.c, [item("y", authors=None)], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='y'").fetchone()
+        self.assertIsNone(row)  # None -> empty -> no row
+        
+        db.upsert_pool(self.c, [item("z", authors=[])], NOW)
+        row = self.c.execute("SELECT authors FROM item_meta WHERE item_id='z'").fetchone()
+        self.assertIsNone(row)  # [] -> no row
 
 if __name__ == "__main__":
     unittest.main()

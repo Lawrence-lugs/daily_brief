@@ -156,8 +156,11 @@ def canonical_url(url: str) -> str:
 
 def split_authors(text: str) -> list[str]:
     """arXiv dc:creator is ONE string 'Alice Smith, Bob Jones'. Split only when every piece has a space,
-    so 'Smith, John' stays whole."""
+    so 'Smith, John' stays whole. Also handles semicolons and strips 'et al.'."""
     text = strip_html(text or "")
+    # Normalize separators: semicolon -> comma, strip 'et al.'
+    text = re.sub(r"\bet\s+al\.", "", text, flags=re.I).strip()
+    text = text.replace(";", ",")
     parts = [p.strip() for p in re.split(r",|\band\b", text) if p.strip()]
     return parts if len(parts) > 1 and all(" " in p for p in parts) else ([text] if text else [])
 

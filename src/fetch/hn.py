@@ -39,5 +39,5 @@ def fetch_hn(f: Fetcher, spec: dict) -> list[dict]:
         boost = min(1.0, max(0.6, 0.6 + 0.2 * math.log10(max(pts, 1))))
         out.append(make_item(url, h.get("title", ""), snippet, parse_date(h.get("created_at")),
                              "Hacker News", spec["subtopic"], spec["weight"], boost,
-                             spec.get("type", "commentary")))
+                             spec.get("type", "commentary"), authors=[]))
     return out
