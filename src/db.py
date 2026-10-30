@@ -31,6 +31,14 @@ def connect(path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
+    # Migration: add cluster and core columns to stories if missing
+    for col, ddl in (("cluster", "ALTER TABLE stories ADD COLUMN cluster TEXT"),
+                     ("core", "ALTER TABLE stories ADD COLUMN core INTEGER NOT NULL DEFAULT 0")):
+        try:
+            conn.execute(ddl)
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" not in str(e).lower():
+                raise
     return conn
 
 
@@ -201,14 +209,14 @@ def insert_brief(conn, *, date_key: str, generated_at: str, model: str, llm_requ
             conn.execute(
                 """INSERT INTO stories
                      (brief_id,item_id,desk,position,headline,blurb,why_care,tags,significance,summarized,
-                      url,source,source_type,subtopic,kind,mode,age_days,rel,times_shown_before)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                      url,source,source_type,subtopic,kind,mode,age_days,rel,times_shown_before,cluster,core)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (bid, s["id"], desk, pos, s["headline"], s["blurb"], s.get("why_care", ""),
                  json.dumps(s.get("tags", []), ensure_ascii=False), int(s.get("significance", 3)),
                  int(bool(s.get("summarized", True))), s["url"], s["source"],
                  s.get("source_type") or "commentary", s["subtopic"], s.get("kind", "fresh"),
                  s.get("mode"), float(s.get("age_days", 0)), float(s.get("rel", 0)),
-                 int(s.get("times_shown", 0))),
+                 int(s.get("times_shown", 0)), s.get("cluster"), int(bool(s.get("core", False)))),
             )
     conn.execute(_CARRY, {"date": date_key, "bid": bid})
     return bid

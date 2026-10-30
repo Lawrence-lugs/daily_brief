@@ -14,7 +14,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'python', onShutdown }) {
   const cfg = JSON.parse(readFileSync(path.join(root, 'config.json'), 'utf8'));
   const db = openDb(path.resolve(root, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
-  const q = makeQueries(db);
+  const q = makeQueries(db, root);
   const renderer = makeRenderer({
     templatesDir: path.join(root, 'server', 'templates'),
     cssFile: path.join(root, 'tailwind.css'),
@@ -46,6 +46,29 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
       ?? q.latestBriefId(null);
     const data = id ? q.getBrief(id) : null;
     if (id && !data) return json(res, 404, { error: 'no such brief' });
+
+    // Enrich stories with cluster medoid titles if using LR engine
+    if (data && data.brief && data.brief.meta?.engine === 'lr') {
+      const interests = q.getInterestsWithMedoidTitles();
+      if (interests) {
+        const clusterById = new Map(interests.clusters.map((c) => [c.id, c]));
+        for (const desk of Object.values(data.desks)) {
+          for (const story of desk.stories) {
+            if (story.cluster !== undefined && story.cluster !== null) {
+              // DB stores cluster as TEXT, but interests uses numeric IDs
+              const clusterKey = Number(story.cluster);
+              const cluster = clusterById.get(clusterKey);
+              if (cluster) {
+                story.clusterMedoidTitle = cluster.medoidTitle;
+                story.clusterCore = cluster.core;
+                story.clusterSize = cluster.size;
+              }
+            }
+          }
+        }
+      }
+    }
+
     const html = renderer.page({
       brief: data?.brief ?? null, desks: data?.desks ?? null,
       briefs: q.listBriefs(30), embed: url.searchParams.get('embed') === '1',

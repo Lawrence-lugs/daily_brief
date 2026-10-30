@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS stories (
   age_days     REAL NOT NULL DEFAULT 0,       -- feature snapshot
   rel          REAL NOT NULL DEFAULT 0,       -- feature snapshot
   times_shown_before INTEGER NOT NULL DEFAULT 0, -- feature snapshot
+  cluster      TEXT,                          -- LR engine: cluster id
+  core         INTEGER NOT NULL DEFAULT 0,    -- LR engine: core cluster flag
   liked        INTEGER NOT NULL DEFAULT 0,
   saved        INTEGER NOT NULL DEFAULT 0,
   liked_at     TEXT,
@@ -68,6 +70,9 @@ CREATE TABLE IF NOT EXISTS stories (
 );
 CREATE INDEX IF NOT EXISTS idx_stories_brief ON stories(brief_id, desk, position);
 CREATE INDEX IF NOT EXISTS idx_stories_item  ON stories(item_id);
+
+-- Migration: add cluster and core columns to stories (idempotent via user_version check)
+-- These are added by Python/Node connection code below.
 
 -- Recommender input: one row per (date, item), taking the LAST occurrence
 -- (regeneration copies feedback forward, so the last row has the final state).
@@ -98,4 +103,4 @@ CREATE TABLE IF NOT EXISTS ranker_state (
   key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

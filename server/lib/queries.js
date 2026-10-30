@@ -1,6 +1,7 @@
 // SQLite access for the server (node:sqlite, zero npm deps; needs Node >= 22.13).
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 export function openDb(file, schemaFile) {
   const db = new DatabaseSync(file);
@@ -8,12 +9,28 @@ export function openDb(file, schemaFile) {
   // DatabaseSync blocks the event loop while waiting.
   db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;');
   db.exec(readFileSync(schemaFile, 'utf8')); // idempotent; same file python executes
+  // Migration: add cluster and core columns to stories if missing
+  for (const ddl of [
+    'ALTER TABLE stories ADD COLUMN cluster TEXT',
+    'ALTER TABLE stories ADD COLUMN core INTEGER NOT NULL DEFAULT 0',
+  ]) {
+    try { db.exec(ddl); } catch (e) { if (!String(e).includes('duplicate column name')) throw e; }
+  }
   return db;
 }
 
 const FEEDBACK = { like: ['liked', 'liked_at'], save: ['saved', 'saved_at'] };
 
-export function makeQueries(db) {
+function loadPerfectSamples(root) {
+  const psFile = resolve(root, 'perfect_samples.json');
+  try {
+    return JSON.parse(readFileSync(psFile, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+export function makeQueries(db, root = '.') {
   const S = {
     latestAny: db.prepare('SELECT brief_id FROM briefs ORDER BY brief_id DESC LIMIT 1'),
     latestOnDate: db.prepare('SELECT brief_id FROM briefs WHERE date = ? ORDER BY brief_id DESC LIMIT 1'),
@@ -22,7 +39,40 @@ export function makeQueries(db) {
     list: db.prepare('SELECT brief_id, date, generated_at, model, meta FROM briefs ORDER BY brief_id DESC LIMIT ?'),
     story: db.prepare('SELECT story_id, liked, saved FROM stories WHERE story_id = ?'),
     training: db.prepare('SELECT * FROM training_examples ORDER BY story_id'),
+    // Ranker state
+    getRankerState: db.prepare('SELECT value FROM ranker_state WHERE key = ?'),
+    // Medoid title resolution
+    poolItem: db.prepare('SELECT title FROM candidate_pool WHERE item_id = ?'),
+    storyItem: db.prepare('SELECT headline AS title FROM stories WHERE item_id = ? ORDER BY story_id DESC LIMIT 1'),
   };
+
+  const perfectSamples = loadPerfectSamples(root);
+  const perfectById = new Map(perfectSamples.map((ps) => [`ps:${ps.id}`, ps.title]));
+
+  function resolveMedoidTitle(medoidId) {
+    if (!medoidId) return null;
+    // Perfect sample: ps:<id>
+    if (medoidId.startsWith('ps:')) {
+      return perfectById.get(medoidId) ?? medoidId;
+    }
+    // Pool item or story item
+    const poolRow = S.poolItem.get(medoidId);
+    if (poolRow) return poolRow.title;
+    const storyRow = S.storyItem.get(medoidId);
+    if (storyRow) return storyRow.title;
+    return medoidId;
+  }
+
+  // Load fitted interests from ranker_state
+  function getInterests() {
+    const row = S.getRankerState.get('interests');
+    if (!row) return null;
+    try {
+      return JSON.parse(row.value);
+    } catch {
+      return null;
+    }
+  }
 
   return {
     latestBriefId(date) {
@@ -63,6 +113,19 @@ export function makeQueries(db) {
 
     trainingRows() {
       return S.training.all().map((r) => ({ ...r }));
+    },
+
+    // New: get fitted interests with resolved medoid titles
+    getInterestsWithMedoidTitles() {
+      const interests = getInterests();
+      if (!interests || !interests.clusters) return null;
+      return {
+        ...interests,
+        clusters: interests.clusters.map((c) => ({
+          ...c,
+          medoidTitle: resolveMedoidTitle(c.medoid),
+        })),
+      };
     },
   };
 }

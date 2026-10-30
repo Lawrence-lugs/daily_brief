@@ -49,9 +49,16 @@ export function makeRenderer({ templatesDir, cssFile, paperName }) {
     const badge = raw(s.kind === 'archive' ? fill(tpl('badge.html'), { label: 'From the archive' }) : '');
     const why = raw(s.why_care ? fill(tpl('why.html'), { why: s.why_care }) : '');
     const rawNote = raw(s.summarized ? '' : fill(tpl('badge.html'), { label: 'Unedited' }));
+    // Cluster medoid info (LR engine only) - SVG icon with tooltip
+    let clusterBadge = '';
+    if (s.clusterMedoidTitle) {
+      clusterBadge = raw(fill(tpl('cluster-badge.html'), { title: s.clusterMedoidTitle }));
+    } else {
+      clusterBadge = raw('');
+    }
     return fill(tpl(lead ? 'lead.html' : 'story.html'), {
       id: s.story_id, headline: s.headline, blurb: s.blurb, url: safeUrl(s.url), source: s.source,
-      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote,
+      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge,
     });
   }
 
