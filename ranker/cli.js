@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
-import { selectBrief, mulberry32 } from './sampler.js';
+import { selectBrief, mulberry32, value } from './sampler.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const CONFIG_FILE = resolve(__dirname, '..', 'config.json');
@@ -187,6 +187,57 @@ async function cmdInspect(args) {
   }
 }
 
+async function cmdPool(args) {
+  let cfg = loadConfig();
+  if (args.set) cfg = applyOverrides(cfg, args.set);
+  if (!args.date) {
+    console.error('pool requires --date D');
+    process.exit(1);
+  }
+  const store = new Store(DB_FILE);
+  try {
+    await ensureEmbeddings(store, cfg, { persist: true });
+    const fitted = await ensureFitted(store, cfg, { persist: true });
+    if (!fitted.interests) {
+      console.error('[pool] interests not built');
+      process.exit(3);
+    }
+    // Use deterministic time (noon on dateKey) for age calculation
+    const now = new Date(args.date + 'T12:00:00.000Z');
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now);
+    
+    // Compute V scores using the same config as sampling
+    const samplingCfg = cfg.sampling || {};
+    const withV = candidates.map((c) => ({ ...c, V: value(c, samplingCfg) }));
+    
+    // Output: { items: [...], summary: { count, p_stats, V_stats } }
+    const pScores = withV.map((c) => c.p).sort((a, b) => a - b);
+    const vScores = withV.map((c) => c.V).sort((a, b) => a - b);
+    
+    function stats(arr) {
+      if (arr.length === 0) return { min: 0, max: 0, mean: 0, median: 0 };
+      const sum = arr.reduce((a, b) => a + b, 0);
+      return {
+        min: arr[0],
+        max: arr[arr.length - 1],
+        mean: sum / arr.length,
+        median: arr[Math.floor(arr.length / 2)],
+      };
+    }
+    
+    console.log(JSON.stringify({
+      items: withV,
+      summary: {
+        count: withV.length,
+        p: stats(pScores),
+        V: stats(vScores),
+      },
+    }));
+  } finally {
+    store.close();
+  }
+}
+
 const commands = {
   embed: cmdEmbed,
   refit: cmdRefit,
@@ -194,6 +245,7 @@ const commands = {
   simulate: cmdSimulate,
   eval: cmdEval,
   inspect: cmdInspect,
+  pool: cmdPool,
 };
 
 async function main() {
@@ -213,7 +265,7 @@ async function main() {
   const cmd = positionals[0];
   if (!cmd || !commands[cmd]) {
     console.error('Usage: node cli.js <command> [options]');
-    console.error('Commands: embed, refit [--force], select --date D [--seed N], simulate [--runs N] [--seed N] [--set a.b=v...], eval, inspect');
+    console.error('Commands: embed, refit [--force], select --date D [--seed N], simulate [--runs N] [--seed N] [--set a.b=v...], eval, inspect, pool --date D [--set a.b=v...]');
     process.exit(1);
   }
 

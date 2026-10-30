@@ -56,7 +56,7 @@
   });
 
   // ---- toolbar
-  const statusEl = $('status'), logEl = $('log-popup'), genBtn = $('btn-generate');
+  const statusEl = $('status'), logEl = $('log-popup'), genBtn = $('btn-generate'), engineSel = $('engine-select');
   function setStatus(t, bad) { statusEl.textContent = t; statusEl.classList.toggle('error', !!bad); }
   $('btn-logs').onclick = () => { logEl.hidden = !logEl.hidden; };
   $('brief-select').onchange = (e) => { location.href = `/brief/${e.target.value}${location.search}`; };
@@ -74,12 +74,41 @@
     if (j.status === 'done') { location.href = '/' + location.search; return; }   // latest brief
     if (j.status === 'failed') setStatus('Generation failed: ' + (j.error || 'see logs'), true);
   }
-  genBtn.onclick = async () => {
-    genBtn.disabled = true; setStatus('Fetching feeds and asking the model (about a minute)...');
+
+  async function runGeneration(engine, label) {
+    setStatus(`${label}...`);
     jobId = 0; offset = 0;
-    const r = await post('/api/generate', {});
-    if (r.status !== 202 && r.status !== 409) { genBtn.disabled = false; setStatus('Could not start generation', true); return; }
-    poll();
+    const r = await post('/api/generate', { engine });
+    if (r.status !== 202 && r.status !== 409) {
+      setStatus(`${label} failed to start`, true);
+      return false;
+    }
+    // Wait for completion
+    while (true) {
+      const j = await (await fetch(`/api/job?id=${jobId}&since=${offset}`)).json();
+      if (j.reset) logEl.textContent = '';
+      jobId = j.id; offset = j.offset;
+      if (j.log) { logEl.textContent += j.log; logEl.scrollTop = logEl.scrollHeight; }
+      if (j.status === 'running') { await new Promise(r => setTimeout(r, 700)); continue; }
+      if (j.status === 'done') { return true; }
+      if (j.status === 'failed') { setStatus(`${label} failed: ${j.error || 'see logs'}`, true); return false; }
+    }
+  }
+
+  genBtn.onclick = async () => {
+    genBtn.disabled = true;
+    engineSel.disabled = true;
+    const engine = engineSel.value;
+    let ok = false;
+    if (engine === 'both') {
+      ok = await runGeneration('keyword', 'Keyword brief');
+      if (ok) ok = await runGeneration('lr', 'LR brief');
+    } else {
+      ok = await runGeneration(engine, engine === 'lr' ? 'LR brief' : 'Keyword brief');
+    }
+    genBtn.disabled = false;
+    engineSel.disabled = false;
+    if (ok) { location.href = '/' + location.search; } // reload to show latest
   };
 
   applyState();

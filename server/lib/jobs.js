@@ -9,7 +9,10 @@ import path from 'node:path';
 
 const POLL_MS = 500;
 const TAIL_DEADLINE_MS = 15 * 60 * 1000;
-const ALLOWED = { noLlm: '--no-llm', noFetch: '--no-fetch' }; // POST body flags -> argv (whitelist)
+// Boolean flags (no value)
+const BOOL_FLAGS = { noLlm: '--no-llm', noFetch: '--no-fetch' };
+// Flags that take a value
+const VALUE_FLAGS = { engine: '--engine' };
 
 export class JobRunner {
   constructor({ python, script, cwd }) {
@@ -25,8 +28,9 @@ export class JobRunner {
     this.#stopTail();
     this.logDir = mkdtempSync(path.join(tmpdir(), 'daily-brief-'));
     const logFile = path.join(this.logDir, 'run.log');
-    const args = [this.script, ...Object.entries(ALLOWED).filter(([k]) => flags[k]).map(([, v]) => v),
-      '--log-file', logFile];
+    const boolArgs = Object.entries(BOOL_FLAGS).filter(([k]) => flags[k]).map(([, v]) => v);
+    const valueArgs = Object.entries(VALUE_FLAGS).flatMap(([k, v]) => flags[k] ? [v, String(flags[k])] : []);
+    const args = [this.script, ...boolArgs, ...valueArgs, '--log-file', logFile];
     const s = this.state = { id: this.state.id + 1, status: 'running', exitCode: null, error: '', log: '', startedAt: Date.now() };
     let stderrTail = '';
     let child;

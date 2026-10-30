@@ -17,6 +17,11 @@
     <select id="brief-select" aria-label="Choose brief">{{brief_options}}</select>
     <span id="status" class="{{status_class}}">{{status}}</span>
     <span class="spacer"></span>
+    <select id="engine-select" aria-label="Selection engine">
+      <option value="keyword">Keyword</option>
+      <option value="lr">LR</option>
+      <option value="both">Both</option>
+    </select>
     <button id="btn-generate" type="button">{{generate_label}}</button>
     <button id="btn-logs" type="button">Logs</button>
   </div>

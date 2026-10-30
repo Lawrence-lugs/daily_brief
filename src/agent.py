@@ -232,7 +232,7 @@ def build_user_message(desk_title: str, n: int, cands: list[dict], today: str,
              "snippet": c["snippet"][:600]} for c in cands]
     cap = keep_cap if keep_cap is not None else n
     return (f"Today is {today}. Desk: {desk_title}.\n"
-            f"Keep at most {cap} of the candidates below, best first, and write them up per the schema. "
+            f"Keep at least {cap} of the candidates below, best first, and write them up per the schema. "
             "Include at least one newslike candidate when one is available. "
             f"Candidates are listed in the editor's suggested order but you may reorder by importance.\n\n"
             f"CANDIDATES:\n{json.dumps(slim, ensure_ascii=False, indent=1)}")

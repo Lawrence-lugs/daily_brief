@@ -6,6 +6,8 @@ from typing import Dict, Any, List
 from datetime import datetime
 from collections import Counter
 
+from simulate.core.metrics import MetricsCollector
+
 
 class Reporter:
     """Handles output formatting for experiment results."""
@@ -40,6 +42,10 @@ class Reporter:
         
         # Cluster metadata from LR engine
         cluster_metadata = results.get("cluster_metadata")
+        
+        # Freshness configuration summary (hook + hyperparameters)
+        config = results.get("config", {})
+        freshness_config = MetricsCollector.freshness_config_summary(config)
         
         # Aggregate source type counts
         source_type_counts = {e: Counter() for e in engines}
@@ -120,6 +126,7 @@ class Reporter:
             desk_age_hist_data=desk_age_hist_data,
             cluster_metadata=cluster_metadata,
             runs=runs,
+            freshness_config=freshness_config,
         )
     
     def _build_html_report(self, **kwargs) -> str:
@@ -134,6 +141,7 @@ class Reporter:
             runs = kwargs["runs"]
             cluster_metadata = kwargs.get("cluster_metadata")
             desk_age_hist_data = kwargs.get("desk_age_hist_data", {})
+            freshness_config = kwargs.get("freshness_config", {})
 
             # Colors
             engine_colors = {
@@ -365,6 +373,12 @@ class Reporter:
         </div>
         
         <div class="card">
+            <h2>Freshness Configuration (Hook + Hyperparameters)</h2>
+            <p><small>Freshness decay functions and config hyperparameters used in this experiment.</small></p>
+            {self._build_freshness_config_html(freshness_config)}
+        </div>
+        
+        <div class="card">
             <h2>LR Cluster Details</h2>
             {cluster_details_html}
         </div>
@@ -584,5 +598,76 @@ class Reporter:
         }});
         """
 
+
+
+
+    def _build_freshness_config_html(self, freshness_config: Dict) -> str:
+        """Build HTML for the freshness configuration card."""
+        from html import escape as esc
+
+        lr = freshness_config.get("lr_freshness", {})
+        kw = freshness_config.get("keyword_freshness", {})
+
+        if not lr and not kw:
+            return "<p><small>No freshness configuration data available.</small></p>"
+
+        rows = []
+
+        # LR freshness section
+        if lr:
+            lr_fa = lr.get("freshness_at_ages", {})
+            rows.append("<h4>LR Engine Freshness</h4>")
+            rows.append("<table>")
+            rows.append("<tr><th>Parameter</th><th>Value</th><th>Description</th></tr>")
+            rows.append(f"<tr><td>Model</td><td>{esc(str(lr.get('model', 'logistic')))}</td><td>Freshness decay function (logistic-in-log-age or exponential)</td></tr>")
+            rows.append(f"<tr><td>halfLifeDays</td><td>{lr.get('halfLifeDays', 'n/a')}</td><td>Age at which freshness = 0.5 (logistic) or half-life (exponential)</td></tr>")
+            rows.append(f"<tr><td>steepness</td><td>{lr.get('steepness', 'n/a')}</td><td>Steepness of the logistic decay curve</td></tr>")
+            rows.append(f"<tr><td>epsilon</td><td>{lr.get('epsilon', 'n/a')}</td><td>Exploration probability (epsilon-greedy)</td></tr>")
+            explore = lr.get("explore", {})
+            rows.append(f"<tr><td>explore.gamma</td><td>{explore.get('gamma', 'n/a')}</td><td>Flattening exponent for explore weights (V^gamma)</td></tr>")
+            rows.append(f"<tr><td>explore.floor</td><td>{explore.get('floor', 'n/a')}</td><td>Minimum V floor for explore weights</td></tr>")
+            dedupe = lr.get("dedupe", {})
+            rows.append(f"<tr><td>dedupe.t0</td><td>{dedupe.get('t0', 'n/a')}</td><td>Days-since-shown at which dedupe = 0.5</td></tr>")
+            rows.append(f"<tr><td>dedupe.scale</td><td>{dedupe.get('scale', 'n/a')}</td><td>Steepness of the dedupe sigmoid</td></tr>")
+            rows.append(f"<tr><td>dedupe.hardWindowDays</td><td>{dedupe.get('hardWindowDays', 'n/a')}</td><td>Items shown within this many days are excluded</td></tr>")
+            slots = lr.get("slots", {})
+            rows.append(f"<tr><td>slots.primary</td><td>{slots.get('primary', 'n/a')}</td><td>Number of picks for primary desk</td></tr>")
+            rows.append(f"<tr><td>slots.science</td><td>{slots.get('science', 'n/a')}</td><td>Number of picks for science desk</td></tr>")
+            rows.append(f"<tr><td>slots.reserve</td><td>{slots.get('reserve', 'n/a')}</td><td>Number of reserve picks per desk</td></tr>")
+            rows.append("</table>")
+
+            # Freshness curve values
+            rows.append("<h5>LR Freshness at Reference Ages</h5>")
+            rows.append("<table>")
+            rows.append("<tr><th>Age (days)</th><th>Freshness</th></tr>")
+            for age_str in sorted(lr_fa.keys(), key=int):
+                rows.append(f"<tr><td>{age_str}</td><td>{lr_fa[age_str]}</td></tr>")
+            rows.append("</table>")
+
+        # Keyword freshness section
+        if kw:
+            kw_fa = kw.get("freshness_at_ages", {})
+            rows.append("<h4>Keyword Engine Freshness</h4>")
+            rows.append("<table>")
+            rows.append("<tr><th>Parameter</th><th>Value</th><th>Description</th></tr>")
+            rows.append(f"<tr><td>Model</td><td>{esc(str(kw.get('model', 'logistic_in_log_age')))}</td><td>f(a) = sigmoid((ln(a50) - ln(a)) / slope)</td></tr>")
+            rows.append(f"<tr><td>a50_days</td><td>{kw.get('a50_days', 'n/a')}</td><td>Age at which freshness = 0.5</td></tr>")
+            rows.append(f"<tr><td>slope</td><td>{kw.get('slope', 'n/a')}</td><td>Steepness of the logistic decay</td></tr>")
+            rows.append(f"<tr><td>age_floor_days</td><td>{kw.get('age_floor_days', 'n/a')}</td><td>Minimum age used in log computation</td></tr>")
+            rows.append(f"<tr><td>epsilon</td><td>{kw.get('epsilon', 'n/a')}</td><td>Exploration probability (epsilon-greedy)</td></tr>")
+            rows.append(f"<tr><td>explore_gamma</td><td>{kw.get('explore_gamma', 'n/a')}</td><td>Flattening exponent for explore weights</td></tr>")
+            rows.append(f"<tr><td>shown_decay</td><td>{kw.get('shown_decay', 'n/a')}</td><td>Per-show penalty multiplier</td></tr>")
+            rows.append(f"<tr><td>rejected_decay</td><td>{kw.get('rejected_decay', 'n/a')}</td><td>Per-rejection penalty multiplier</td></tr>")
+            rows.append("</table>")
+
+            # Freshness curve values
+            rows.append("<h5>Keyword Freshness at Reference Ages</h5>")
+            rows.append("<table>")
+            rows.append("<tr><th>Age (days)</th><th>Freshness</th></tr>")
+            for age_str in sorted(kw_fa.keys(), key=int):
+                rows.append(f"<tr><td>{age_str}</td><td>{kw_fa[age_str]}</td></tr>")
+            rows.append("</table>")
+
+        return "\n".join(rows)
 
 from collections import Counter

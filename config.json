@@ -72,7 +72,11 @@
       }
     },
     "sampling": {
-      "epsilon": 0.25, "halfLifeDays": 7,
+      "epsilon": 0.8,
+      "halfLifeDays": 30,
+      "freshness": {
+        "model": "exponential"
+      },
       "desks": { "core": "primary", "side": "science" },
       "explore": { "gamma": 0.5, "floor": 0.01 },
       "dedupe": { "hardWindowDays": 2, "t0": 7, "scale": 2 },

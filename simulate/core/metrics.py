@@ -66,6 +66,126 @@ class MetricsCollector:
         return dict(Counter(i.get("mode", "unknown") for i in items))
     
     @staticmethod
+    def freshness_curve(age_days: float, cfg: Dict) -> float:
+        """Compute freshness value at a given age using the same formula as the keyword engine.
+        
+        f(a) = sigmoid((ln(a50) - ln(a)) / slope)
+        """
+        import math
+        a50 = cfg.get("a50_days", 7.0)
+        slope = cfg.get("slope", 1.0)
+        age_floor = cfg.get("age_floor_days", 0.25)
+        a = max(age_days, age_floor)
+        z = (math.log(a50) - math.log(a)) / slope
+        return 1.0 / (1.0 + math.exp(-z))
+
+    @staticmethod
+    def lr_freshness_curve(age_days: float, cfg: Dict) -> float:
+        """Compute LR freshness value at a given age using the sampler.js formula.
+        
+        Logistic-in-log-age: 1 / (1 + exp(steepness * (log1p(age) - log1p(halfLifeDays))))
+        Exponential: exp(-ln(2) * age / halfLifeDays)
+        """
+        import math
+        age = max(0.0, age_days)
+        half_life = cfg.get("halfLifeDays", 7)
+        freshness_cfg = cfg.get("freshness", {})
+        model = freshness_cfg.get("model", "logistic")
+        steepness = freshness_cfg.get("steepness", math.log(4))  # ~1.386
+        
+        if model == "exponential":
+            return math.exp(-math.log(2) * age / half_life)
+        else:
+            # logistic-in-log-age (default)
+            return 1.0 / (1.0 + math.exp(
+                steepness * (math.log1p(age) - math.log1p(half_life))
+            ))
+
+    @staticmethod
+    def freshness_config_summary(config: Dict) -> Dict[str, Any]:
+        """Extract and document the freshness calculation hook and hyperparameters from config.
+        
+        Returns a flat dict describing which freshness function is active and its parameters,
+        plus freshness values at reference ages for both engines.
+        
+        Handles both nested config (config["ranker"]["sampling"]...) and flattened config
+        (config["epsilon"], config["halfLifeDays"]...).
+        """
+        import math
+        
+        # Support both nested and flattened config layouts
+        sampling = config.get("sampling", {}) or {}
+        if not isinstance(sampling, dict):
+            sampling = {}
+        selection = config.get("selection", {}) or {}
+        if not isinstance(selection, dict):
+            selection = {}
+        
+        # Fall back to top-level keys for flattened configs
+        def _get(*keys, default=None):
+            for k in keys:
+                if k in config and config[k] is not None:
+                    return config[k]
+            return default
+        
+        # LR freshness params
+        lr_freshness_cfg = sampling.get("freshness", {}) or {}
+        lr_model = lr_freshness_cfg.get("model", "logistic")
+        lr_half_life = sampling.get("halfLifeDays", _get("halfLifeDays", default=7))
+        lr_steepness = lr_freshness_cfg.get("steepness", math.log(4))
+        lr_epsilon = sampling.get("epsilon", _get("epsilon", default=0.25))
+        lr_explore_cfg = sampling.get("explore", {}) or {}
+        lr_explore_gamma = lr_explore_cfg.get("gamma", _get("explore.gamma", default=0.5))
+        lr_explore_floor = lr_explore_cfg.get("floor", _get("explore.floor", default=0.01))
+        lr_dedupe_cfg = sampling.get("dedupe", {}) or {}
+        lr_dedupe_t0 = lr_dedupe_cfg.get("t0", _get("dedupe.t0", default=7))
+        lr_dedupe_scale = lr_dedupe_cfg.get("scale", _get("dedupe.scale", default=2))
+        lr_hard_window = lr_dedupe_cfg.get("hardWindowDays", _get("dedupe.hardWindowDays", default=2))
+        lr_slots = sampling.get("slots", {}) or {}
+        
+        # Keyword freshness params
+        kw_a50 = selection.get("a50_days", _get("a50_days", default=7.0))
+        kw_slope = selection.get("slope", _get("slope", default=1.0))
+        kw_age_floor = selection.get("age_floor_days", _get("age_floor_days", default=0.25))
+        kw_epsilon = selection.get("epsilon", _get("epsilon", default=0.25))
+        kw_explore_gamma = selection.get("explore_gamma", _get("explore_gamma", default=0.3))
+        kw_shown_decay = selection.get("shown_decay", _get("shown_decay", default=0.05))
+        kw_rejected_decay = selection.get("rejected_decay", _get("rejected_decay", default=0.3))
+        
+        # Reference ages for curve values
+        ref_ages = [0, 1, 7, 30, 50, 120]
+        
+        return {
+            "lr_freshness": {
+                "model": lr_model,
+                "halfLifeDays": lr_half_life,
+                "steepness": lr_steepness,
+                "epsilon": lr_epsilon,
+                "explore": {"gamma": lr_explore_gamma, "floor": lr_explore_floor},
+                "dedupe": {"t0": lr_dedupe_t0, "scale": lr_dedupe_scale, "hardWindowDays": lr_hard_window},
+                "slots": lr_slots,
+                "freshness_at_ages": {
+                    str(a): round(MetricsCollector.lr_freshness_curve(a, sampling), 4)
+                    for a in ref_ages
+                },
+            },
+            "keyword_freshness": {
+                "model": "logistic_in_log_age",
+                "a50_days": kw_a50,
+                "slope": kw_slope,
+                "age_floor_days": kw_age_floor,
+                "epsilon": kw_epsilon,
+                "explore_gamma": kw_explore_gamma,
+                "shown_decay": kw_shown_decay,
+                "rejected_decay": kw_rejected_decay,
+                "freshness_at_ages": {
+                    str(a): round(MetricsCollector.freshness_curve(a, selection), 4)
+                    for a in ref_ages
+                },
+            },
+        }
+
+    @staticmethod
     def desk_stats(selections: Dict[str, List[Dict]]) -> Dict[str, Dict]:
         """Per-desk statistics."""
         stats = {}

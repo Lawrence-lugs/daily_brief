@@ -98,7 +98,7 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
         }
         if (p === '/api/generate') {
           const body = await readJson(req);
-          const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true });
+          const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, engine: body.engine });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });
         }
         if (p === '/api/shutdown') {

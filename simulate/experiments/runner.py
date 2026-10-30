@@ -41,16 +41,24 @@ def compare_engines(
     pool = pool_provider.load(date, config.get("max_age_days", 120.0), config)
     print(f"Loaded pool: {len(pool)} items")
     
-    # Fetch cluster metadata from LR engine if present
+    # Extract keyword pool scores (rel)
+    kw_rel_scores = [item.get("rel", 0) for item in pool if item.get("rel") is not None]
+    
+    # Fetch cluster metadata and full pool scores from LR engine if present
     cluster_metadata = None
+    lr_pool_scores = None
     for engine in engines:
         if engine.name == "lr" and hasattr(engine, "get_cluster_summary"):
             try:
                 cluster_metadata = engine.get_cluster_summary()
                 print(f"Loaded cluster metadata: {cluster_metadata['total']} clusters "
                       f"({cluster_metadata['core_count']} core, {cluster_metadata['side_count']} side)")
+                
+                # Get full LR pool with p and V scores
+                lr_pool_scores = engine.get_full_pool_scores(config)
+                print(f"Loaded LR pool: {lr_pool_scores['summary']['count']} items")
             except Exception as e:
-                print(f"  Warning: Could not load cluster metadata: {e}")
+                print(f"  Warning: Could not load LR data: {e}")
             break
     
     runs = []
@@ -104,6 +112,16 @@ def compare_engines(
         "aggregate": aggregate,
         "cluster_metadata": cluster_metadata,
         "timestamp": datetime.now().isoformat(),
+        # Pool score distributions for histograms
+        "pool_scores": {
+            "keyword": {
+                "rel": kw_rel_scores,
+            } if kw_rel_scores else {},
+            "lr": {
+                "p": [item.get("p", 0) for item in lr_pool_scores.get("items", [])] if lr_pool_scores else [],
+                "V": [item.get("V", 0) for item in lr_pool_scores.get("items", [])] if lr_pool_scores else [],
+            } if lr_pool_scores else {},
+        },
     }
     
     # Save results

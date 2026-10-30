@@ -17,12 +17,27 @@ export function shuffle(arr, rng) {
   return a;
 }
 
-/** Half-life freshness times logistic recovery after a repeat. Never shown => no penalty ("shown?" indicator). */
+/**
+ * Half-life freshness with logistic-in-log-age option and
+ * logistic repeat recovery. Never shown => no penalty.
+ */
 export function value(c, cfg) {
-  const lambda = Math.LN2 / cfg.halfLifeDays;
-  const fresh = Math.exp(-lambda * c.age_days);
+  const age = Math.max(0, c.age_days);
+
+  const fresh = cfg.freshness?.model === "exponential"
+    ? Math.exp(-Math.LN2 * age / cfg.halfLifeDays)
+    : 1 / (1 + Math.exp(
+        cfg.freshness.steepness *
+        (Math.log1p(age) - Math.log1p(cfg.halfLifeDays))
+      ));
+
   const d = c.days_since_shown;
-  const dedupe = d == null ? 1 : 1 / (1 + Math.exp(-(d - cfg.dedupe.t0) / cfg.dedupe.scale));
+  const dedupe = d == null
+    ? 1
+    : 1 / (1 + Math.exp(
+        -(d - cfg.dedupe.t0) / cfg.dedupe.scale
+      ));
+
   return c.p * fresh * dedupe;
 }
 

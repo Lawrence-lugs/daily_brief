@@ -44,4 +44,4 @@ OUTPUT SCHEMA
     }
   ]
 }
-significance is an integer from 1 (minor) to 5 (important). Include an entry only for items you keep, in order of importance, at most the number of stories requested. For a candidate you reject, omit it. There should only be at most {{max_agent_output_items_per_desk}} items in each desk in your output.
+significance is an integer from 1 (minor) to 5 (important). Include an entry only for items you keep, in order of importance, at least the number of stories requested. For a candidate you reject, omit it. There should only be at least {{max_agent_output_items_per_desk}} items in each desk in your output.

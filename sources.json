@@ -33,7 +33,7 @@
       ]
     },
     "rss": [
-      {"name": "arXiv Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "arXiv  Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
       {"name": "arXiv Emerging Tech", "url": "https://rss.arxiv.org/rss/cs.ET", "weight": 0.85, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
       {"name": "arXiv General Relativity", "url": "https://rss.arxiv.org/rss/gr-qc", "weight": 0.9, "type": "researchlike", "default_subtopic": "gr", "kind": "rss"},
       {"name": "arXiv High Energy Theory", "url": "https://rss.arxiv.org/rss/hep-th", "weight": 0.9, "type": "researchlike", "default_subtopic": "qft", "kind": "rss"},

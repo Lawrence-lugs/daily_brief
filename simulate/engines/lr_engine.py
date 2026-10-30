@@ -199,6 +199,60 @@ class LREngine(Engine):
             ],
         }
 
+    def get_full_pool_scores(self, config: Dict) -> Dict[str, Any]:
+        """Get the full LR candidate pool with p and V scores.
+        
+        Calls the Node.js CLI 'pool' command which returns all candidates
+        with their model scores (p) and value scores (V).
+        
+        Args:
+            config: Configuration (must include 'date')
+            
+        Returns:
+            Dict with 'items' (list of candidates with p, V, etc.) and 'summary'
+        """
+        cmd = [
+            "node", str(self.cli_path),
+            "pool",
+            "--date", config.get("date", "2026-10-29"),
+        ]
+        
+        # Add overrides if present
+        overrides = []
+        sampling_config = config.get("sampling", {})
+        if sampling_config:
+            for key, value in sampling_config.items():
+                if isinstance(value, dict):
+                    for subkey, subvalue in value.items():
+                        overrides.append(f"sampling.{key}.{subkey}={json.dumps(subvalue)}")
+                else:
+                    overrides.append(f"sampling.{key}={json.dumps(value)}")
+        
+        desks_config = config.get("desks", {})
+        if desks_config:
+            for key, value in desks_config.items():
+                overrides.append(f"sampling.desks.{key}={json.dumps(value)}")
+        
+        if overrides:
+            for ov in overrides:
+                cmd.extend(["--set", ov])
+        
+        result = subprocess.run(
+            cmd,
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"LR pool command failed: {result.stderr}")
+        
+        try:
+            return json.loads(result.stdout.strip())
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed to parse LR pool output: {result.stdout[:500]}") from e
+
 
 class LREngineDirect(Engine):
     """LR Engine using direct Node.js module import (for in-process simulation).
