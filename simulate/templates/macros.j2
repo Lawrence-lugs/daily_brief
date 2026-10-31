@@ -1,0 +1,138 @@
+{% macro desk_table_rows(desk_stats, desk) %}
+    {% set kw = desk_stats.get('keyword', {}).get(desk) %}
+    {% set lr = desk_stats.get('lr', {}).get(desk) %}
+    
+    {% if kw %}
+    <tr><td>Total picks</td><td>{{ kw.count }}</td><td>{{ lr.count if lr else '--' }}</td><td>--</td></tr>
+    {% endif %}
+    {% if lr and not kw %}
+    <tr><td>Total picks</td><td>--</td><td>{{ lr.count }}</td><td>--</td></tr>
+    {% endif %}
+    
+    {% if kw and kw.freshness %}
+        {% set kw_mean = kw.freshness|sum / kw.freshness|length %}
+        {% if lr and lr.freshness %}
+            {% set lr_mean = lr.freshness|sum / lr.freshness|length %}
+            <tr><td>Mean age (days)</td><td>{{ '%.1f'|format(kw_mean) }}</td><td>{{ '%.1f'|format(lr_mean) }}</td><td>{{ '%+.1f'|format(lr_mean - kw_mean) }}</td></tr>
+        {% else %}
+            <tr><td>Mean age (days)</td><td>{{ '%.1f'|format(kw_mean) }}</td><td>N/A</td><td>N/A</td></tr>
+        {% endif %}
+        
+        {% set kw_sorted = kw.freshness|sort %}
+        {% set kw_median = kw_sorted[kw_sorted|length // 2] %}
+        {% if lr and lr.freshness %}
+            {% set lr_sorted = lr.freshness|sort %}
+            {% set lr_median = lr_sorted[lr_sorted|length // 2] %}
+            <tr><td>Median age (days)</td><td>{{ '%.1f'|format(kw_median) }}</td><td>{{ '%.1f'|format(lr_median) }}</td><td>N/A</td></tr>
+        {% else %}
+            <tr><td>Median age (days)</td><td>{{ '%.1f'|format(kw_median) }}</td><td>N/A</td><td>N/A</td></tr>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% macro summary_table_rows(summary_stats) %}
+    <tr><td>Researchlike %</td><td>{{ '%.1f%%'|format(summary_stats.researchlike_kw) }}</td><td>{{ '%.1f%%'|format(summary_stats.researchlike_lr) }}</td><td class='highlight'>{{ '%+.1f%%'|format(summary_stats.researchlike_lr - summary_stats.researchlike_kw) }}</td></tr>
+    <tr><td>Newslike %</td><td>{{ '%.1f%%'|format(summary_stats.newslike_kw) }}</td><td>{{ '%.1f%%'|format(summary_stats.newslike_lr) }}</td><td class='highlight'>{{ '%+.1f%%'|format(summary_stats.newslike_lr - summary_stats.newslike_kw) }}</td></tr>
+    <tr><td>Commentary %</td><td>{{ '%.1f%%'|format(summary_stats.commentary_kw) }}</td><td>{{ '%.1f%%'|format(summary_stats.commentary_lr) }}</td><td>{{ '%+.1f%%'|format(summary_stats.commentary_lr - summary_stats.commentary_kw) }}</td></tr>
+    <tr><td>Mean age (days)</td><td>{{ '%.1f'|format(summary_stats.mean_age_kw) }}</td><td>{{ '%.1f'|format(summary_stats.mean_age_lr) }}</td><td>{{ '%+.1f'|format(summary_stats.mean_age_lr - summary_stats.mean_age_kw) }}</td></tr>
+    <tr><td>Median age (days)</td><td>{{ '%.1f'|format(summary_stats.median_age_kw) }}</td><td>{{ '%.1f'|format(summary_stats.median_age_lr) }}</td><td>{{ '%+.1f'|format(summary_stats.median_age_lr - summary_stats.median_age_kw) }}</td></tr>
+    <tr><td>Explore rate</td><td>{{ '%.1f%%'|format(summary_stats.explore_rate_kw) }}</td><td>{{ '%.1f%%'|format(summary_stats.explore_rate_lr) }}</td><td>{{ '%+.1f%%'|format(summary_stats.explore_rate_lr - summary_stats.explore_rate_kw) }}</td></tr>
+    <tr><td>Jaccard (primary)</td><td>--</td><td>{{ '%.3f'|format(summary_stats.jaccard_primary) }}</td><td>{% if summary_stats.jaccard_primary < 0.1 %}Very low{% elif summary_stats.jaccard_primary < 0.3 %}Low{% else %}Moderate{% endif %}</td></tr>
+    <tr><td>Jaccard (science)</td><td>--</td><td>{{ '%.3f'|format(summary_stats.jaccard_science) }}</td><td>{% if summary_stats.jaccard_science == 0 %}No overlap{% elif summary_stats.jaccard_science < 0.1 %}Very low{% else %}Low{% endif %}</td></tr>
+{% endmacro %}
+
+{% macro cluster_details(cluster_metadata) %}
+    {% if not cluster_metadata %}
+        <p><small>No cluster metadata available.</small></p>
+    {% else %}
+        {% set clusters = cluster_metadata.clusters|sort(attribute='id') %}
+        {% set total = cluster_metadata.total|default(clusters|length) %}
+        {% set core_count = cluster_metadata.core_count|default(clusters|selectattr('core')|list|length) %}
+        {% set side_count = cluster_metadata.side_count|default(total - core_count) %}
+        
+        <div class="metric-grid">
+            <div class="metric-card">
+                <div class="metric-value">{{ total }}</div>
+                <div class="metric-label">Total clusters</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ core_count }}</div>
+                <div class="metric-label">Core clusters</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ side_count }}</div>
+                <div class="metric-label">Side clusters</div>
+            </div>
+        </div>
+        <table style="margin-top: 15px;">
+            <tr><th>Cluster</th><th>Medoid Title</th><th>Size</th><th>Type</th></tr>
+            {% for c in clusters %}
+            <tr>
+                <td>C{{ c.id }}</td>
+                <td>{{ c.medoid_title }}</td>
+                <td>{{ c.size }}</td>
+                <td><span class="badge {% if c.core %}badge-core{% else %}badge-side{% endif %}">{% if c.core %}CORE{% else %}SIDE{% endif %}</span></td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{% macro freshness_config_html(fc) %}
+    {% set lr = fc.get('lr_freshness', {}) %}
+    {% set kw = fc.get('keyword_freshness', {}) %}
+    
+    {% if not lr and not kw %}
+        <p><small>No freshness configuration data available.</small></p>
+    {% else %}
+        {% if lr %}
+        <h4>LR Engine Freshness</h4>
+        <table>
+            <tr><th>Parameter</th><th>Value</th><th>Description</th></tr>
+            <tr><td>Model</td><td>{{ lr.model|default('logistic') }}</td><td>Freshness decay function (logistic-in-log-age or exponential)</td></tr>
+            <tr><td>halfLifeDays</td><td>{{ lr.halfLifeDays|default('n/a') }}</td><td>Age at which freshness = 0.5 (logistic) or half-life (exponential)</td></tr>
+            <tr><td>steepness</td><td>{{ lr.steepness|default('n/a') }}</td><td>Steepness of the logistic decay curve</td></tr>
+            <tr><td>epsilon</td><td>{{ lr.epsilon|default('n/a') }}</td><td>Exploration probability (epsilon-greedy)</td></tr>
+            <tr><td>explore.gamma</td><td>{{ lr.explore.gamma|default('n/a') }}</td><td>Flattening exponent for explore weights (V^gamma)</td></tr>
+            <tr><td>explore.floor</td><td>{{ lr.explore.floor|default('n/a') }}</td><td>Minimum V floor for explore weights</td></tr>
+            <tr><td>dedupe.t0</td><td>{{ lr.dedupe.t0|default('n/a') }}</td><td>Days-since-shown at which dedupe = 0.5</td></tr>
+            <tr><td>dedupe.scale</td><td>{{ lr.dedupe.scale|default('n/a') }}</td><td>Steepness of the dedupe sigmoid</td></tr>
+            <tr><td>dedupe.hardWindowDays</td><td>{{ lr.dedupe.hardWindowDays|default('n/a') }}</td><td>Items shown within this many days are excluded</td></tr>
+            <tr><td>slots.primary</td><td>{{ lr.slots.primary|default('n/a') }}</td><td>Number of picks for primary desk</td></tr>
+            <tr><td>slots.science</td><td>{{ lr.slots.science|default('n/a') }}</td><td>Number of picks for science desk</td></tr>
+            <tr><td>slots.reserve</td><td>{{ lr.slots.reserve|default('n/a') }}</td><td>Number of reserve picks per desk</td></tr>
+        </table>
+        
+        <h5>LR Freshness at Reference Ages</h5>
+        <table>
+            <tr><th>Age (days)</th><th>Freshness</th></tr>
+            {% for age_str, val in lr.freshness_at_ages.items()|sort %}
+            <tr><td>{{ age_str }}</td><td>{{ val }}</td></tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+        
+        {% if kw %}
+        <h4>Keyword Engine Freshness</h4>
+        <table>
+            <tr><th>Parameter</th><th>Value</th><th>Description</th></tr>
+            <tr><td>Model</td><td>{{ kw.model|default('logistic_in_log_age') }}</td><td>f(a) = sigmoid((ln(a50) - ln(a)) / slope)</td></tr>
+            <tr><td>a50_days</td><td>{{ kw.a50_days|default('n/a') }}</td><td>Age at which freshness = 0.5</td></tr>
+            <tr><td>slope</td><td>{{ kw.slope|default('n/a') }}</td><td>Steepness of the logistic decay</td></tr>
+            <tr><td>age_floor_days</td><td>{{ kw.age_floor_days|default('n/a') }}</td><td>Minimum age used in log computation</td></tr>
+            <tr><td>epsilon</td><td>{{ kw.epsilon|default('n/a') }}</td><td>Exploration probability (epsilon-greedy)</td></tr>
+            <tr><td>explore_gamma</td><td>{{ kw.explore_gamma|default('n/a') }}</td><td>Flattening exponent for explore weights</td></tr>
+            <tr><td>shown_decay</td><td>{{ kw.shown_decay|default('n/a') }}</td><td>Per-show penalty multiplier</td></tr>
+            <tr><td>rejected_decay</td><td>{{ kw.rejected_decay|default('n/a') }}</td><td>Per-rejection penalty multiplier</td></tr>
+        </table>
+        
+        <h5>Keyword Freshness at Reference Ages</h5>
+        <table>
+            <tr><th>Age (days)</th><th>Freshness</th></tr>
+            {% for age_str, val in kw.freshness_at_ages.items()|sort %}
+            <tr><td>{{ age_str }}</td><td>{{ val }}</td></tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    {% endif %}
+{% endmacro %}

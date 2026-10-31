@@ -110,6 +110,23 @@ This is a desktop-only tool: it runs a localhost server and an Electron window /
 - **Experiments & simulate functionality** → `docs/experiments.md`
 - **Ranker CLI reference** → `ranker/README.md`
 
+## Simulation Report Generation
+
+The `simulate` package generates HTML comparison reports for engine experiments.
+It uses **Jinja2** for templating and **Plotly** for interactive charts.
+
+### Dependencies
+
+```bash
+pip install jinja2 plotly
+```
+
+Or add to your project's dependency management:
+- `jinja2>=3.1.0`
+- `plotly>=5.18.0`
+
+The template is at `simulate/templates/report.html.j2` and chart generation is in `simulate/viz/charts.py`.
+
 ## Notes
 
 - Tailwind is compiled once with the standalone CLI (`build_css.ps1`); daily runs never rebuild it. Re-run only after adding utility classes to `server/templates/` or `server/public/client.js`.

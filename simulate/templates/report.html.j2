@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <script src="https://cdn.plot.ly/plotly-{{ plotly_cdn_version }}.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px; margin: auto; padding: 20px; background: #f5f5f5;
+        }
+        .card {
+            background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
+        }
+        .hist-grid {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 15px;
+        }
+        .chart-container {
+            position: relative; height: 350px;
+        }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 14px;
+        }
+        th, td {
+            padding: 8px; border-bottom: 1px solid #eee; text-align: left;
+        }
+        th {
+            background: #f8f9fa; font-weight: 600;
+        }
+        .engine-kw { border-left: 4px solid #e74c3c; }
+        .engine-lr { border-left: 4px solid #27ae60; }
+        .highlight { background: #fff3cd; }
+        pre {
+            background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 13px;
+        }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px;
+            font-weight: 600; color: white;
+        }
+        .badge-kw { background: #e74c3c; }
+        .badge-lr { background: #27ae60; }
+        .badge-core { background: #27ae60; }
+        .badge-side { background: #f1c40f; color: #333; }
+        h1 { color: #333; }
+        h2 { color: #444; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        h3 { color: #555; }
+        .metric-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
+        }
+        .metric-card {
+            background: #f8f9fa; padding: 15px; border-radius: 6px;
+        }
+        .metric-value {
+            font-size: 24px; font-weight: 700; color: #333;
+        }
+        .metric-label {
+            font-size: 12px; color: #666; text-transform: uppercase;
+        }
+        .plotly-graph-div {
+            width: 100%; height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+    <p>Date: {{ date }} | Seeds: {{ seeds|length }} ({{ seeds[0] if seeds else 'n/a' }}...{{ seeds[-1] if seeds else 'n/a' }}) | Runs: {{ runs|length }}</p>
+
+    <div class="card engine-kw">
+        <h2><span class="badge badge-kw">KEYWORD</span> Keyword Engine (Legacy)</h2>
+        <p>Epsilon-greedy with keyword relevance, freshness decay, subtopic balancing.</p>
+    </div>
+
+    <div class="card engine-lr">
+        <h2><span class="badge badge-lr">LR</span> LR Engine (New)</h2>
+        <p>Bayesian logistic regression, Ward clustering, value-based sampling with cluster round-robin.</p>
+    </div>
+
+    <div class="card">
+        <h2>Source Type Distribution</h2>
+        <div class="grid">
+            <div class="chart-container">
+                {{ charts.source_type | safe }}
+            </div>
+            <div class="chart-container">
+                {{ charts.mode | safe }}
+            </div>
+        </div>
+    </div>
+
+    {% if charts.cluster %}
+    <div class="card">
+        <h2>Cluster Coverage (LR Engine)</h2>
+        <div class="chart-container">
+            {{ charts.cluster | safe }}
+        </div>
+        <p><small>Green = core clusters (guaranteed 1 pick/day via round-robin), Yellow = side clusters</small></p>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h2>Freshness Configuration (Hook + Hyperparameters)</h2>
+        <p><small>Freshness decay functions and config hyperparameters used in this experiment.</small></p>
+        {% from 'macros.j2' import freshness_config_html %}
+        {{ freshness_config_html(freshness_config) }}
+    </div>
+
+    <div class="card">
+        <h2>LR Cluster Details</h2>
+        {% from 'macros.j2' import cluster_details %}
+        {{ cluster_details(cluster_metadata) }}
+    </div>
+
+    <div class="card">
+        <h2>Per-Desk Metrics</h2>
+        <div class="grid">
+            <div>
+                <h3>Primary Desk</h3>
+                <table>
+                    <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+                    {% from 'macros.j2' import desk_table_rows %}
+                    {{ desk_table_rows(desk_stats, 'primary') }}
+                </table>
+            </div>
+            <div>
+                <h3>Science Desk</h3>
+                <table>
+                    <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+                    {{ desk_table_rows(desk_stats, 'science') }}
+                </table>
+            </div>
+        </div>
+
+        {% if charts.combined_age_histograms %}
+        <h3>Age Histograms (Per Desk × Engine)</h3>
+        <div class="chart-container" style="height: 500px;">
+            {{ charts.combined_age_histograms | safe }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Key Metrics Summary</h2>
+        <table>
+            <tr><th>Metric</th><th>Keyword</th><th>LR</th><th>Diff</th></tr>
+            {% from 'macros.j2' import summary_table_rows %}
+            {{ summary_table_rows(summary_stats) }}
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Run Details (First 5 Seeds)</h2>
+        <pre>{{ runs[:5] | tojson(indent=2) }}</pre>
+    </div>
+</body>
+</html>

@@ -197,15 +197,17 @@ class TestGenerateComparisonHtml:
         
         html = reporter.generate_comparison_html(sample_results, "Test")
         
-        # Check for Chart.js inclusion
-        assert "chart.js" in html.lower()
-        # Check for canvas elements
-        assert "sourceTypeChart" in html
-        assert "modeChart" in html
-        assert "clusterChart" in html
-        # Check for age histograms (capitalization differs)
-        assert "ageHistPrimaryKeyword" in html or "ageHistPrimaryLR" in html
-        assert "ageHistScienceKeyword" in html or "ageHistScienceLR" in html
+        # Check for Plotly.js inclusion
+        assert "plotly" in html.lower()
+        # Check for chart divs (Plotly generates divs with class plotly-graph-div)
+        assert "plotly-graph-div" in html
+        # Check for source type and mode charts
+        assert "Source Type Distribution" in html
+        assert "Selection Mode Distribution" in html
+        # Check for cluster chart
+        assert "Cluster Coverage" in html
+        # Check for age histograms
+        assert "Age Histograms" in html
 
     def test_generate_comparison_html_freshness_config(self, sample_results):
         reporter = Reporter("dummy")
@@ -259,7 +261,8 @@ class TestGenerateComparisonHtml:
         html = reporter.generate_comparison_html(minimal, "Minimal")
         
         assert "Minimal" in html
-        assert "No age data" in html or "ageHist" in html
+        # Should not crash on empty data
+        assert "plotly" in html.lower()
 
     def test_generate_comparison_html_handles_empty_selections(self):
         reporter = Reporter("dummy")
@@ -292,151 +295,169 @@ class TestGenerateComparisonHtml:
         # Should not crash on empty data
 
 
-class TestBuildDeskTable:
-    """Tests for _build_desk_table helper."""
+class TestDeskTableMacro:
+    """Tests for desk_table_rows macro via template rendering."""
 
-    def test_build_desk_table_with_data(self):
-        reporter = Reporter("dummy")
-        
-        desk_stats = {
-            "keyword": {
-                "primary": {
-                    "count": 5,
-                    "freshness": [1.0, 2.0, 3.0, 4.0, 5.0],
-                }
-            },
-            "lr": {
-                "primary": {
-                    "count": 5,
-                    "freshness": [2.0, 3.0, 4.0, 5.0, 6.0],
-                }
-            },
-        }
-        source_type_counts = {"keyword": {}, "lr": {}}
-        mode_counts = {"keyword": {}, "lr": {}}
-        
-        table = reporter._build_desk_table("primary", desk_stats, source_type_counts, mode_counts)
-        
-        assert "Total picks" in table
-        assert "5" in table
-        assert "Mean age" in table
-        assert "3.0" in table  # mean of [1,2,3,4,5]
-        assert "4.0" in table  # mean of [2,3,4,5,6]
-        assert "+1.0" in table  # diff
-
-    def test_build_desk_table_missing_engine(self):
-        reporter = Reporter("dummy")
-        
-        desk_stats = {
-            "keyword": {
-                "primary": {"count": 5, "freshness": [1.0, 2.0]},
-            }
-            # lr missing
-        }
-        source_type_counts = {"keyword": {}, "lr": {}}
-        mode_counts = {"keyword": {}, "lr": {}}
-        
-        table = reporter._build_desk_table("primary", desk_stats, source_type_counts, mode_counts)
-        
-        assert "Total picks" in table
-        assert "5" in table
-
-
-class TestBuildSummaryTable:
-    """Tests for _build_summary_table helper."""
-
-    def test_build_summary_table_basic(self):
-        reporter = Reporter("dummy")
-        
-        source_type_counts = {
-            "keyword": {"researchlike": 8, "newslike": 2, "commentary": 0},
-            "lr": {"researchlike": 5, "newslike": 3, "commentary": 2},
-        }
-        desk_freshness = {
-            "keyword": {"primary": {"mean": 10.0}},
-            "lr": {"primary": {"mean": 8.0}},
-        }
-        mode_counts = {
-            "keyword": {"greedy": 7, "explore": 3},
-            "lr": {"greedy": 6, "explore": 4},
-        }
-        runs = [
-            {
+    def test_desk_table_with_both_engines(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
                 "selections": {
                     "keyword": {
-                        "primary": [{"id": "1", "source_type": "researchlike"}, {"id": "2", "source_type": "researchlike"}],
-                        "science": [{"id": "3", "source_type": "newslike"}],
+                        "primary": [
+                            {"id": "1", "source_type": "researchlike", "mode": "greedy", "age_days": 1.0},
+                            {"id": "2", "source_type": "researchlike", "mode": "explore", "age_days": 2.0},
+                            {"id": "3", "source_type": "researchlike", "mode": "greedy", "age_days": 3.0},
+                            {"id": "4", "source_type": "researchlike", "mode": "greedy", "age_days": 4.0},
+                            {"id": "5", "source_type": "researchlike", "mode": "greedy", "age_days": 5.0},
+                        ],
+                        "science": [],
                     },
                     "lr": {
-                        "primary": [{"id": "1", "source_type": "researchlike"}, {"id": "4", "source_type": "researchlike"}],
-                        "science": [{"id": "5", "source_type": "newslike"}],
+                        "primary": [
+                            {"id": "1", "source_type": "researchlike", "mode": "greedy", "age_days": 2.0, "cluster": 0},
+                            {"id": "2", "source_type": "researchlike", "mode": "greedy", "age_days": 3.0, "cluster": 0},
+                            {"id": "3", "source_type": "researchlike", "mode": "greedy", "age_days": 4.0, "cluster": 0},
+                            {"id": "4", "source_type": "researchlike", "mode": "greedy", "age_days": 5.0, "cluster": 0},
+                            {"id": "5", "source_type": "researchlike", "mode": "greedy", "age_days": 6.0, "cluster": 0},
+                        ],
+                        "science": [],
                     },
-                }
-            }
-        ]
-        
-        table = reporter._build_summary_table(source_type_counts, desk_freshness, mode_counts, runs)
-        
-        assert "Researchlike %" in table
-        assert "Mean age" in table
-        assert "Explore rate" in table
-        assert "Jaccard" in table
-
-
-class TestClusterChartJs:
-    """Tests for _cluster_chart_js helper."""
-
-    def test_cluster_chart_js_with_data(self):
-        reporter = Reporter("dummy")
-        
-        js = reporter._cluster_chart_js([0, 1, 2, 5, 6], [10, 8, 5, 3, 2])
-        
-        assert "new Chart" in js
-        assert "clusterChart" in js
-        # Current implementation uses f"C{{c}}" which produces literal "C{c}" strings
-        assert "C{c}" in js
-        assert "rgba(39,174,96,0.7)" in js  # core color (for clusters < 5)
-        assert "rgba(241,196,15,0.7)" in js  # side color (for clusters >= 5)
-
-    def test_cluster_chart_js_empty(self):
-        reporter = Reporter("dummy")
-        
-        js = reporter._cluster_chart_js([], [])
-        
-        assert js == ""
-
-
-class TestBuildFreshnessConfigHtml:
-    """Tests for _build_freshness_config_html helper."""
-
-    def test_build_freshness_config_html_both(self):
-        reporter = Reporter("dummy")
-        
-        freshness_config = {
-            "lr_freshness": {
-                "model": "logistic",
-                "halfLifeDays": 7,
-                "steepness": 1.386,
-                "epsilon": 0.25,
-                "explore": {"gamma": 0.5, "floor": 0.01},
-                "dedupe": {"t0": 7, "scale": 2, "hardWindowDays": 2},
-                "slots": {"primary": 5, "science": 5, "reserve": 25},
-                "freshness_at_ages": {"0": 1.0, "7": 0.5, "30": 0.1},
-            },
-            "keyword_freshness": {
-                "model": "logistic_in_log_age",
-                "a50_days": 7.0,
-                "slope": 1.0,
-                "age_floor_days": 0.25,
-                "epsilon": 0.25,
-                "explore_gamma": 0.3,
-                "shown_decay": 0.05,
-                "rejected_decay": 0.3,
-                "freshness_at_ages": {"0": 1.0, "7": 0.5, "30": 0.1},
-            },
+                },
+            }],
         }
         
-        html = reporter._build_freshness_config_html(freshness_config)
+        html = reporter.generate_comparison_html(results, "Test")
+        
+        # Verify desk table content
+        assert "Total picks" in html
+        assert "5" in html  # count
+        assert "Mean age" in html
+        assert "3.0" in html  # mean of [1,2,3,4,5]
+        assert "4.0" in html  # mean of [2,3,4,5,6]
+        assert "+1.0" in html  # diff
+
+    def test_desk_table_missing_engine(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {
+                        "primary": [
+                            {"id": "1", "source_type": "researchlike", "mode": "greedy", "age_days": 1.0},
+                            {"id": "2", "source_type": "researchlike", "mode": "greedy", "age_days": 2.0},
+                        ],
+                        "science": [],
+                    },
+                    "lr": {
+                        "primary": [],
+                        "science": [],
+                    },
+                },
+            }],
+        }
+        
+        html = reporter.generate_comparison_html(results, "Test")
+        
+        assert "Total picks" in html
+        assert "2" in html  # count
+
+
+class TestSummaryTableMacro:
+    """Tests for summary_table_rows macro via template rendering."""
+
+    def test_summary_table_basic(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {
+                        "primary": [
+                            {"id": "1", "source_type": "researchlike", "mode": "greedy", "age_days": 10.0},
+                            {"id": "2", "source_type": "researchlike", "mode": "greedy", "age_days": 10.0},
+                        ],
+                        "science": [
+                            {"id": "3", "source_type": "newslike", "mode": "explore", "age_days": 5.0},
+                        ],
+                    },
+                    "lr": {
+                        "primary": [
+                            {"id": "1", "source_type": "researchlike", "mode": "greedy", "age_days": 8.0, "cluster": 0},
+                            {"id": "4", "source_type": "researchlike", "mode": "greedy", "age_days": 8.0, "cluster": 0},
+                        ],
+                        "science": [
+                            {"id": "5", "source_type": "newslike", "mode": "explore", "age_days": 3.0, "cluster": 1},
+                        ],
+                    },
+                },
+            }],
+        }
+        
+        html = reporter.generate_comparison_html(results, "Test")
+        
+        assert "Researchlike %" in html
+        assert "Mean age" in html
+        assert "Explore rate" in html
+        assert "Jaccard" in html
+
+
+class TestFreshnessConfigMacro:
+    """Tests for freshness_config_html macro via template rendering."""
+
+    def test_freshness_config_html_both(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {
+                "lr_freshness": {
+                    "model": "logistic",
+                    "halfLifeDays": 7,
+                    "steepness": 1.386,
+                    "epsilon": 0.25,
+                    "explore": {"gamma": 0.5, "floor": 0.01},
+                    "dedupe": {"t0": 7, "scale": 2, "hardWindowDays": 2},
+                    "slots": {"primary": 5, "science": 5, "reserve": 25},
+                    "freshness_at_ages": {"0": 1.0, "7": 0.5, "30": 0.1},
+                },
+                "keyword_freshness": {
+                    "model": "logistic_in_log_age",
+                    "a50_days": 7.0,
+                    "slope": 1.0,
+                    "age_floor_days": 0.25,
+                    "epsilon": 0.25,
+                    "explore_gamma": 0.3,
+                    "shown_decay": 0.05,
+                    "rejected_decay": 0.3,
+                    "freshness_at_ages": {"0": 1.0, "7": 0.5, "30": 0.1},
+                },
+            },
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {"primary": [], "science": []},
+                    "lr": {"primary": [], "science": []},
+                },
+            }],
+        }
+        
+        html = reporter.generate_comparison_html(results, "Test")
         
         assert "LR Engine Freshness" in html
         assert "Keyword Engine Freshness" in html
@@ -445,33 +466,151 @@ class TestBuildFreshnessConfigHtml:
         assert "logistic" in html
         assert "1.0" in html  # freshness value
 
-    def test_build_freshness_config_html_empty(self):
-        reporter = Reporter("dummy")
+    def test_freshness_config_html_defaults_used(self, tmp_path):
+        """Test that default freshness config is shown when no config provided."""
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {"primary": [], "science": []},
+                    "lr": {"primary": [], "science": []},
+                },
+            }],
+        }
         
-        html = reporter._build_freshness_config_html({})
+        html = reporter.generate_comparison_html(results, "Test")
         
-        assert "No freshness configuration data available" in html
+        # Defaults should be shown for both engines
+        assert "LR Engine Freshness" in html
+        assert "Keyword Engine Freshness" in html
+        assert "halfLifeDays" in html
+        assert "a50_days" in html
+        # Default values
+        assert "7" in html  # default halfLifeDays / a50_days
 
-    def test_build_freshness_config_html_lr_only(self):
-        reporter = Reporter("dummy")
+    def test_freshness_config_html_lr_custom_keyword_default(self, tmp_path):
+        """Test with custom LR config but default keyword config."""
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {
+                "sampling": {
+                    "halfLifeDays": 14,
+                    "epsilon": 0.1,
+                    "freshness": {"model": "logistic", "steepness": 2.0},
+                    "explore": {"gamma": 0.5, "floor": 0.01},
+                    "dedupe": {"t0": 7, "scale": 2, "hardWindowDays": 2},
+                    "slots": {"primary": 5, "science": 5, "reserve": 25},
+                },
+            },
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {"primary": [], "science": []},
+                    "lr": {"primary": [], "science": []},
+                },
+            }],
+        }
         
-        freshness_config = {
-            "lr_freshness": {
-                "model": "logistic",
-                "halfLifeDays": 7,
-                "steepness": 1.386,
-                "epsilon": 0.25,
-                "explore": {"gamma": 0.5, "floor": 0.01},
-                "dedupe": {"t0": 7, "scale": 2, "hardWindowDays": 2},
-                "slots": {"primary": 5, "science": 5, "reserve": 25},
-                "freshness_at_ages": {"0": 1.0, "7": 0.5},
+        html = reporter.generate_comparison_html(results, "Test")
+        
+        assert "LR Engine Freshness" in html
+        assert "Keyword Engine Freshness" in html
+        # Custom LR value
+        assert "14" in html  # custom halfLifeDays
+        # Default keyword value
+        assert "7.0" in html  # default a50_days
+
+
+class TestClusterDetailsMacro:
+    """Tests for cluster_details macro via template rendering."""
+
+    def test_cluster_details_with_metadata(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {"primary": [], "science": []},
+                    "lr": {"primary": [], "science": []},
+                },
+            }],
+            "cluster_metadata": {
+                "total": 10,
+                "core_count": 5,
+                "side_count": 5,
+                "clusters": [
+                    {"id": 0, "medoid_title": "Cluster 0", "size": 20, "core": True},
+                    {"id": 1, "medoid_title": "Cluster 1", "size": 15, "core": True},
+                    {"id": 5, "medoid_title": "Cluster 5", "size": 10, "core": False},
+                ],
             },
         }
         
-        html = reporter._build_freshness_config_html(freshness_config)
+        html = reporter.generate_comparison_html(results, "Test")
         
-        assert "LR Engine Freshness" in html
-        assert "Keyword Engine Freshness" not in html
+        assert "Total clusters" in html
+        assert "10" in html
+        assert "Core clusters" in html
+        assert "5" in html
+        assert "Side clusters" in html
+        assert "CORE" in html
+        assert "SIDE" in html
+        assert "Cluster 0" in html
+        assert "Cluster 5" in html
+
+    def test_cluster_details_missing_metadata(self, tmp_path):
+        reporter = Reporter(str(tmp_path))
+        results = {
+            "date": "2026-10-29",
+            "seeds": [1],
+            "engines": ["keyword", "lr"],
+            "config": {},
+            "runs": [{
+                "seed": 1,
+                "selections": {
+                    "keyword": {"primary": [], "science": []},
+                    "lr": {"primary": [], "science": []},
+                },
+            }],
+        }
+        
+        html = reporter.generate_comparison_html(results, "Test")
+        
+        assert "No cluster metadata available" in html
+
+
+class TestClusterChart:
+    """Tests for cluster chart generation (now in viz.charts)."""
+
+    def test_cluster_chart_with_data(self):
+        from simulate.viz.charts import create_cluster_chart
+        
+        js = create_cluster_chart([0, 1, 2, 5, 6], [10, 8, 5, 3, 2])
+        
+        assert "plotly-graph-div" in js or "Plotly.newPlot" in js
+        assert "C0" in js
+        assert "C1" in js
+        assert "rgba(39,174,96,0.7)" in js  # core color (for clusters < 5)
+        assert "rgba(241,196,15,0.7)" in js  # side color (for clusters >= 5)
+
+    def test_cluster_chart_empty(self):
+        from simulate.viz.charts import create_cluster_chart
+        
+        js = create_cluster_chart([], [])
+        
+        assert js == ""
 
 
 class TestReporterIntegration:
