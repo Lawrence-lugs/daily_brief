@@ -59,6 +59,7 @@
   const statusEl = $('status'), logEl = $('log-popup'), genBtn = $('btn-generate'), engineSel = $('engine-select');
   function setStatus(t, bad) { statusEl.textContent = t; statusEl.classList.toggle('error', !!bad); }
   $('btn-logs').onclick = () => { logEl.hidden = !logEl.hidden; };
+  $('btn-archive').onclick = () => { location.href = '/archive' + location.search; }; // keeps ?embed= / ?theme=
   $('brief-select').onchange = (e) => { location.href = `/brief/${e.target.value}${location.search}`; };
 
   let jobId = 0, offset = 0;

@@ -2,6 +2,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { makeSearch, ensureFtsBuilt } from './search.js';
 
 export function openDb(file, schemaFile) {
   const db = new DatabaseSync(file);
@@ -16,6 +17,7 @@ export function openDb(file, schemaFile) {
   ]) {
     try { db.exec(ddl); } catch (e) { if (!String(e).includes('duplicate column name')) throw e; }
   }
+  ensureFtsBuilt(db); // one-time backfill; no-op afterwards
   return db;
 }
 
@@ -75,6 +77,8 @@ export function makeQueries(db, root = '.') {
   }
 
   return {
+    ...makeSearch(db), // listStories(searchParams), facets()
+
     latestBriefId(date) {
       const r = date ? S.latestOnDate.get(date) : S.latestAny.get();
       return r ? r.brief_id : null;

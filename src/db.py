@@ -39,6 +39,12 @@ def connect(path) -> sqlite3.Connection:
         except sqlite3.OperationalError as e:
             if "duplicate column name" not in str(e).lower():
                 raise
+
+    # One-time FTS backfill for rows that predate stories_fts (mirror of ensureFtsBuilt in server/lib/search.js).
+    if conn.execute("SELECT 1 FROM ranker_state WHERE key='fts_v1'").fetchone() is None:
+        conn.execute("INSERT INTO stories_fts(stories_fts) VALUES('rebuild')")
+        conn.execute("INSERT OR REPLACE INTO ranker_state(key,value,updated_at) VALUES('fts_v1','1',?)",
+                     (dt.datetime.now(UTC).isoformat(),))
     return conn
 
 

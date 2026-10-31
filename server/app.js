@@ -7,6 +7,7 @@ import { JobRunner } from './lib/jobs.js';
 import { guard } from './lib/guard.js';
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -97,6 +98,9 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
         if (p === '/' ) return servePage(res, url, null);
         if ((m = p.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]));
         if (p === '/api/health') return json(res, 200, { ok: true, name: 'daily-brief' });
+        if (p === '/archive') return serveStatic(res, 'list.html');
+        if (p === '/api/stories') return json(res, 200, q.listStories(url.searchParams));
+        if (p === '/api/stories/facets') return json(res, 200, q.facets());
         if (p === '/api/briefs') return json(res, 200, q.listBriefs(Math.min(Number(url.searchParams.get('limit')) || 30, 200)));
         if ((m = p.match(/^\/api\/briefs\/(\d+)$/))) {
           const d = q.getBrief(Number(m[1]));

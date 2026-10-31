@@ -71,6 +71,30 @@ CREATE TABLE IF NOT EXISTS stories (
 CREATE INDEX IF NOT EXISTS idx_stories_brief ON stories(brief_id, desk, position);
 CREATE INDEX IF NOT EXISTS idx_stories_item  ON stories(item_id);
 
+-- 4. Full-text search over stories (external-content FTS5, kept in sync by triggers).
+--    Column ORDER matters: search.js bm25()/highlight() refer to columns by position.
+--    Changing the tokenizer later requires: DROP TABLE stories_fts; (triggers stay) then re-run + rebuild.
+CREATE VIRTUAL TABLE IF NOT EXISTS stories_fts USING fts5(
+  headline, blurb, why_care, tags, source, subtopic,
+  content='stories', content_rowid='story_id',
+  tokenize='porter unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER IF NOT EXISTS stories_fts_ai AFTER INSERT ON stories BEGIN
+  INSERT INTO stories_fts(rowid, headline, blurb, why_care, tags, source, subtopic)
+  VALUES (new.story_id, new.headline, new.blurb, new.why_care, new.tags, new.source, new.subtopic);
+END;
+CREATE TRIGGER IF NOT EXISTS stories_fts_ad AFTER DELETE ON stories BEGIN
+  INSERT INTO stories_fts(stories_fts, rowid, headline, blurb, why_care, tags, source, subtopic)
+  VALUES ('delete', old.story_id, old.headline, old.blurb, old.why_care, old.tags, old.source, old.subtopic);
+END;
+-- Column-limited on purpose: like/save toggles UPDATE stories too and must NOT touch the index.
+CREATE TRIGGER IF NOT EXISTS stories_fts_au AFTER UPDATE OF headline, blurb, why_care, tags, source, subtopic ON stories BEGIN
+  INSERT INTO stories_fts(stories_fts, rowid, headline, blurb, why_care, tags, source, subtopic)
+  VALUES ('delete', old.story_id, old.headline, old.blurb, old.why_care, old.tags, old.source, old.subtopic);
+  INSERT INTO stories_fts(rowid, headline, blurb, why_care, tags, source, subtopic)
+  VALUES (new.story_id, new.headline, new.blurb, new.why_care, new.tags, new.source, new.subtopic);
+END;
+
 -- Migration: add cluster and core columns to stories (idempotent via user_version check)
 -- These are added by Python/Node connection code below.
 

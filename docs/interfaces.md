@@ -24,6 +24,9 @@ immediately if a server is already answering `/api/health`, so every entry point
 | `/api/shutdown` | POST | Shut down the server |
 | `/api/stories/<id>/feedback` | POST | Toggle `liked`/`saved` on a story (feeds ranker training labels) |
 | `/api/export/training.jsonl` | GET | Export `training_examples` as JSONL |
+| `/archive` | GET | Render the stories archive page (`list.html`) |
+| `/api/stories` | GET | Paged, filtered list of stories (params: q, mark, desk, subtopic, source, tag, from, to, sort, limit, offset) |
+| `/api/stories/facets` | GET | Facet counts for desk, subtopic, source, tag (for filter dropdowns) |
 
 The server renders HTML/Tailwind via `server/lib/render.js` and persists like/save via `server/public/client.js`.
 
