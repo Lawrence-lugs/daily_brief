@@ -9,8 +9,9 @@ from simulate.core.engine import Engine, SelectionResult
 from simulate.core.pool import PoolProvider
 from simulate.core.metrics import MetricsCollector
 from simulate.core.reporter import Reporter
-from simulate.engines.keyword_engine import KeywordEngine
-from simulate.engines.lr_engine import LREngine
+
+
+DEFAULT_OUTPUT_DIR = "docs/experiments"
 
 
 def compare_engines(
@@ -19,7 +20,7 @@ def compare_engines(
     engines: List[Engine],
     pool_provider: PoolProvider,
     config: Dict | None = None,
-    output_dir: str = "experiments/output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
 ) -> Dict[str, Any]:
     """Run comparison across multiple seeds and engines.
     
@@ -70,14 +71,7 @@ def compare_engines(
         for engine in engines:
             print(f"    {engine.name}...")
             try:
-                if engine.name == "keyword":
-                    selections = engine.select(pool, config, seed)
-                elif engine.name == "lr":
-                    # LR engine loads its own data but we merge with pool for metadata
-                    selections = engine.select_with_pool_merge(pool, config, seed)
-                else:
-                    selections = engine.select(pool, config, seed)
-                
+                selections = engine.select(pool, config, seed)
                 run["selections"][engine.name] = selections
             except Exception as e:
                 print(f"    ERROR: {e}")
@@ -143,7 +137,7 @@ def monte_carlo(
     n_runs: int,
     config: Dict | None = None,
     seed_start: int = 1,
-    output_dir: str = "experiments/output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
 ) -> Dict[str, Any]:
     """Run Monte Carlo simulation for a single engine.
     
@@ -171,13 +165,7 @@ def monte_carlo(
             print(f"  Run {i+1}/{n_runs}...")
         
         try:
-            if engine.name == "keyword":
-                selections = engine.select(pool, config, seed)
-            elif engine.name == "lr":
-                selections = engine.select_with_pool_merge(pool, config, seed)
-            else:
-                selections = engine.select(pool, config, seed)
-            
+            selections = engine.select(pool, config, seed)
             all_selections.append(selections)
             
             # All picked IDs across desks
@@ -232,7 +220,7 @@ def parameter_sweep(
     param_grid: Dict[str, List[Any]],
     metric: str = "jaccard_primary",
     seeds: List[int] = None,
-    output_dir: str = "experiments/output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
 ) -> Dict[str, Any]:
     """Run parameter sweep for an engine.
     
@@ -270,12 +258,7 @@ def parameter_sweep(
         for seed in seeds:
             config = {"seed": seed, **params}
             try:
-                if engine.name == "keyword":
-                    selections = engine.select(pool, config, seed)
-                elif engine.name == "lr":
-                    selections = engine.select_with_pool_merge(pool, config, seed)
-                else:
-                    selections = engine.select(pool, config, seed)
+                selections = engine.select(pool, config, seed)
                 
                 # Compute metric
                 if metric == "jaccard_primary":
@@ -331,7 +314,7 @@ def ablation_study(
     pool: List[Dict],
     feature_flags: Dict[str, bool],
     seeds: List[int] = None,
-    output_dir: str = "experiments/output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
 ) -> Dict[str, Any]:
     """Run ablation study by toggling features on/off.
     
@@ -359,12 +342,7 @@ def ablation_study(
         scores = []
         for seed in seeds:
             try:
-                if engine.name == "keyword":
-                    selections = engine.select(pool, config, seed)
-                elif engine.name == "lr":
-                    selections = engine.select_with_pool_merge(pool, config, seed)
-                else:
-                    selections = engine.select(pool, config, seed)
+                selections = engine.select(pool, config, seed)
                 
                 # Metric: diversity of source types
                 all_picks = []
@@ -393,12 +371,7 @@ def ablation_study(
     scores = []
     for seed in seeds:
         try:
-            if engine.name == "keyword":
-                selections = engine.select(pool, config, seed)
-            elif engine.name == "lr":
-                selections = engine.select_with_pool_merge(pool, config, seed)
-            else:
-                selections = engine.select(pool, config, seed)
+            selections = engine.select(pool, config, seed)
             
             all_picks = []
             for desk_items in selections.values():

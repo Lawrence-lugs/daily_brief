@@ -4,6 +4,7 @@ from simulate.experiments.runner import (
     monte_carlo,
     parameter_sweep,
     ablation_study,
+    DEFAULT_OUTPUT_DIR,
 )
 
-__all__ = ["compare_engines", "monte_carlo", "parameter_sweep", "ablation_study"]
+__all__ = ["compare_engines", "monte_carlo", "parameter_sweep", "ablation_study", "DEFAULT_OUTPUT_DIR"]

@@ -42,20 +42,20 @@ class LREngine(Engine):
         return "lr"
     
     def select(self, pool: List[Dict], config: Dict, seed: int) -> Dict[str, List[Dict]]:
-        """Run LR selection via Node.js CLI.
-        
-        Note: The LR engine loads its own data from the database (embeddings, 
-        model, interests). The `pool` argument is ignored for data loading but
-        could be used for validation.
-        
+        """Run LR selection via Node.js CLI and merge with pool data.
+
+        Note: The LR engine loads its own data from the database (embeddings,
+        model, interests). The `pool` argument is used for metadata merge
+        (source_type, title, subtopic, rel, age_days).
+
         Args:
-            pool: Ignored (LR loads from DB)
+            pool: Candidate pool from PoolProvider (used for metadata merge)
             config: Configuration overrides (passed via --set)
             seed: Random seed
-            
+
         Returns:
             Dict with 'primary' and 'science' keys, each a list of selected items
-            with fields: id, mode, p, V, cluster, core
+            with fields: id, mode, p, V, cluster, core, source_type, title, etc.
         """
         # Build overrides for Node CLI - only pass sampling and desks config
         # The Node CLI loads its own config.json, we only override sampling params
@@ -68,13 +68,13 @@ class LREngine(Engine):
                         overrides.append(f"sampling.{key}.{subkey}={json.dumps(subvalue)}")
                 else:
                     overrides.append(f"sampling.{key}={json.dumps(value)}")
-        
+
         # Also pass desks config if present
         desks_config = config.get("desks", {})
         if desks_config:
             for key, value in desks_config.items():
                 overrides.append(f"sampling.desks.{key}={json.dumps(value)}")
-        
+
         # Run the CLI
         cmd = [
             "node", str(self.cli_path),
@@ -85,7 +85,7 @@ class LREngine(Engine):
         if overrides:
             for ov in overrides:
                 cmd.extend(["--set", ov])
-        
+
         result = subprocess.run(
             cmd,
             cwd=self.project_root,
@@ -93,16 +93,16 @@ class LREngine(Engine):
             text=True,
             timeout=120,
         )
-        
+
         if result.returncode != 0:
             raise RuntimeError(f"LR engine failed: {result.stderr}")
-        
+
         # Parse JSON output
         try:
             selection = json.loads(result.stdout.strip())
         except json.JSONDecodeError as e:
             raise RuntimeError(f"Failed to parse LR output: {result.stdout[:500]}") from e
-        
+
         # The output format is: { "primary": [{id, mode, p, V, cluster, core}], "science": [...] }
         # We need to add desk field to each item
         formatted = {}
@@ -112,20 +112,12 @@ class LREngine(Engine):
                 formatted[desk].append({
                     **item,
                     "desk": desk,
-                    # source_type not directly available, would need to join with pool
+                    # source_type not directly available, will merge from pool below
                 })
-        
-        return formatted
-    
-    def select_with_pool_merge(self, pool: List[Dict], config: Dict, seed: int) -> Dict[str, List[Dict]]:
-        """Run LR selection and merge with pool data for source_type, etc."""
-        lr_result = self.select(pool, config, seed)
-        
-        # Build lookup from pool
+
+        # Merge pool data (source_type, title, subtopic, rel, age_days) into LR results
         pool_by_id = {item["id"]: item for item in pool}
-        
-        # Merge pool data (source_type, title, etc.) into LR results
-        for desk, items in lr_result.items():
+        for desk, items in formatted.items():
             for item in items:
                 pool_item = pool_by_id.get(item["id"])
                 if pool_item:
@@ -133,8 +125,8 @@ class LREngine(Engine):
                     for key in ["source_type", "title", "subtopic", "rel", "age_days"]:
                         if key not in item and key in pool_item:
                             item[key] = pool_item[key]
-        
-        return lr_result
+
+        return formatted
 
     def get_cluster_metadata(self) -> Dict[str, Any]:
         """Fetch cluster metadata from Node.js inspect command.

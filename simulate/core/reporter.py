@@ -12,7 +12,7 @@ from simulate.core.metrics import MetricsCollector
 class Reporter:
     """Handles output formatting for experiment results."""
     
-    def __init__(self, output_dir: str = "experiments/output"):
+    def __init__(self, output_dir: str = "docs/experiments"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
     

@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from simulate.core.pool import PoolProvider
+from simulate.core.config import load_config, merge_config, freshness_config_summary
 from simulate.engines.keyword_engine import KeywordEngine
 from simulate.engines.lr_engine import LREngine
 from simulate.experiments.runner import (
@@ -17,6 +18,7 @@ from simulate.experiments.runner import (
     monte_carlo,
     parameter_sweep,
     ablation_study,
+    DEFAULT_OUTPUT_DIR,
 )
 
 
@@ -28,7 +30,7 @@ def main():
     def add_common(p):
         p.add_argument("--date", default="2026-10-29", help="Date (YYYY-MM-DD)")
         p.add_argument("--db", default="daily_brief.db", help="Database path")
-        p.add_argument("--output", default="experiments/output", help="Output directory")
+        p.add_argument("--output", default=DEFAULT_OUTPUT_DIR, help="Output directory")
         p.add_argument("--seeds", default="1-10", help="Seed range (e.g., 1-10 or 1,2,3)")
         p.add_argument("--config", default="config.json", help="Config file")
     
@@ -65,13 +67,22 @@ def main():
     else:
         seeds = [int(s) for s in args.seeds.split(",")]
     
-    # Parse config
-    import json
-    with open(args.config) as f:
-        config = json.load(f)
-    ranker_config = config.get("ranker", {})
-    selection_config = config.get("selection", {})
-    merged_config = {**ranker_config, **selection_config, **ranker_config.get("sampling", {})}
+    # Load and merge config
+    raw_config = load_config(args.config)
+    merged_config = merge_config(raw_config, date=args.date)
+    
+    # Print freshness hook summary for visibility
+    fs = freshness_config_summary(merged_config)
+    print("=== Freshness Configuration ===")
+    if "lr_freshness" in fs:
+        lr = fs["lr_freshness"]
+        print(f"LR model: {lr['model']} | halfLifeDays={lr['halfLifeDays']} | "
+              f"steepness={lr['steepness']:.4f} | epsilon={lr['epsilon']}")
+    if "keyword_freshness" in fs:
+        kw = fs["keyword_freshness"]
+        print(f"Keyword model: {kw['model']} | a50_days={kw['a50_days']} | "
+              f"slope={kw['slope']} | epsilon={kw['epsilon']}")
+    print("===============================")
     
     # Initialize pool provider
     pool_provider = PoolProvider(args.db)
