@@ -1,0 +1,152 @@
+/* ===== Grid.js Newspaper Theme (copied from Grid.js example) ===== */
+:root {
+  --face: #fdfbf7;
+  --face-sunk: #f4efe8;
+  --glyph: #2d2721;
+  --glyph-pressed: #1a1511;
+  --mocha: #d4c9b8;
+  --highlight: #e8e0d5;
+  --ink: #8c6543;
+  --ink-strong: #6b4a2e;
+  --rule: #c8bdb0;
+}
+.newspaper-shell {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+  background: var(--face);
+  color: var(--glyph);
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  box-shadow: 0 0 0 1px var(--rule), 0 2px 12px rgba(45, 39, 33, 0.08);
+}
+.newspaper-shell ::selection { background: var(--highlight); }
+.paper-heading {
+  border-bottom: 3px double var(--glyph);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+.paper-heading h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+.paper-heading small {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.gridjs-container { width: 100%; }
+.gridjs-table { border-collapse: collapse; width: 100%; }
+.gridjs-th, .gridjs-td { padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.gridjs-th { font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem; color: var(--ink-strong); background: var(--face-sunk); }
+.gridjs-tr:hover .gridjs-td { background: var(--highlight); }
+.gridjs-pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; font-size: 0.85rem; color: var(--ink); }
+.gridjs-pagination button { padding: 6px 10px; border: 1px solid var(--mocha); border-radius: 2px; background: var(--face); color: var(--glyph); cursor: pointer; font: inherit; }
+.gridjs-pagination button:hover:not(:disabled) { background: var(--highlight); }
+.gridjs-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.gridjs-search-input { padding: 8px 10px; border: 1px solid var(--mocha); border-radius: 2px; background: var(--face); color: var(--glyph); font: inherit; width: 100%; max-width: 300px; }
+.gridjs-sort-icon { display: inline-block; width: 10px; height: 10px; margin-left: 4px; vertical-align: middle; opacity: 0.4; }
+.gridjs-sorted .gridjs-sort-icon { opacity: 1; }
+.newspaper-shell mark { background: rgba(217, 164, 65, 0.35); color: inherit; padding: 0 1px; }
+
+/* ===== Grid.js overflow fixes ===== */
+#grid,
+#grid * {
+  box-sizing: border-box;
+}
+
+#grid .gridjs-container,
+#grid .gridjs-wrapper,
+#grid .gridjs-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed;
+}
+
+.gridjs-td,
+.gridjs-th {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* If .newspaper-shell is restricting width on #grid or its parent */
+.newspaper-shell {
+  max-width: 100%;
+}
+
+/* ===== ADDITIONS for the archive page (append AFTER the Grid.js newspaper theme CSS copied from the example) ===== */
+body { margin: 0; padding: 24px; background: #e9e5dc; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.paper-heading a { color: inherit; }
+
+/* toolbar */
+.archive-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; font: 13px/1.3 Arial, sans-serif; }
+.archive-filters #q { flex: 1 1 260px; min-width: 0; }
+.archive-filters select, .archive-filters input[type="date"], .archive-filters button {
+  padding: 7px 9px; border: 1px solid var(--mocha); border-radius: 2px; background: var(--face); color: var(--glyph); font: inherit; }
+.archive-filters label { display: inline-flex; align-items: center; gap: 5px; color: #6f665b; }
+.archive-filters button { cursor: pointer; }
+.archive-filters button:hover { background: var(--highlight); }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 2px 0 0 2px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 2px 2px 0; }
+.seg button[aria-pressed="true"], .chip[aria-pressed="true"] {
+  background: var(--face-sunk); color: var(--glyph-pressed); font-weight: 700; box-shadow: inset 2px 2px 3px rgba(130,101,67,.22); }
+
+/* tag chips */
+.tagbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.chip { padding: 3px 9px; border: 1px solid var(--mocha); border-radius: 999px; background: var(--face);
+  color: var(--glyph); font: 12px/1.4 Arial, sans-serif; cursor: pointer; }
+.chip small { color: #8a8175; }
+
+/* story cell */
+.story-cell { display: flex; flex-direction: column; gap: 3px; }
+.story-meta { font: 600 0.68rem/1.3 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #776d60; }
+.story-head { font-size: 1.05rem; font-weight: 700; line-height: 1.3; color: var(--glyph); text-decoration: none; }
+.story-head:hover { text-decoration: underline; text-decoration-color: var(--glyph-pressed); }
+.story-blurb { margin: 0; font-size: .9rem; line-height: 1.5; }
+.story-tags { font: 11px/1.4 Arial, sans-serif; color: #8a8175; }
+.newspaper-shell .gridjs-td .story-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* dark mode */
+html.dark .newspaper-shell,
+html.dark body {
+  --face: #1e1a16;
+  --face-sunk: #28231e;
+  --glyph: #f5f0e8;
+  --glyph-pressed: #fff;
+  --mocha: #5a5045;
+  --highlight: #3d352d;
+  --ink: #c8b8a8;
+  --ink-strong: #d4c4b0;
+  --rule: #4a4035;
+  background: #161310;
+}
+html.dark .archive-filters select,
+html.dark .archive-filters input[type="date"],
+html.dark .archive-filters button,
+html.dark .chip {
+  background: var(--face-sunk);
+  border-color: var(--mocha);
+  color: var(--glyph);
+}
+html.dark .archive-filters button:hover {
+  background: var(--highlight);
+}
+html.dark .seg button[aria-pressed="true"],
+html.dark .chip[aria-pressed="true"] {
+  background: var(--highlight);
+  color: var(--glyph-pressed);
+}
+html.dark .story-head {
+  color: var(--glyph);
+}
+html.dark .story-head:hover {
+  text-decoration-color: var(--glyph-pressed);
+}
+html.dark .newspaper-shell mark {
+  background: rgba(217, 164, 65, 0.45);
+}

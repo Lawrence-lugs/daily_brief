@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>The Daily Die - Archive</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/list.css">
+<script src="/static/vendor/gridjs.umd.js" defer></script>
+<script src="/static/list.js" defer></script>
+</head>
+<body>
+<main class="newspaper-shell">
+  <header class="paper-heading">
+    <h1>The Daily Die &mdash; Archive</h1>
+    <small><a id="back" href="/">Latest brief</a> &middot; <span id="count"></span></small>
+  </header>
+
+  <form id="filters" class="archive-filters" autocomplete="off">
+    <input id="q" class="gridjs-input" type="search"
+           placeholder="Search&hellip;  e.g.  dataflow   title:sparse   &quot;kv cache&quot;   tag:accel">
+    <div id="mark" class="seg" role="group" aria-label="Show">
+      <button type="button" data-mark="" aria-pressed="true">All</button>
+      <button type="button" data-mark="liked" aria-pressed="false">Liked</button>
+      <button type="button" data-mark="saved" aria-pressed="false">Saved</button>
+      <button type="button" data-mark="any" aria-pressed="false">Liked or saved</button>
+    </div>
+    <select id="desk" aria-label="Desk"><option value="">All desks</option></select>
+    <select id="subtopic" aria-label="Subtopic"><option value="">All subtopics</option></select>
+    <select id="source" aria-label="Source"><option value="">All sources</option></select>
+    <label>From <input id="from" type="date"></label>
+    <label>To <input id="to" type="date"></label>
+    <select id="sort" aria-label="Sort">
+      <option value="">Best match / newest</option>
+      <option value="date_desc">Newest first</option>
+      <option value="date_asc">Oldest first</option>
+    </select>
+    <button type="button" id="reset">Reset</button>
+  </form>
+  <div id="tagbar" class="tagbar" aria-label="Tags"></div>
+
+  <div id="grid" aria-label="Story archive"></div>
+</main>
+<script>document.getElementById('back').href = '/' + location.search;</script>
+</body>
+</html>
