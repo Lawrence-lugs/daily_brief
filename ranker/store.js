@@ -23,13 +23,10 @@ const SQL = {
   lastShown: `SELECT s.item_id, MAX(b.generated_at) AS last FROM stories s JOIN briefs b ON b.brief_id=s.brief_id
                WHERE b.date < ? GROUP BY s.item_id`,
   trainingRows: `
-    SELECT t.item_id, t.source_type, t.date,
+    SELECT t.item_id, t.source_type, MIN(t.date) AS date,
            MAX(CASE WHEN t.liked=1 OR t.saved=1 THEN 1 ELSE 0 END) AS y, m.authors
       FROM training_examples t LEFT JOIN item_meta m ON m.item_id=t.item_id
-     WHERE t.story_id = (
-       SELECT MAX(t2.story_id) FROM training_examples t2 WHERE t2.item_id = t.item_id
-     )
-     GROUP BY t.item_id ORDER BY t.date, t.item_id`,
+     GROUP BY t.item_id ORDER BY date, t.item_id`,
   pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id ORDER BY p.item_id`,
   prune: `DELETE FROM embeddings WHERE item_id NOT LIKE 'ps:%' AND item_id NOT IN
             (SELECT item_id FROM candidate_pool UNION SELECT item_id FROM stories)`,
@@ -90,7 +87,7 @@ export class Store {
     }));
   }
 
-  // Get training rows (one per item, with first exposure date and label)
+  // Get training rows (one per item, with first exposure date and ever-liked label)
   getTrainingRows() {
     return this.stmts.trainingRows.all().map((r) => ({
       item_id: r.item_id,

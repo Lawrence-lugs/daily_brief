@@ -178,11 +178,13 @@ export async function ensureFitted(store, cfg, { persist = true, force = false }
   }
 
   // Build interests (full) and cross-fitted training examples
+  // vecs must be Map(item_id -> Float32Array), not embedding objects
+  const vecs = new Map([...embById.entries()].map(([k, v]) => [k, v.vec]));
   const { examples, full: interests } = buildTrainingSet({
     perfect: perfectWithVecs,
     liked: likedWithVecs,
     rows: trainingRows,
-    vecs: embById,
+    vecs,
     cfg,
   });
 
@@ -338,11 +340,12 @@ export async function evalModel(store, cfg, { testFrac = 0.2 } = {}) {
   }
 
   // Build training examples (cross-fitted for fitted model, full interests for keyword rel baseline)
+  const vecs = new Map([...embById.entries()].map(([k, v]) => [k, v.vec]));
   const { examples, full: interests } = buildTrainingSet({
     perfect: perfectWithVecs,
     liked: likedWithVecs,
     rows: trainingRows,
-    vecs: embById,
+    vecs,
     cfg,
   });
 
