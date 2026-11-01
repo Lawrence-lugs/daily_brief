@@ -123,7 +123,8 @@ def compare_engines(
     
     # Save results
     reporter = Reporter(output_dir)
-    json_path = reporter.write_json(results, f"comparison_{date}_{len(seeds)}seeds.json")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_path = reporter.write_json(results, f"comparison_{date}_{len(seeds)}seeds_{timestamp}.json")
     print(f"Results saved to {json_path}")
     
     # Generate HTML report
@@ -211,7 +212,8 @@ def monte_carlo(
     
     # Save
     reporter = Reporter(output_dir)
-    json_path = reporter.write_json(result, f"monte_carlo_{engine.name}_{n_runs}runs.json")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_path = reporter.write_json(result, f"monte_carlo_{engine.name}_{n_runs}runs_{timestamp}.json")
     print(f"Monte Carlo results saved to {json_path}")
     
     return result
@@ -306,7 +308,8 @@ def parameter_sweep(
     }
     
     reporter = Reporter(output_dir)
-    json_path = reporter.write_json(result, f"sweep_{engine.name}_{metric}.json")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_path = reporter.write_json(result, f"sweep_{engine.name}_{metric}_{timestamp}.json")
     print(f"Sweep results saved to {json_path}")
     
     return result
@@ -400,7 +403,8 @@ def ablation_study(
     }
     
     reporter = Reporter(output_dir)
-    json_path = reporter.write_json(result, f"ablation_{engine.name}.json")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_path = reporter.write_json(result, f"ablation_{engine.name}_{timestamp}.json")
     print(f"Ablation results saved to {json_path}")
     
     return result
