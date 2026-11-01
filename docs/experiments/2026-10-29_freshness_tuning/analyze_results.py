@@ -1,7 +1,11 @@
 """Analyze comparison results."""
 import json
+import os
 
-with open("../../../simulate/output/freshness/comparison_2026-10-29_10seeds.json", encoding='utf-8') as f:
+script_dir = os.path.dirname(os.path.abspath(__file__))
+exp_dir = os.path.join(script_dir, '..')
+
+with open(os.path.join(exp_dir, "comparison_2026-10-29_10seeds.json"), encoding='utf-8') as f:
     data = json.load(f)
 
 hist_bins = [0, 1, 2, 5, 10, 20, 50, float('inf')]
@@ -47,7 +51,7 @@ for desk in ['primary', 'science']:
 
 # Also check the original comparison (5 seeds, default params)
 print("=== ORIGINAL COMPARISON (default params) ===")
-with open("../../../simulate/output/freshness/comparison_2026-10-29_5seeds.json", encoding='utf-8') as f:
+with open(os.path.join(exp_dir, "comparison_2026-10-29_5seeds.json"), encoding='utf-8') as f:
     data_orig = json.load(f)
 
 for desk in ['primary', 'science']:
