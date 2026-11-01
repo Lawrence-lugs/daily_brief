@@ -182,6 +182,9 @@ class Reporter:
             "combined_age_histograms": create_combined_age_histograms(desk_age_hist_data),
         }
         
+        # Model evaluation results (accuracy against liked training/test set)
+        model_eval = results.get("model_eval")
+        
         # Render template - pass raw data, let Jinja2 macros handle HTML generation
         template = self._jinja_env.get_template("report.html.j2")
         seeds = results.get("seeds", [])
@@ -199,6 +202,7 @@ class Reporter:
             cluster_metadata=cluster_metadata,
             freshness_config=freshness_config,
             summary_stats=summary_stats,
+            model_eval=model_eval,
             plotly_cdn_version=PLOTLY_CDN_VERSION,
         )
     

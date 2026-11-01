@@ -21,6 +21,7 @@ def compare_engines(
     pool_provider: PoolProvider,
     config: Dict | None = None,
     output_dir: str = DEFAULT_OUTPUT_DIR,
+    model_eval: Dict | None = None,
 ) -> Dict[str, Any]:
     """Run comparison across multiple seeds and engines.
     
@@ -31,6 +32,7 @@ def compare_engines(
         pool_provider: PoolProvider instance
         config: Global config overrides
         output_dir: Output directory for results
+        model_eval: Optional model evaluation results (AUC, logLoss from liked training/test set)
         
     Returns:
         Aggregated results dictionary
@@ -106,6 +108,7 @@ def compare_engines(
         "aggregate": aggregate,
         "cluster_metadata": cluster_metadata,
         "timestamp": datetime.now().isoformat(),
+        "model_eval": model_eval,
         # Pool score distributions for histograms
         "pool_scores": {
             "keyword": {
@@ -125,7 +128,7 @@ def compare_engines(
     
     # Generate HTML report
     html = reporter.generate_comparison_html(results, f"Engine Comparison - {date}")
-    html_path = reporter.write_html(html, f"comparison_{date}_{len(seeds)}seeds.html")
+    html_path = reporter.write_html(html, f"comparison_{date}_{len(seeds)}seeds_{timestamp}.html")
     print(f"HTML report saved to {html_path}")
     
     return results

@@ -136,3 +136,49 @@
         {% endif %}
     {% endif %}
 {% endmacro %}
+
+{% macro model_accuracy_table(model_eval) %}
+    {% if not model_eval %}
+        <p><small>No model evaluation data available. Run with Node.js and ensure training data exists.</small></p>
+    {% else %}
+        <p><small>Chronological holdout evaluation (test_frac=0.2). Higher AUC = better discrimination. Lower logLoss = better calibration.</small></p>
+        <table>
+            <tr><th>Model</th><th>AUC</th><th>Log Loss</th><th>Interpretation</th></tr>
+            {% for model_name in ['prior', 'keyword', 'fitted'] %}
+            {% set res = model_eval.get(model_name, {}) %}
+            {% set auc = res.get('auc') %}
+            {% set ll = res.get('logLoss') %}
+            {% if auc is not none and auc == auc %}  {# not NaN #}
+            <tr>
+                <td>{{ model_name|capitalize }}</td>
+                <td>{{ '%.4f'|format(auc) }}</td>
+                <td>{{ '%.4f'|format(ll) }}</td>
+                <td>
+                    {% if model_name == 'prior' %}Baseline: priors only (no training data)
+                    {% elif model_name == 'keyword' %}Baseline: keyword relevance score (rel)
+                    {% else %}Full LR model with embeddings + interests{% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>{{ model_name|capitalize }}</td>
+                <td colspan="3"><em>N/A (insufficient training data)</em></td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+        
+        {% if model_eval.get('fitted', {}).get('auc') is not none and model_eval.get('fitted', {}).get('auc') == model_eval.get('fitted', {}).get('auc') %}
+        <div class="metric-grid" style="margin-top: 15px;">
+            <div class="metric-card">
+                <div class="metric-value">{{ '%.1f'|format((model_eval.fitted.auc - model_eval.prior.auc) * 100) }}%</div>
+                <div class="metric-label">AUC Improvement over Prior</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ '%.1f'|format((model_eval.fitted.auc - model_eval.keyword.auc) * 100) }}%</div>
+                <div class="metric-label">AUC Improvement over Keyword</div>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
