@@ -91,11 +91,14 @@ class LREngine(Engine):
             cwd=self.project_root,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=120,
         )
 
         if result.returncode != 0:
-            raise RuntimeError(f"LR engine failed: {result.stderr}")
+            stderr = result.stderr or ""
+            raise RuntimeError(f"LR engine failed: {stderr}")
 
         # Parse JSON output
         try:
@@ -147,12 +150,15 @@ class LREngine(Engine):
             cwd=self.project_root,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=120,
         )
         
         if result.returncode != 0:
             # Try to parse stderr for actual error
-            raise RuntimeError(f"LR inspect failed: {result.stderr}")
+            stderr = result.stderr or ""
+            raise RuntimeError(f"LR inspect failed: {stderr}")
         
         # Parse JSON output (may have log lines before JSON)
         try:
@@ -234,11 +240,14 @@ class LREngine(Engine):
             cwd=self.project_root,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=120,
         )
         
         if result.returncode != 0:
-            raise RuntimeError(f"LR pool command failed: {result.stderr}")
+            stderr = result.stderr or ""
+            raise RuntimeError(f"LR pool command failed: {stderr}")
         
         try:
             return json.loads(result.stdout.strip())
