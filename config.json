@@ -49,7 +49,7 @@
   },
 
   "ranker": {
-    "engine": "keyword",
+    "engine": "lr",
     "perfect_samples_file": "perfect_samples.json",
     "label": "liked_or_saved",
     "features": ["bias", "type", "author", "medoid"],
