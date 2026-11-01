@@ -71,6 +71,11 @@ class PoolProvider:
                 item = dict(row)
                 item["id"] = item.pop("item_id")
                 
+                # Filter out items published after the given date (look-ahead prevention)
+                published = _parse_date(item.get("published"))
+                if published and published > now:
+                    continue
+                
                 # Compute age
                 item["age_days"] = _age_days(item, now)
                 

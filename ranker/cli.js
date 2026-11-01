@@ -76,7 +76,7 @@ async function cmdSelect(args) {
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const fitted = await ensureFitted(store, cfg, { persist: true, run });
+    const fitted = await ensureFitted(store, cfg, { persist: true, run, cutoffDate: args.date });
     if (!fitted.interests) {
       console.error('[select] interests not built, exiting with code 3');
       process.exit(3);
@@ -117,7 +117,7 @@ async function cmdSimulate(args) {
   const run = openRun({ cmd: 'simulate', date: args.date, seed: cfg.seed ?? 1, config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
-    const fittedResult = await ensureFitted(store, cfg, { persist: false, run });
+    const fittedResult = await ensureFitted(store, cfg, { persist: false, run, cutoffDate: args.date });
     const now = new Date(args.date + 'T12:00:00.000Z');
     const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now, run);
     const { simulate } = await import('./simulate.js');
@@ -206,7 +206,7 @@ async function cmdPool(args) {
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const fitted = await ensureFitted(store, cfg, { persist: true, run });
+    const fitted = await ensureFitted(store, cfg, { persist: true, run, cutoffDate: args.date });
     if (!fitted.interests) {
       console.error('[pool] interests not built');
       process.exit(3);

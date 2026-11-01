@@ -30,6 +30,7 @@ const SQL = {
     SELECT t.item_id, t.source_type, MIN(t.date) AS date,
            MAX(CASE WHEN t.liked=1 OR t.saved=1 THEN 1 ELSE 0 END) AS y, m.authors
       FROM training_examples t LEFT JOIN item_meta m ON m.item_id=t.item_id
+     WHERE t.date <= ?
      GROUP BY t.item_id ORDER BY date, t.item_id`,
   pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id ORDER BY p.item_id`,
   prune: `DELETE FROM embeddings WHERE item_id NOT LIKE 'ps:%' AND item_id NOT IN
@@ -98,8 +99,8 @@ export class Store {
   }
 
   // Get training rows (one per item, with first exposure date and ever-liked label)
-  getTrainingRows() {
-    return this.stmts.trainingRows.all().map((r) => ({
+  getTrainingRows(cutoffDate) {
+    return this.stmts.trainingRows.all(cutoffDate).map((r) => ({
       item_id: r.item_id,
       source_type: r.source_type,
       date: r.date,

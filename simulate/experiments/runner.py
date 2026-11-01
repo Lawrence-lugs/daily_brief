@@ -124,15 +124,13 @@ def compare_engines(
     # Save results
     reporter = Reporter(output_dir)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    json_path = reporter.write_json(results, f"comparison_{date}_{len(seeds)}seeds_{timestamp}.json")
-    print(f"Results saved to {json_path}")
+    json_filename = f"comparison_{date}_{len(seeds)}seeds_{timestamp}.json"
+    html_filename = f"comparison_{date}_{len(seeds)}seeds_{timestamp}.html"
+    json_path = reporter.write_json(results, json_filename)
+    html = reporter.generate_comparison_html(results, "Engine Comparison")
+    html_path = reporter.write_html(html, html_filename)
     
-    # Generate HTML report
-    html = reporter.generate_comparison_html(results, f"Engine Comparison - {date}")
-    html_path = reporter.write_html(html, f"comparison_{date}_{len(seeds)}seeds_{timestamp}.html")
-    print(f"HTML report saved to {html_path}")
-    
-    return results
+    return results, json_path, html_path
 
 
 def monte_carlo(

@@ -90,7 +90,7 @@ class TestCompareEngines:
         engine2 = MockEngine("engine2", sample_selections)
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1, 2],
             engines=[engine1, engine2],
@@ -119,7 +119,7 @@ class TestCompareEngines:
         engine2 = MockEngine("lr", sample_selections)
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1],
             engines=[engine1, engine2],
@@ -145,7 +145,7 @@ class TestCompareEngines:
             mock_reporter = MagicMock()
             mock_reporter_class.return_value = mock_reporter
             
-            results = compare_engines(
+            results, json_path, html_path = compare_engines(
                 date="2026-10-29",
                 seeds=[1],
                 engines=[engine1, engine2],
@@ -170,7 +170,7 @@ class TestCompareEngines:
         engine2 = MockEngine("b", sel_b)
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1],
             engines=[engine1, engine2],
@@ -214,7 +214,7 @@ class TestCompareEngines:
         engine2 = StableEngine("e2")
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1, 2],
             engines=[engine1, engine2],
@@ -242,7 +242,7 @@ class TestCompareEngines:
         pool_provider = MockPoolProvider(sample_pool)
         config = {"custom_param": "value", "max_age_days": 60}
         
-        compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1],
             engines=[engine],
@@ -588,7 +588,7 @@ class TestRunnerIntegration:
         pool_provider = MockPoolProvider(sample_pool)
         
         # Compare
-        compare_results = compare_engines(
+        compare_results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1, 2],
             engines=[engine1, engine2],
@@ -616,7 +616,7 @@ class TestRunnerIntegration:
         param_grid = {"epsilon": [0.1, 0.3]}
         feature_flags = {"feat": True}
         
-        compare_engines("2026-10-29", [1], [engine], pool_provider, {}, temp_output_dir)
+        compare_results, json_path, html_path = compare_engines("2026-10-29", [1], [engine], pool_provider, {}, temp_output_dir)
         monte_carlo(engine, sample_pool, 3, {}, output_dir=temp_output_dir)
         parameter_sweep(engine, sample_pool, param_grid, "explore_rate", [1], temp_output_dir)
         ablation_study(engine, sample_pool, feature_flags, [1], temp_output_dir)
@@ -638,7 +638,7 @@ class TestRunnerEdgeCases:
         engine = MockEngine("test", sample_selections)
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[],
             engines=[engine],
@@ -698,7 +698,7 @@ class TestRunnerEdgeCases:
         engine = MockEngine("single", sample_selections)
         pool_provider = MockPoolProvider(sample_pool)
         
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date="2026-10-29",
             seeds=[1],
             engines=[engine],

@@ -123,9 +123,10 @@ function diffParts(stored, current) {
  * Ensure model and interests are fitted (or loaded from cache).
  * @param {import('./store.js').Store} store
  * @param {object} cfg - config.ranker
- * @param {{persist?: boolean, force?: boolean, run?: object}} opts
+ * @param {{persist?: boolean, force?: boolean, run?: object, cutoffDate?: string}} opts
+ *   cutoffDate: YYYY-MM-DD, training rows after this date are excluded (for chronological holdout)
  */
-export async function ensureFitted(store, cfg, { persist = true, force = false, run = NULL_RUN } = {}) {
+export async function ensureFitted(store, cfg, { persist = true, force = false, run = NULL_RUN, cutoffDate = null } = {}) {
   // Load perfect samples
   let perfectSamples = [];
   try {
@@ -136,7 +137,7 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   }
 
   const likedIds = store.getLikedIds(cfg.interests.maxLikedDays);
-  const trainingRows = store.getTrainingRows();
+  const trainingRows = store.getTrainingRows(cutoffDate);
   const inputsHash = buildInputsHash(perfectSamples, likedIds, trainingRows, cfg);
   const code = codeHashes();
 
@@ -333,6 +334,12 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
       run.event('drop', { id: item.id, reason: 'missing_embedding' }, 'detail');
       continue;
     }
+    // Filter out items published after the given date (look-ahead prevention)
+    const pubDate = item.published ? Date.parse(item.published) : null;
+    if (pubDate && pubDate > now.getTime()) {
+      run.event('drop', { id: item.id, reason: 'future_published' }, 'detail');
+      continue;
+    }
     // Encode features
     const ctx = { interests, authorCfg: cfg.authors };
     const { keys, vals } = encode({ ...item, vec: assertVec(emb.vec, DIM, item.id) }, ctx, cfg.features);
@@ -342,9 +349,8 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
     const { cid } = topDistances(interests, emb.vec, 1)[0];
     const core = interests.clusters[cid]?.core ?? false;
     // Age in days
-    const published = item.published ? Date.parse(item.published) : null;
     const firstSeen = item.first_seen ? Date.parse(item.first_seen) : null;
-    const ageDays = Math.max(0, (now - (published || firstSeen || now)) / 86400000);
+    const ageDays = Math.max(0, (now - (pubDate || firstSeen || now)) / 86400000);
     // Days since shown
     let daysSinceShown = null;
     const last = lastShown.get(item.id);
@@ -362,7 +368,7 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
         unknownKeys: keys.filter((k) => !model.index.has(k)),
         cluster: cid,
         core,
-        publishedAgeDays: published === null ? null : (now - published) / 86400000,
+        publishedAgeDays: pubDate === null ? null : (now - pubDate) / 86400000,
         firstSeenAgeDays: firstSeen === null ? null : (now - firstSeen) / 86400000,
         daysSinceShown,
         contributions: model.explain(keys, vals).sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, 5),

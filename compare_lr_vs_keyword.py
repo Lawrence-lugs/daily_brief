@@ -11,7 +11,7 @@ accuracy estimates against the liked training/test set.
 Results (JSON + HTML) are written to docs/experiments/ by default.
 
 Usage (run from the project root):
-    python compare_lr_vs_keyword.py
+    python compare_lr_vs_keyword.py                    # uses today's date
     python compare_lr_vs_keyword.py --date 2026-10-29 --seeds 1-10
     python compare_lr_vs_keyword.py --no-model-eval
     python compare_lr_vs_keyword.py --test-frac 0.3
@@ -24,6 +24,7 @@ import json
 import statistics
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # Ensure the project root (parent of the simulate package) is importable.
@@ -47,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Compare the LR engine vs the keyword engine."
     )
-    parser.add_argument("--date", default="2026-10-29", help="Date (YYYY-MM-DD)")
+    parser.add_argument("--date", default=None, help="Date (YYYY-MM-DD), defaults to today")
     parser.add_argument("--db", default="daily_brief.db", help="Database path")
     parser.add_argument("--config", default="config.json", help="Config file path")
     parser.add_argument(
@@ -139,6 +140,8 @@ def run_model_eval(project_root: Path, date: str, test_frac: float = 0.2) -> dic
 
 def main() -> None:
     args = parse_args()
+    if args.date is None:
+        args.date = datetime.now().strftime("%Y-%m-%d")
     seeds = parse_seeds(args.seeds)
 
     # --- Configuration ---------------------------------------------------
@@ -188,7 +191,7 @@ def main() -> None:
 
     # --- Run comparison --------------------------------------------------
     try:
-        results = compare_engines(
+        results, json_path, html_path = compare_engines(
             date=args.date,
             seeds=seeds,
             engines=engines,
@@ -247,10 +250,8 @@ def main() -> None:
         else:
             print(f"  {desk}: no comparison data")
 
-    json_name = f"comparison_{args.date}_{len(seeds)}seeds.json"
-    html_name = f"comparison_{args.date}_{len(seeds)}seeds.html"
-    print(f"\nJSON results: {args.output}/{json_name}")
-    print(f"HTML report:  {args.output}/{html_name}")
+    print(f"\nJSON results: {json_path}")
+    print(f"HTML report:  {html_path}")
     print("\nDone.")
 
 
