@@ -93,9 +93,6 @@ The LR engine is the default going forward. The keyword engine remains as a fall
   - `item_meta(item_id PK, authors JSON)` — author lists survive pool pruning (needed to retrain on old stories).
   - `ranker_state(key PK, value, updated_at)` — cached fitted artefacts: `fit_key`, `interests`, `model`.
 
-## Same-day regeneration
-
-Re-running on the same day supersedes that day's previous brief: the old brief's `counted` flips to `0`, the new brief becomes `counted = 1`, and like/save marks are carried over to matching items (by `item_id`). `times_shown` is adjusted so regenerating does not make the day's own stories look "already seen".
 
 ## Desktop only
 
