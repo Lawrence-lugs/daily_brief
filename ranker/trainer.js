@@ -5,6 +5,7 @@
 import { createHash } from 'node:crypto';
 import { buildInterests } from './interests.js';
 import { encode } from './features.js';
+import { assertVec, DIM } from './vec.js';
 
 export const foldOf = (id, K) => parseInt(createHash('sha1').update(String(id)).digest('hex').slice(0, 8), 16) % K;
 
@@ -25,16 +26,23 @@ export function buildTrainingSet({ perfect, liked, rows, vecs, cfg }) {
   for (const r of rows) {
     const vec = vecs.get(r.item_id);
     if (!vec) continue;
-    const ctx = { interests: foldI[foldOf(r.item_id, K)], authorCfg: cfg.authors };
+    assertVec(vec, DIM, r.item_id);
+    const fold = foldOf(r.item_id, K);
+    const ctx = { interests: foldI[fold], authorCfg: cfg.authors };
     const { keys, vals } = encode({ ...r, vec }, ctx, cfg.features);
-    examples.push({ item_id: r.item_id, keys, vals, y: r.y, weight: 1, date: r.date });
+    examples.push({ item_id: r.item_id, keys, vals, y: r.y, weight: 1, date: r.date, fold });
   }
   return { examples, full };
 }
 
+/** Cut date: the first date of the newest (testFrac) share of distinct dates. */
+export function chronoCut(dates, testFrac = 0.2) {
+  const sorted = [...new Set(dates)].sort();
+  return sorted[Math.floor(sorted.length * (1 - testFrac))] ?? sorted.at(-1);
+}
+
 /** Chronological holdout: fit on the first (1-testFrac) of dates, evaluate on the rest. */
 export function chronoSplit(examples, testFrac = 0.2) {
-  const dates = [...new Set(examples.map((e) => e.date))].sort();
-  const cut = dates[Math.floor(dates.length * (1 - testFrac))] ?? dates.at(-1);
-  return { train: examples.filter((e) => e.date < cut), test: examples.filter((e) => e.date >= cut) };
+  const cut = chronoCut(examples.map((e) => e.date), testFrac);
+  return { train: examples.filter((e) => e.date < cut), test: examples.filter((e) => e.date >= cut), cut };
 }

@@ -173,6 +173,20 @@ Typical ranges (from `ranker/README.md`):
 
 ---
 
+### Baseline before the as-of-cut eval split (2026-11-01)
+
+Recorded on the code before the eval split fix (train=165, test=38, testFrac=0.2). The fix changes these numbers.
+
+| Model | AUC | logLoss |
+|-------|-----|---------|
+| prior only | 0.6250 | 0.4893 |
+| keyword rel | 0.9412 | 1.5875 |
+| fitted | 0.5882 | 0.3579 |
+
+Re-run after the split fix (same data): `[eval] cut=2026-10-31 liked before cut=27` (28 liked or saved in total, so one like on the cut date is excluded from interests). Metrics are unchanged to four decimals, so the fix had no measurable effect on this snapshot. Note: `getLikedIds` / `getLikedWithDates` receive `cfg.interests.maxLikedDays` (100) as a date cutoff, so the "last N days" window is not applied (pre-existing bug, not fixed here).
+
+---
+
 ## 6. Related Docs
 
 | Topic | File |

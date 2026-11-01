@@ -10,3 +10,21 @@ export function normalize(v) {
 export const toBlob = (f32) => new Uint8Array(f32.buffer, f32.byteOffset, f32.byteLength);
 export const fromBlob = (u8) => new Float32Array(u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength));
 export const cosDist = (a, b) => 1 - dot(a, b);
+
+export const DIM = 384;
+// Throws unless v is a finite, unit-norm Float32Array of length dim. A wrong-shape vector would otherwise
+// make dot() return 0 silently, so every cluster looks equally far away.
+export function assertVec(v, dim, id) {
+  if (!(v instanceof Float32Array) || v.length !== dim) {
+    const got = v instanceof Float32Array ? `Float32Array(${v.length})` : typeof v;
+    throw new Error(`bad vector for ${id}: expected Float32Array(${dim}), got ${got}`);
+  }
+  let s = 0;
+  for (let i = 0; i < v.length; i++) {
+    if (!Number.isFinite(v[i])) throw new Error(`non-finite element ${i} in vector for ${id}`);
+    s += v[i] * v[i];
+  }
+  const norm = Math.sqrt(s);
+  if (Math.abs(norm - 1) > 1e-3) throw new Error(`vector for ${id} is not unit-norm (norm=${norm})`);
+  return v;
+}

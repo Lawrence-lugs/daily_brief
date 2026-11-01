@@ -6,7 +6,9 @@ import { buildInterests, topDistances } from './interests.js';
 import { authorKey, authorKeys, encode } from './features.js';
 import { SparseBayesLogReg, auc } from './model.js';
 import { selectBrief, mulberry32 } from './sampler.js';
-import { normalize } from './vec.js';
+import { assertVec, DIM, normalize } from './vec.js';
+import { codeHashes, openRun, resolveLevel } from './debuglog.js';
+import { readFileSync, rmSync } from 'node:fs';
 
 const v = (...a) => normalize(Float32Array.from(a));
 // 3 tight blobs in 3-D
@@ -218,4 +220,78 @@ test('selectBrief: hard dedupe window and backfill when a desk is short', () => 
 test('epsilon=1 explores and still returns a valid brief', () => {
   const out = selectBrief([...mk(30, true, 0), ...mk(30, false, 10)], { ...CFG, epsilon: 1 }, mulberry32(2));
   assert.ok(out.primary.filter((c) => c.mode === 'explore').length >= 1);
+});
+
+test('assertVec: accepts a unit vector, rejects objects, wrong dim, NaN, unnormalised', () => {
+  const ok = normalize(Float32Array.from({ length: DIM }, (_, i) => (i === 0 ? 1 : 0)));
+  assert.equal(assertVec(ok, DIM, 'ok'), ok);
+  assert.throws(() => assertVec({ length: DIM }, DIM, 'obj'));
+  assert.throws(() => assertVec(ok.subarray(0, 3), DIM, 'dim'));
+  assert.throws(() => assertVec(new Float32Array(DIM).fill(1), DIM, 'unnorm'));
+  const bad = Float32Array.from(ok); bad[5] = NaN;
+  assert.throws(() => assertVec(bad, DIM, 'nan'));
+});
+
+test('model: fromJSON rejects null/non-finite weights; assertFinite blocks NaN', () => {
+  assert.throws(() => SparseBayesLogReg.fromJSON({ stats: {}, keys: ['a'], w: [null], prec: [1] }, {}));
+  assert.throws(() => SparseBayesLogReg.fromJSON({ stats: {}, keys: ['a'], w: [0.1], prec: [Infinity] }, {}));
+  const m = new SparseBayesLogReg({ prior: PRIOR });
+  m.fit([{ keys: ['a:x'], vals: [1], y: 1, weight: 1 }, { keys: ['b:y'], vals: [1], y: 0, weight: 1 }]);
+  assert.doesNotThrow(() => m.assertFinite());
+  m.w[0] = NaN;
+  assert.throws(() => m.assertFinite());
+});
+
+test('fit: identical weights with and without onSweep; onSweep fires once per sweep', () => {
+  const ex = [
+    { keys: ['a:x', 'n:z'], vals: [1, 0.5], y: 1, weight: 1 },
+    { keys: ['a:x', 'n:z'], vals: [1, -0.5], y: 0, weight: 1 },
+    { keys: ['b:y'], vals: [1], y: 0, weight: 1 },
+    { keys: ['b:y', 'n:z'], vals: [1, 2], y: 1, weight: 1 },
+  ];
+  const m1 = new SparseBayesLogReg({ prior: PRIOR }).fit(ex);
+  const seen = [];
+  const m2 = new SparseBayesLogReg({ prior: PRIOR }).fit(ex, { onSweep: (s) => seen.push(s) });
+  assert.deepEqual(Array.from(m2.w), Array.from(m1.w));
+  assert.deepEqual(Array.from(m2.prec), Array.from(m1.prec));
+  assert.equal(seen.length, m2.diag.sweeps);
+});
+
+const FULL = JSON.parse(readFileSync(new URL('../config.json', import.meta.url), 'utf8')).ranker.sampling;
+
+test('selectBrief: same output with and without trace; trace reports draws', () => {
+  const cands = [...mk(30, true, 0), ...mk(30, false, 10)];
+  const plain = selectBrief(cands, FULL, mulberry32(3));
+  const kinds = [];
+  const traced = selectBrief(cands, FULL, mulberry32(3), (kind) => kinds.push(kind));
+  assert.deepEqual(traced, plain);
+  assert.ok(kinds.includes('draw'));
+});
+
+test('resolveLevel: env and flag rules; invalid value throws', () => {
+  assert.equal(resolveLevel(undefined, ''), 'summary');
+  assert.equal(resolveLevel(undefined, '0'), 'summary');
+  assert.equal(resolveLevel(undefined, '1'), 'detail');
+  assert.equal(resolveLevel(undefined, 'trace'), 'trace');
+  assert.equal(resolveLevel('detail', 'trace'), 'detail');
+  assert.throws(() => resolveLevel(undefined, 'bogus'));
+});
+
+test('openRun: well-formed JSONL with header and end; codeHashes present', () => {
+  process.env.RANKER_RUN_ID = `test-${process.pid}-${Date.now()}`;
+  let path;
+  try {
+    const run = openRun({ cmd: 'test', flag: 'trace', argv: [] });
+    path = run.path;
+    run.event('a', { x: 1 });
+    run.event('b', { y: 2 }, 'trace');
+    run.close(0);
+    const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.deepEqual(lines.map((r) => r.kind), ['header', 'a', 'b', 'end']);
+    assert.match(lines[0].data.codeHashes.model, /^[0-9a-f]{40}$/);
+    assert.deepEqual(Object.keys(codeHashes()).sort(), ['features', 'interests', 'model', 'trainer']);
+  } finally {
+    delete process.env.RANKER_RUN_ID;
+    if (path) rmSync(path, { force: true });
+  }
 });

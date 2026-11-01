@@ -27,6 +27,7 @@ import selection as sel
 
 import util
 import db
+from runlog import RunLog
 from util import log, warn
 from fetch.fetcher import (  # noqa: F401  (Fetcher/CACHE are re-imported by fetcher.py)
     Fetcher,
@@ -57,6 +58,7 @@ def select_lr(
     src: dict,
     pool: list[dict],
     now: dt.datetime,
+    run: RunLog | None = None,
 ) -> dict[str, list[dict]]:
     """Call the Node ranker CLI `select` command and return selected items per desk.
 
@@ -80,7 +82,8 @@ def select_lr(
         cmd.extend(["--set", f"sampling.desks.side={desks.get('side', 'science')}"])
 
     # Run from PROJECT_ROOT so perfect_samples.json and config.json paths resolve correctly
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=120,
+                            env=run.child_env() if run else None)
     if result.returncode != 0:
         raise RuntimeError(f"ranker select failed (exit {result.returncode}): {result.stderr}")
     try:
@@ -120,6 +123,22 @@ def db_path(cfg: dict) -> Path:
 def age_days(item: dict, now: dt.datetime) -> float:
     d = parse_date(item.get("published")) or parse_date(item.get("first_seen")) or now
     return max(0.0, (now - d).total_seconds() / 86400)
+
+
+def _age_or_none(value, now: dt.datetime) -> float | None:
+    d = parse_date(value)
+    return None if d is None else round(max(0.0, (now - d).total_seconds() / 86400), 2)
+
+
+def item_view(item: dict, now: dt.datetime) -> dict:
+    """Compact per-item record for the run log (titles and authors included, both ages kept)."""
+    return {
+        "id": item.get("id"), "title": item.get("title"), "authors": item.get("authors"),
+        "mode": item.get("mode"), "p": item.get("p"), "V": item.get("V"),
+        "cluster": item.get("cluster"), "core": item.get("core"), "kind": item.get("kind"),
+        "published_age_days": _age_or_none(item.get("published"), now),
+        "first_seen_age_days": _age_or_none(item.get("first_seen"), now),
+    }
 
 
 # --------------------------------------------------------------------------- classification (unchanged)
@@ -207,6 +226,7 @@ def main() -> int:
     rng = random.Random(args.seed)
     now = dt.datetime.now(UTC)
     date_key = now.astimezone().strftime("%Y-%m-%d")
+    run = RunLog(PROJECT_ROOT, "brief", date=date_key, seed=args.seed, argv=sys.argv[1:])
 
     # 1. fetch + classify + upsert
     if args.no_fetch:
@@ -243,11 +263,12 @@ def main() -> int:
     selected: dict[str, list[dict]] = {}
     engine = args.engine or cfg.get("ranker", {}).get("engine", "keyword")
     log(f"selection engine: {engine}")
+    run.event("engine", {"engine": engine, "pool": len(pool), "n": n, "reserve": k})
 
     if engine == "lr":
         # LR engine: call Node ranker CLI
         try:
-            selected = select_lr(date_key, args.seed, cfg, src, pool, now)
+            selected = select_lr(date_key, args.seed, cfg, src, pool, now, run)
             # Count picks vs reserves for logging
             for desk, items in selected.items():
                 picks = [i for i in items if i["mode"] != "reserve"]
@@ -256,6 +277,7 @@ def main() -> int:
                 log(f"{desk}: {len(picks)} picked ({explore} explore) + {len(reserves)} reserve")
         except Exception as e:
             warn(f"LR selection failed: {e}. Falling back to keyword engine.")
+            run.event("engine_fallback", {"error": str(e)})
             engine = "keyword"
             # Fall through to keyword selection
 
@@ -273,6 +295,13 @@ def main() -> int:
                 c["kind"] = sel.kind_of(c, scfg)
             log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) "
                 f"+ {len(reserve)} reserve")
+
+    for desk, items in selected.items():
+        run.event("selection", {
+            "desk": desk,
+            "picks": [item_view(i, now) for i in items if i["mode"] != "reserve"],
+            "reserves": [item_view(i, now) for i in items if i["mode"] == "reserve"],
+        })
 
     # 3. LLM edit
     llm: LLM | None = None
@@ -309,12 +338,21 @@ def main() -> int:
                 warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
                 llm = None
         stories, rejected, deck = apply_editor(selected[desk], result, n)
+        run.event("editor", {
+            "desk": desk, "llm_answered": result is not None,
+            "input": [item_view(c, now) for c in cands_for_llm],
+            "output": [item_view(s, now) | {"summarized": s.get("summarized")} for s in stories],
+            "rejected": rejected, "reserves_used": [s.get("id") for s in stories if s.get("mode") == "reserve"],
+            "deck": deck,
+        })
         desks_out[desk] = {"title": spec["title"], "stories": stories,
                            "deck": deck or "Unedited candidates, ranked by relevance and freshness."}
         all_rejected += rejected
 
     # 4. persist (single atomic append)
     all_stories = [s for d in desks_out.values() for s in d["stories"]]
+    run.event("final", {"stories": [{"desk": d, **item_view(s, now)} for d, v in desks_out.items() for s in v["stories"]],
+                        "rejected": all_rejected})
     models = sorted(set(llm.models)) if llm and llm.models else []
     meta = {
         "model": ", ".join(models) if models else "no model (raw items)",

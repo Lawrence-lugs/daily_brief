@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
+import { openRun, takeDebugFlag } from './debuglog.js';
 import { selectBrief, mulberry32, value } from './sampler.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
@@ -50,10 +51,11 @@ async function cmdEmbed(args) {
 async function cmdRefit(args) {
   const cfg = loadConfig();
   if (args.force) cfg.force = true;
+  const run = openRun({ cmd: 'refit', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const result = await ensureFitted(store, cfg, { persist: true, force: args.force });
+    const result = await ensureFitted(store, cfg, { persist: true, force: args.force, run });
     console.error(`fitKey: ${result.fitKey}`);
     console.error(`fromCache: ${result.fromCache}`);
   } finally {
@@ -69,19 +71,22 @@ async function cmdSelect(args) {
     console.error('select requires --date D');
     process.exit(1);
   }
+  const seed = cfg.seed ?? Date.now();
+  const run = openRun({ cmd: 'select', date: args.date, seed, config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const fitted = await ensureFitted(store, cfg, { persist: true });
+    const fitted = await ensureFitted(store, cfg, { persist: true, run });
     if (!fitted.interests) {
       console.error('[select] interests not built, exiting with code 3');
       process.exit(3);
     }
     // Use deterministic time (noon on dateKey) for age calculation so same seed = same output
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, now);
-    const rng = mulberry32(cfg.seed ?? Date.now());
-    const out = selectBrief(candidates, cfg.sampling, rng);
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run);
+    const rng = mulberry32(seed);
+    const trace = run.want('trace') ? (kind, data) => run.event(kind, data, 'trace') : undefined;
+    const out = selectBrief(candidates, cfg.sampling, rng, trace);
     // Output format: { desk: [{id, mode, p, V, cluster, core}] }
     const result = {};
     for (const [desk, items] of Object.entries(out)) {
@@ -101,7 +106,7 @@ async function cmdSelect(args) {
 }
 
 async function cmdSimulate(args) {
-  const cfg = loadConfig();
+  let cfg = loadConfig();
   if (args.set) cfg = applyOverrides(cfg, args.set);
   if (args.runs) cfg.runs = parseInt(args.runs, 10);
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
@@ -109,11 +114,12 @@ async function cmdSimulate(args) {
     console.error('simulate requires --date D');
     process.exit(1);
   }
+  const run = openRun({ cmd: 'simulate', date: args.date, seed: cfg.seed ?? 1, config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
-    const fittedResult = await ensureFitted(store, cfg, { persist: false });
+    const fittedResult = await ensureFitted(store, cfg, { persist: false, run });
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now);
+    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now, run);
     const { simulate } = await import('./simulate.js');
     const result = simulate(candidates, cfg.sampling, cfg.runs ?? 200, cfg.seed ?? 1);
     console.log(JSON.stringify(result, null, 2));
@@ -124,10 +130,11 @@ async function cmdSimulate(args) {
 
 async function cmdEval(args) {
   const cfg = loadConfig();
+  const run = openRun({ cmd: 'eval', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const results = await evalModel(store, cfg, { testFrac: args.testFrac ? parseFloat(args.testFrac) : 0.2 });
+    const results = await evalModel(store, cfg, { testFrac: args.testFrac ? parseFloat(args.testFrac) : 0.2, run });
     console.log(JSON.stringify(results, null, 2));
   } finally {
     store.close();
@@ -136,10 +143,11 @@ async function cmdEval(args) {
 
 async function cmdInspect(args) {
   const cfg = loadConfig();
+  const run = openRun({ cmd: 'inspect', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const fitted = await ensureFitted(store, cfg, { persist: true });
+    const fitted = await ensureFitted(store, cfg, { persist: true, run });
     if (!fitted.interests) {
       console.error('[inspect] interests not built');
       process.exit(3);
@@ -194,17 +202,18 @@ async function cmdPool(args) {
     console.error('pool requires --date D');
     process.exit(1);
   }
+  const run = openRun({ cmd: 'pool', date: args.date, config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const fitted = await ensureFitted(store, cfg, { persist: true });
+    const fitted = await ensureFitted(store, cfg, { persist: true, run });
     if (!fitted.interests) {
       console.error('[pool] interests not built');
       process.exit(3);
     }
     // Use deterministic time (noon on dateKey) for age calculation
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, now);
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run);
     
     // Compute V scores using the same config as sampling
     const samplingCfg = cfg.sampling || {};
@@ -249,8 +258,9 @@ const commands = {
 };
 
 async function main() {
+  const { argv: rest, flag: debugFlag } = takeDebugFlag(process.argv.slice(2));
   const { positionals, values } = parseArgs({
-    args: process.argv.slice(2),
+    args: rest,
     allowPositionals: true,
     options: {
       force: { type: 'boolean', short: 'f' },
@@ -270,7 +280,7 @@ async function main() {
   }
 
   // Convert values to args object
-  const args = { ...values };
+  const args = { ...values, debug: debugFlag };
   if (positionals[1]) args.date = positionals[1]; // allow positional date for select
 
   await commands[cmd](args);

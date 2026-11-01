@@ -1,9 +1,10 @@
 // Same model + settings as bge-embedding/embed.js, so vectors are interchangeable with embeddings.json.
 import { pipeline } from '@xenova/transformers';
 import { createHash } from 'node:crypto';
+import { DIM } from './vec.js';
 
 export const MODEL = 'TaylorAI/bge-micro-v2';
-export const DIM = 384;
+export { DIM };
 let extractor;
 
 /** @returns {Promise<Float32Array[]>} unit-norm vectors, same order as `texts` */

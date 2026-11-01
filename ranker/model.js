@@ -23,6 +23,7 @@ export class SparseBayesLogReg {
   constructor(cfg) {
     this.cfg = { maxSweeps: 60, tol: 1e-4, numDefault: { mean: 0, std: 1 }, ...cfg };
     this.index = new Map(); this.w = new Float64Array(0); this.prec = new Float64Array(0); this.stats = {};
+    this.diag = null;
   }
 
   _z(keys, vals) {
@@ -35,7 +36,7 @@ export class SparseBayesLogReg {
 
   /** @param {{scaleSample?: {keys:string[],vals:number[]}[]}} o  rows used for z-score stats (default: examples).
    *  Pass the *candidate pool* here: the scale of "distance to a medoid" should describe what we will score. */
-  fit(examples, { scaleSample } = {}) {
+  fit(examples, { scaleSample, onSweep } = {}) {
     const acc = {};
     for (const ex of scaleSample ?? examples) ex.keys.forEach((k, t) => {
       if (!isNum(k)) return;
@@ -63,8 +64,9 @@ export class SparseBayesLogReg {
     const w = Float64Array.from(mu), z = new Float64Array(N), trust = new Float64Array(J).fill(1);
     for (let j = 0; j < J; j++) for (let t = 0; t < colR[j].length; t++) z[colR[j][t]] += w[j] * colX[j][t];
 
+    let sweeps = 0, trustHits = 0, lastMaxStep = 0, converged = false;
     for (let sweep = 0; sweep < this.cfg.maxSweeps; sweep++) {
-      let maxStep = 0;
+      let maxStep = 0, sweepHits = 0;
       for (let j = 0; j < J; j++) {
         let g = lam[j] * (w[j] - mu[j]), h = lam[j];
         const R = colR[j], Xj = colX[j];
@@ -74,12 +76,15 @@ export class SparseBayesLogReg {
           h += wt[i] * x * x * Math.max(p * (1 - p), 1e-6);
         }
         let step = -g / h;
+        if (Math.abs(step) > trust[j]) sweepHits++;
         step = Math.max(-trust[j], Math.min(trust[j], step));
         if (step !== 0) { for (let t = 0; t < R.length; t++) z[R[t]] += step * Xj[t]; w[j] += step; }
         trust[j] = Math.max(2 * Math.abs(step), trust[j] / 2);
         maxStep = Math.max(maxStep, Math.abs(step));
       }
-      if (maxStep < this.cfg.tol) break;
+      sweeps = sweep + 1; trustHits += sweepHits; lastMaxStep = maxStep;
+      onSweep?.({ sweep, maxStep, trustHits: sweepHits });
+      if (maxStep < this.cfg.tol) { converged = true; break; }
     }
     // diagonal Laplace posterior precision at the MAP
     const prec = Float64Array.from(lam);
@@ -88,7 +93,32 @@ export class SparseBayesLogReg {
       prec[j] += wt[i] * colX[j][t] ** 2 * Math.max(p * (1 - p), 1e-6);
     }
     this.w = w; this.prec = prec;
+    let nnz = 0; for (const c of colR) nnz += c.length;
+    this.diag = { sweeps, converged, lastMaxStep, trustHits, nnz, features: J, examples: N,
+      precMin: J ? prec.reduce((a, b) => Math.min(a, b), Infinity) : null,
+      precMax: J ? prec.reduce((a, b) => Math.max(a, b), -Infinity) : null };
     return this;
+  }
+
+  /** Throws if any weight or precision is NaN or infinite, so a broken fit is never persisted. */
+  assertFinite() {
+    const keys = [...this.index.keys()];
+    for (let j = 0; j < this.w.length; j++) {
+      if (!Number.isFinite(this.w[j]) || !Number.isFinite(this.prec[j])) {
+        throw new Error(`non-finite model parameter for ${keys[j]}: w=${this.w[j]} prec=${this.prec[j]}`);
+      }
+    }
+    return this;
+  }
+
+  /** Per-feature contributions to the linear score (diagnostics only). */
+  explain(keys, vals) {
+    const xs = this._z(keys, vals);
+    return keys.map((k, t) => {
+      const j = this.index.get(k);
+      const w = j === undefined ? priorFor(k, this.cfg.prior).mean : this.w[j];
+      return { key: k, x: xs[t], w, c: w * xs[t] };
+    });
   }
 
   /** Unknown keys (unseen author, cold start) fall back to their prior: mean weight, prior variance. */
@@ -112,6 +142,12 @@ export class SparseBayesLogReg {
     return { stats: this.stats, keys, w: keys.map((k) => this.w[this.index.get(k)]), prec: keys.map((k) => this.prec[this.index.get(k)]) };
   }
   static fromJSON(o, cfg) {
+    for (const name of ['w', 'prec']) {
+      const arr = o[name];
+      if (!Array.isArray(arr) || arr.length !== o.keys.length || arr.some((x) => typeof x !== 'number' || !Number.isFinite(x))) {
+        throw new Error(`model JSON: ${name} must be ${o.keys.length} finite numbers`);
+      }
+    }
     const m = new SparseBayesLogReg(cfg);
     m.stats = o.stats; m.index = new Map(o.keys.map((k, j) => [k, j]));
     m.w = Float64Array.from(o.w); m.prec = Float64Array.from(o.prec);
