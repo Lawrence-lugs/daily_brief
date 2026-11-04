@@ -32,7 +32,7 @@ daily_brief/
     agglo.js         Ward agglomerative clustering with perfect-sample stop rule
     sampler.js       interest-level round robin + epsilon-greedy + freshness/dedupe
     simulate.js      ephemeral Monte-Carlo preview, --set overrides
-    embedder.js      bge-micro-v2 wrapper (@xenova/transformers)
+    embedder.js      multi-model embedder (@huggingface/transformers), model from config.json
     vec.js           vector helpers (dot, normalize, sqlite blob conversion)
     trainer.js       cross-fitted training set (leak fix), chronological split
     test/ranker.test.js 15 unit tests (node --test)
@@ -92,6 +92,7 @@ The LR engine is the default going forward. The keyword engine remains as a fall
   - `embeddings(item_id PK, model, text_hash, dim, vec BLOB)` — L2-normalised 384-d Float32 vectors (bge-micro-v2). Pool/story items + perfect samples (`ps:<id>`). Never pruned with the pool.
   - `item_meta(item_id PK, authors JSON)` — author lists survive pool pruning (needed to retrain on old stories).
   - `ranker_state(key PK, value, updated_at)` — cached fitted artefacts: `fit_key`, `interests`, `model`.
+  - `model_eval(id PK, created_at, embedding_tag, cutoff_date, test_frac, n_train, n_test, prior/keyword/fitted auc + logloss, results JSON)` — one row per `ranker eval` run, so embedding models can be compared without re-running.
 
 
 ## Desktop only

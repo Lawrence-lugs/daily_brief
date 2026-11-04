@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
+import { embeddingOf } from './embedder.js';
 import { openRun, takeDebugFlag } from './debuglog.js';
 import { selectBrief, mulberry32, value } from './sampler.js';
 
@@ -129,12 +130,22 @@ async function cmdSimulate(args) {
 }
 
 async function cmdEval(args) {
-  const cfg = loadConfig();
+  let cfg = loadConfig();
+  if (args.set) cfg = applyOverrides(cfg, args.set);
   const run = openRun({ cmd: 'eval', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
-    const results = await evalModel(store, cfg, { testFrac: args.testFrac ? parseFloat(args.testFrac) : 0.2, run });
+    const testFrac = args.testFrac ? parseFloat(args.testFrac) : 0.2;
+    const results = await evalModel(store, cfg, { testFrac, cutoffDate: args.date, run });
+    store.logModelEval({
+      embeddingTag: embeddingOf(cfg).tag,
+      cutoffDate: args.date,
+      testFrac,
+      nTrain: results.nTrain,
+      nTest: results.nTest,
+      results,
+    });
     console.log(JSON.stringify(results, null, 2));
   } finally {
     store.close();

@@ -35,11 +35,15 @@ const SQL = {
   pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id ORDER BY p.item_id`,
   prune: `DELETE FROM embeddings WHERE item_id NOT LIKE 'ps:%' AND item_id NOT IN
             (SELECT item_id FROM candidate_pool UNION SELECT item_id FROM stories)`,
+  pruneOtherModels: `DELETE FROM embeddings WHERE model != ?`,
   embeddingById: `SELECT item_id, model, text_hash, dim, vec FROM embeddings WHERE item_id = ?`,
   embeddingAll: `SELECT item_id, model, text_hash, dim, vec FROM embeddings`,
   upsertEmbedding: `INSERT INTO embeddings (item_id, model, text_hash, dim, vec)
                      VALUES (?, ?, ?, ?, ?)
                      ON CONFLICT(item_id) DO UPDATE SET model=excluded.model, text_hash=excluded.text_hash, dim=excluded.dim, vec=excluded.vec`,
+  insertModelEval: `INSERT INTO model_eval (embedding_tag, cutoff_date, test_frac, n_train, n_test,
+                     prior_auc, prior_logloss, keyword_auc, keyword_logloss, fitted_auc, fitted_logloss, results)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   getState: `SELECT value FROM ranker_state WHERE key = ?`,
   setState: `INSERT INTO ranker_state (key, value, updated_at) VALUES (?, ?, datetime('now'))
               ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`,
@@ -59,9 +63,11 @@ export class Store {
       trainingRows: this.db.prepare(SQL.trainingRows),
       pool: this.db.prepare(SQL.pool),
       prune: this.db.prepare(SQL.prune),
+      pruneOtherModels: this.db.prepare(SQL.pruneOtherModels),
       embeddingById: this.db.prepare(SQL.embeddingById),
       embeddingAll: this.db.prepare(SQL.embeddingAll),
       upsertEmbedding: this.db.prepare(SQL.upsertEmbedding),
+      insertModelEval: this.db.prepare(SQL.insertModelEval),
       getState: this.db.prepare(SQL.getState),
       setState: this.db.prepare(SQL.setState),
     };
@@ -100,7 +106,7 @@ export class Store {
 
   // Get training rows (one per item, with first exposure date and ever-liked label)
   getTrainingRows(cutoffDate) {
-    return this.stmts.trainingRows.all(cutoffDate).map((r) => ({
+    return this.stmts.trainingRows.all(cutoffDate ?? '9999-12-31').map((r) => ({
       item_id: r.item_id,
       source_type: r.source_type,
       date: r.date,
@@ -121,6 +127,11 @@ export class Store {
   // Prune embeddings not in pool or stories
   pruneEmbeddings() {
     this.stmts.prune.run();
+  }
+
+  // Drop embeddings written by another model/dtype (vectors from different models are not comparable)
+  pruneEmbeddingsOtherModels(tag) {
+    this.stmts.pruneOtherModels.run(tag);
   }
 
   // Get embedding by item_id
@@ -150,6 +161,18 @@ export class Store {
   // Upsert embedding
   upsertEmbedding(itemId, model, textHash, dim, vec) {
     this.stmts.upsertEmbedding.run(itemId, model, textHash, dim, toBlob(vec));
+  }
+
+  // Log one eval run (embedding model comparison)
+  logModelEval({ embeddingTag, cutoffDate, testFrac, nTrain, nTest, results }) {
+    const n = (x) => (Number.isFinite(x) ? x : null);
+    this.stmts.insertModelEval.run(
+      embeddingTag, cutoffDate ?? null, n(testFrac), nTrain ?? null, nTest ?? null,
+      n(results.prior.auc), n(results.prior.logLoss),
+      n(results.keyword.auc), n(results.keyword.logLoss),
+      n(results.fitted.auc), n(results.fitted.logLoss),
+      JSON.stringify(results),
+    );
   }
 
   // Get state by key

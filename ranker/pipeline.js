@@ -1,9 +1,9 @@
 // Pipeline functions: embeddings, fitting, candidate preparation.
-import { embedTexts, textOf, textHash, MODEL as EMBED_MODEL, DIM } from './embedder.js';
+import { embedTexts, textOf, textHash, embeddingOf } from './embedder.js';
 import { SQL } from './store.js';
 import { createHash } from 'node:crypto';
 import { buildTrainingSet, chronoCut, chronoSplit, foldOf } from './trainer.js';
-import { SparseBayesLogReg, auc, logLoss } from './model.js';
+import { SparseBayesLogReg, MODELS, auc, logLoss } from './model.js';
 import { encode } from './features.js';
 import { topDistances } from './interests.js';
 import { assertVec } from './vec.js';
@@ -19,7 +19,9 @@ const ENCODING_VERSION = 1; // bump when encode() schema changes
  * @param {{persist?: boolean}} opts
  */
 export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
-  // Pool items: missing or text_hash mismatch
+  const emb = embeddingOf(cfg);
+  if (persist) store.pruneEmbeddingsOtherModels(emb.tag);
+  // Pool items: missing, embedded by another model, or text_hash mismatch
   const poolItems = store.getPool();
   const existingEmbs = store.getAllEmbeddings();
   const embById = new Map(existingEmbs.map((e) => [e.item_id, e]));
@@ -29,16 +31,16 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
     const text = textOf(item.title, item.snippet);
     const h = textHash(text);
     const existing = embById.get(item.id);
-    if (!existing || existing.text_hash !== h) {
+    if (!existing || existing.model !== emb.tag || existing.text_hash !== h) {
       toEmbed.push({ id: item.id, text, hash: h });
     }
   }
   
   if (toEmbed.length > 0) {
     const texts = toEmbed.map((t) => t.text);
-    const vecs = await embedTexts(texts);
+    const vecs = await embedTexts(texts, emb);
     for (let i = 0; i < toEmbed.length; i++) {
-      if (persist) store.upsertEmbedding(toEmbed[i].id, EMBED_MODEL, toEmbed[i].hash, DIM, vecs[i]);
+      if (persist) store.upsertEmbedding(toEmbed[i].id, emb.tag, toEmbed[i].hash, emb.dim, vecs[i]);
     }
     console.error(`[embed] inserted/updated ${toEmbed.length} pool embeddings`);
   } else {
@@ -50,10 +52,10 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
     .filter((m) => !embById.has(m.id) && !toEmbed.some((t) => t.id === m.id));
   if (missingStories.length > 0) {
     const texts = missingStories.map((m) => textOf(m.title, m.body));
-    const vecs = await embedTexts(texts);
+    const vecs = await embedTexts(texts, emb);
     for (let i = 0; i < missingStories.length; i++) {
       const h = textHash(texts[i]);
-      if (persist) store.upsertEmbedding(missingStories[i].id, EMBED_MODEL, h, DIM, vecs[i]);
+      if (persist) store.upsertEmbedding(missingStories[i].id, emb.tag, h, emb.dim, vecs[i]);
     }
     console.error(`[embed] inserted ${missingStories.length} story embeddings`);
   }
@@ -69,14 +71,14 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
   }
   if (perfectSamples.length > 0) {
     const texts = perfectSamples.map((ps) => textOf(ps.title, ps.snippet));
-    const vecs = await embedTexts(texts);
+    const vecs = await embedTexts(texts, emb);
     for (let i = 0; i < perfectSamples.length; i++) {
       const rawId = perfectSamples[i].id;
       const id = rawId.startsWith('ps:') ? rawId : `ps:${rawId}`;
       const h = textHash(texts[i]);
       const existing = store.getEmbedding(id);
-      if (!existing || existing.text_hash !== h) {
-        if (persist) store.upsertEmbedding(id, EMBED_MODEL, h, DIM, vecs[i]);
+      if (!existing || existing.model !== emb.tag || existing.text_hash !== h) {
+        if (persist) store.upsertEmbedding(id, emb.tag, h, emb.dim, vecs[i]);
         console.error(`[embed] perfect sample ${id} embedded`);
       }
     }
@@ -101,6 +103,7 @@ function buildInputsHash(perfectSamples, likedIds, trainingRows, cfg) {
     cfg.authors,
     cfg.crossFit,
     cfg.model,
+    cfg.embedding ?? null,
     ENCODING_VERSION,
   ];
   return createHash('sha1').update(JSON.stringify(payload)).digest('hex');
@@ -127,6 +130,7 @@ function diffParts(stored, current) {
  *   cutoffDate: YYYY-MM-DD, training rows after this date are excluded (for chronological holdout)
  */
 export async function ensureFitted(store, cfg, { persist = true, force = false, run = NULL_RUN, cutoffDate = null } = {}) {
+  const { dim } = embeddingOf(cfg);
   // Load perfect samples
   let perfectSamples = [];
   try {
@@ -155,7 +159,7 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
       if (ps.representative === undefined) {
         console.error(`[refit] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
       }
-      perfectWithVecs.push({ id, vec: assertVec(emb.vec, DIM, id), core: ps.core, representative });
+      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative });
     } else {
       console.error(`[refit] WARNING: perfect sample ${id} has no embedding`);
     }
@@ -168,7 +172,7 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   for (const lid of likedIds) {
     const emb = embById.get(lid);
     if (emb) {
-      likedWithVecs.push({ id: lid, vec: assertVec(emb.vec, DIM, lid) });
+      likedWithVecs.push({ id: lid, vec: assertVec(emb.vec, dim, lid) });
     }
   }
 
@@ -176,7 +180,8 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   if (perfectWithVecs.length === 0 && likedWithVecs.length === 0) {
     console.error('[refit] cold start: no perfect samples and no liked items, using prior only');
     const interests = { stopHeight: null, clusters: [] };
-    const model = new SparseBayesLogReg(cfg.model);
+    const ModelClass = MODELS[cfg.model?.name ?? 'bayes_lr'] ?? SparseBayesLogReg;
+    const model = new ModelClass(cfg.model);
     const parts = fitPartsOf(inputsHash, code, sha1([]));
     const fitKey = sha1(parts);
     if (persist) {
@@ -269,7 +274,8 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
     console.error('[refit] cache hit, loading interests and model from ranker_state');
     run.event('fit_cache', { hit: true, fitKey, parts });
     const modelJson = JSON.parse(store.getState('model'));
-    const model = SparseBayesLogReg.fromJSON(modelJson, cfg.model);
+    const ModelClass = MODELS[cfg.model?.name ?? 'bayes_lr'] ?? SparseBayesLogReg;
+    const model = ModelClass.fromJSON(modelJson, cfg.model);
     return { interests: JSON.parse(store.getState('interests')), model, fitKey, fromCache: true };
   }
   const storedParts = store.getState('fit_parts');
@@ -278,7 +284,8 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   console.error(`[refit] cache miss (${why}), fitting model...`);
   run.event('fit_cache', { hit: false, fitKey, parts, changed });
 
-  const model = new SparseBayesLogReg(cfg.model);
+  const ModelClass = MODELS[cfg.model?.name ?? 'bayes_lr'] ?? SparseBayesLogReg;
+  const model = new ModelClass(cfg.model);
   if (examples.length > 0) {
     const onSweep = run.enabled ? (s) => run.event('fit_sweep', s, 'trace') : undefined;
     model.fit(examples, { scaleSample: poolCandidates, onSweep });
@@ -320,14 +327,24 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
  * @param {Date} now
  */
 export function prepareCandidates(store, cfg, { interests, model }, dateKey, now, run = NULL_RUN) {
+  const { dim } = embeddingOf(cfg);
   const pool = store.getPool();
   const embeddings = store.getAllEmbeddings();
   const embById = new Map(embeddings.map((e) => [e.item_id, e]));
   const lastShown = new Map(store.getLastShown(dateKey).map((r) => [r.item_id, r.last]));
 
+  // Exclude items the user has ever liked or saved from re-selection.
+  const likedIds = new Set(store.getLikedIds(cfg.interests.maxLikedDays).map(String));
+
   const candidates = [];
   let missingEmb = 0;
+  let likedDropped = 0;
   for (const item of pool) {
+    if (likedIds.has(item.id)) {
+      likedDropped++;
+      run.event('drop', { id: item.id, reason: 'liked' }, 'detail');
+      continue;
+    }
     const emb = embById.get(item.id);
     if (!emb) {
       missingEmb++;
@@ -342,7 +359,7 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
     }
     // Encode features
     const ctx = { interests, authorCfg: cfg.authors };
-    const { keys, vals } = encode({ ...item, vec: assertVec(emb.vec, DIM, item.id) }, ctx, cfg.features);
+    const { keys, vals } = encode({ ...item, vec: assertVec(emb.vec, dim, item.id) }, ctx, cfg.features);
     // Predict
     const pred = model.predict(keys, vals);
     // Nearest cluster
@@ -365,7 +382,7 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
         mu: pred.mu,
         var: pred.var,
         p: pred.p,
-        unknownKeys: keys.filter((k) => !model.index.has(k)),
+        unknownKeys: keys.filter((k) => !model.featureIndex.has(k)),
         cluster: cid,
         core,
         publishedAgeDays: pubDate === null ? null : (now - pubDate) / 86400000,
@@ -381,12 +398,14 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
       p: pred.p,
       age_days: ageDays,
       days_since_shown: daysSinceShown,
+      times_shown: item.times_shown ?? 0,
       cluster: cid,
       core,
     });
   }
   if (missingEmb > 0) console.error(`[prepareCandidates] ${missingEmb} pool items missing embeddings, skipped`);
-  run.event('candidates', { pool: pool.length, candidates: candidates.length, missingEmb });
+  if (likedDropped > 0) console.error(`[prepareCandidates] ${likedDropped} pool items dropped (liked/saved)`);
+  run.event('candidates', { pool: pool.length, candidates: candidates.length, missingEmb, likedDropped });
   return candidates;
 }
 
@@ -395,9 +414,10 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
  * Returns AUC and logLoss for: prior-only, keyword rel, fitted model.
  * @param {import('./store.js').Store} store
  * @param {object} cfg - config.ranker
- * @param {{testFrac?: number}} opts
+ * @param {{testFrac?: number, cutoffDate?: string}} opts
  */
-export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } = {}) {
+export async function evalModel(store, cfg, { testFrac = 0.2, cutoffDate = null, run = NULL_RUN } = {}) {
+  const { dim } = embeddingOf(cfg);
   // Load perfect samples
   let perfectSamples = [];
   try {
@@ -407,7 +427,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
     console.error('[eval] no perfect_samples.json found');
   }
 
-  const trainingRows = store.getTrainingRows();
+  const trainingRows = store.getTrainingRows(cutoffDate);
   const allEmbeddings = store.getAllEmbeddings();
   const embById = new Map(allEmbeddings.map((e) => [e.item_id, e]));
   // Eval split: interests only see likes made before the chronological cut
@@ -428,7 +448,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
       if (ps.representative === undefined) {
         console.error(`[eval] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
       }
-      perfectWithVecs.push({ id, vec: assertVec(emb.vec, DIM, id), core: ps.core, representative });
+      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative });
     }
   }
 
@@ -436,7 +456,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
   const likedWithVecs = [];
   for (const lid of likedIds) {
     const emb = embById.get(lid);
-    if (emb) likedWithVecs.push({ id: lid, vec: assertVec(emb.vec, DIM, lid) });
+    if (emb) likedWithVecs.push({ id: lid, vec: assertVec(emb.vec, dim, lid) });
   }
 
   // Build training examples (cross-fitted for fitted model, full interests for keyword rel baseline)
@@ -456,7 +476,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
 
   if (examplesWithVec.length === 0) {
     console.error('[eval] no training examples with embeddings');
-    return { prior: { auc: NaN, logLoss: NaN }, keyword: { auc: NaN, logLoss: NaN }, fitted: { auc: NaN, logLoss: NaN } };
+    return { cut, nTrain: 0, nTest: 0, prior: { auc: NaN, logLoss: NaN }, keyword: { auc: NaN, logLoss: NaN }, fitted: { auc: NaN, logLoss: NaN } };
   }
 
   // Chronological split
@@ -471,14 +491,15 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
     const emb = embById.get(item.id);
     if (emb) {
       const ctx = { interests, authorCfg: cfg.authors };
-      const { keys, vals } = encode({ ...item, vec: assertVec(emb.vec, DIM, item.id) }, ctx, cfg.features);
+      const { keys, vals } = encode({ ...item, vec: assertVec(emb.vec, dim, item.id) }, ctx, cfg.features);
       poolCandidates.push({ keys, vals });
     }
   }
 
   // --- Baseline 1: Prior only (model with no fit, just priors) ---
-  const priorModel = new SparseBayesLogReg(cfg.model);
-  // Don't fit, just use priors
+  const PriorModelClass = MODELS[cfg.model?.name ?? 'bayes_lr'] ?? SparseBayesLogReg;
+  const priorModel = new PriorModelClass(cfg.model);
+  // Don't fit, just use priors (non-Bayesian models start at zero weights = prior mean 0)
 
   // --- Baseline 2: Keyword rel ---
   // Use the 'rel' score from candidate_pool as the prediction
@@ -496,7 +517,8 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
     : { auc: NaN, logLoss: NaN };
 
   // --- Fitted model ---
-  const fittedModel = new SparseBayesLogReg(cfg.model);
+  const ModelClass = MODELS[cfg.model?.name ?? 'bayes_lr'] ?? SparseBayesLogReg;
+  const fittedModel = new ModelClass(cfg.model);
   if (train.length > 0) {
     fittedModel.fit(train, { scaleSample: poolCandidates });
   }
@@ -520,5 +542,5 @@ export async function evalModel(store, cfg, { testFrac = 0.2, run = NULL_RUN } =
   console.error(`[eval] Keyword: AUC=${keywordResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${keywordResults.logLoss?.toFixed(4) ?? 'NaN'}`);
   console.error(`[eval] Fitted: AUC=${fittedResults.auc?.toFixed(4) ?? 'NaN'} logLoss=${fittedResults.logLoss?.toFixed(4) ?? 'NaN'}`);
 
-  return { prior: priorResults, keyword: keywordResults, fitted: fittedResults };
+  return { cut, nTrain: train.length, nTest: test.length, prior: priorResults, keyword: keywordResults, fitted: fittedResults };
 }

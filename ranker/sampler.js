@@ -38,7 +38,11 @@ export function value(c, cfg) {
         -(d - cfg.dedupe.t0) / cfg.dedupe.scale
       ));
 
-  return c.p * fresh * dedupe;
+  // Count-based repeat penalty: shown_decay^times_shown.
+  // Never shown => 1 (no penalty). Each showing compounds the decay.
+  const shownPenalty = Math.pow(cfg.shown_decay ?? 1, c.times_shown ?? 0);
+
+  return c.p * fresh * dedupe * shownPenalty;
 }
 
 /** One epsilon-greedy draw. Explore weights are V^gamma (flattened) so low scorers keep a real chance. */

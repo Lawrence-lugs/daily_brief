@@ -126,5 +126,19 @@ CREATE TABLE IF NOT EXISTS item_meta (
 CREATE TABLE IF NOT EXISTS ranker_state (
   key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL
 );
+-- one row per `ranker eval` run: embedding model comparison (AUC / logloss)
+CREATE TABLE IF NOT EXISTS model_eval (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  embedding_tag TEXT NOT NULL,
+  cutoff_date TEXT,
+  test_frac REAL,
+  n_train INTEGER,
+  n_test INTEGER,
+  prior_auc REAL, prior_logloss REAL,
+  keyword_auc REAL, keyword_logloss REAL,
+  fitted_auc REAL, fitted_logloss REAL,
+  results TEXT NOT NULL              -- full JSON of the eval result
+);
 
 PRAGMA user_version = 3;

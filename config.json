@@ -6,32 +6,28 @@
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
   "max_agent_output_items_per_desk": 5,
-
   "selection": {
     "epsilon": 0.25,
-    "a50_days": 7.0,
-    "slope": 1.0,
+    "a50_days": 7,
+    "slope": 1,
     "age_floor_days": 0.25,
     "explore_gamma": 0.3,
     "shown_decay": 0.05,
     "rejected_decay": 0.3,
-    "archive_after_days": 7.0,
+    "archive_after_days": 7,
     "skip_exhausted_subtopics": true
   },
-
   "pool": {
     "max_age_days": 120
   },
-
   "fetch": {
     "timeout_s": 20,
     "cache_ttl_hours": 6,
     "arxiv_delay_s": 3.1,
-    "api_delay_s": 5.0,
+    "api_delay_s": 5,
     "hn_lookback_days": 45,
     "user_agent": "daily-brief/1.0 (personal Obsidian vault; stdlib urllib)"
   },
-
   "llm": {
     "models": [
       "nvidia/nemotron-3-ultra-550b-a55b:free",
@@ -47,29 +43,79 @@
     "min_remaining_daily": 3,
     "effort": "high"
   },
-
   "ranker": {
     "engine": "lr",
     "perfect_samples_file": "perfect_samples.json",
     "label": "liked_or_saved",
-    "features": ["bias", "type", "author", "medoid"],
-    "authors": { "head": 3, "tail": 2, "threshold": 5 },
-    "interests": { "kappa": 5, "maxLikedDays": 100, "mode": "constrained", "minClusters": 1 },
-    "crossFit": { "folds": 5 },
+    "features": [
+      "bias",
+      "type",
+      "author",
+      "medoid"
+    ],
+    "authors": {
+      "head": 3,
+      "tail": 2,
+      "threshold": 5
+    },
+    "interests": {
+      "kappa": 5,
+      "maxLikedDays": 100,
+      "mode": "constrained",
+      "minClusters": 1
+    },
+    "crossFit": {
+      "folds": 5
+    },
+    "embedding": {
+      "model": "leaf-mt"
+    },
     "model": {
-      "name": "bayes_lr", "maxSweeps": 60, "tol": 0.0001,
-      "numDefault": { "mean": 0.45, "std": 0.15 },
+      "name": "bayes_lr",
+      "maxSweeps": 60,
+      "tol": 0.0001,
+      "numDefault": {
+        "mean": 0.45,
+        "std": 0.15
+      },
       "prior": {
-        "default": { "prec": 1, "mean": 0 },
+        "default": {
+          "prec": 1,
+          "mean": 0
+        },
         "rules": [
-          { "match": "b",    "prec": 0.5, "mean": -2 },
-          { "match": "t:",   "prec": 2 },
-          { "match": "a:",   "prec": 3 },
-          { "match": "n:d1", "prec": 1, "mean": -0.8 },
-          { "match": "n:d2", "prec": 2, "mean": -0.2 },
-          { "match": "n:d3", "prec": 2 }
+          {
+            "match": "b",
+            "prec": 0.5,
+            "mean": -2
+          },
+          {
+            "match": "t:",
+            "prec": 2
+          },
+          {
+            "match": "a:",
+            "prec": 3
+          },
+          {
+            "match": "n:d1",
+            "prec": 1,
+            "mean": -0.8
+          },
+          {
+            "match": "n:d2",
+            "prec": 2,
+            "mean": -0.2
+          },
+          {
+            "match": "n:d3",
+            "prec": 2
+          }
         ]
-      }
+      },
+      "l2Strength": 0.01,
+      "unpenalizedKeys": [],
+      "relKey": "rel"
     },
     "sampling": {
       "epsilon": 0.2,
@@ -77,10 +123,25 @@
       "freshness": {
         "model": "exponential"
       },
-      "desks": { "core": "primary", "side": "science" },
-      "explore": { "gamma": 0.5, "floor": 0.01 },
-      "dedupe": { "hardWindowDays": 2, "t0": 7, "scale": 2 },
-      "slots": { "primary": 5, "science": 5, "reserve": 25 }
+      "desks": {
+        "core": "primary",
+        "side": "science"
+      },
+      "shown_decay": 0.05,
+      "explore": {
+        "gamma": 0.5,
+        "floor": 0.01
+      },
+      "dedupe": {
+        "hardWindowDays": 2,
+        "t0": 7,
+        "scale": 2
+      },
+      "slots": {
+        "primary": 5,
+        "science": 5,
+        "reserve": 25
+      }
     }
   }
 }

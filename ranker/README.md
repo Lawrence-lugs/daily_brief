@@ -14,7 +14,7 @@ SQLite database (`daily_brief.db`) as the Python code and the Node server.
 
 ```bash
 # 1. Install the embedding model (one-time, ~50 MB)
-npm i @xenova/transformers
+npm i @huggingface/transformers
 
 # 2. Write perfect_samples.json (see below)
 
@@ -47,7 +47,7 @@ node ranker/cli.js inspect
 | `refit [--force]` | Build interests, cross-fit training set, fit model; persist to `ranker_state` | `--force` = ignore cache |
 | `select --date D [--seed N]` | Full pipeline → brief selection; prints JSON `{desk:[{id,mode,p,V,cluster,core}]}` | `--seed` for reproducibility; exits 3 if no interests |
 | `simulate [--runs N] [--seed N] [--set a.b=v...]` | Ephemeral Monte-Carlo; **no DB writes**; prints summary JSON | `--set` for config overrides (e.g. `--set sampling.epsilon=0.1`) |
-| `eval [--testFrac F]` | Chronological holdout: AUC & logLoss for prior / keyword-rel / fitted | `--testFrac` default 0.2 |
+| `eval [--testFrac F] [--date D]` | Chronological holdout: AUC & logLoss for prior / keyword-rel / fitted. Each run is appended to the `model_eval` table tagged with the active embedding model | `--testFrac` default 0.2 |
 | `inspect` | Top 20 ± model weights + cluster list with medoid titles | — |
 
 **Important:** `stdout` is reserved for the JSON output of `select` and `simulate` (and `eval`/`inspect`).
@@ -93,6 +93,7 @@ Human-curated anchor items that define the "core" research interests. Each entry
     "minClusters": 1
   },
   "crossFit": { "folds": 5 },              // K-fold cross-fitting for leak-free features
+  "embedding": { "model": "bge-micro" },   // bge-micro | leaf-mt | bge-small | bge-base | mpnet | any HF id (+ "dim")
   "model": {
     "name": "bayes_lr",
     "maxSweeps": 60, "tol": 1e-4,
@@ -137,7 +138,7 @@ Human-curated anchor items that define the "core" research interests. Each entry
 ## How It Works (90-second version)
 
 ### 1. Embeddings
-- **Model:** `TaylorAI/bge-micro-v2` (384-d, L2-normalised) via `@xenova/transformers`.
+- **Model:** chosen by `ranker.embedding.model` in `config.json` (default `bge-micro`, `TaylorAI/bge-micro-v2`, 384-d, L2-normalised) via `@huggingface/transformers`. Registry keys: `bge-micro` (384, q8), `leaf-mt` (`MongoDB/mdbr-leaf-mt`, 1024, fp32, mean pooling + Hub Dense head), `bge-small` (384, fp32, CLS), `bge-base` (768, fp32, CLS), `mpnet` (`Xenova/all-mpnet-base-v2`, 768, mean, 384 max tokens). Any other HF id works if `ranker.embedding.dim` is set. Optional `ranker.embedding.dtype` overrides the registry default.
 - **Text:** `title + " " + snippet` (pool) or `headline + " " + blurb` (stories fallback).
 - **Caching:** Stored in `embeddings` table with `text_hash` (sha1[:12]); re-embedded on text change.
 - **Perfect samples:** Embedded as `ps:<id>`, never pruned.
@@ -272,4 +273,4 @@ if engine == "lr":
 
 - **New feature:** Add extractor to `EXTRACTORS` in `features.js`, add name to `config.ranker.features`, bump `ENCODING_VERSION`.
 - **New model:** Implement `fit`/`predict`/`toJSON`/`fromJSON` contract (see `model.js`), register in `MODELS`, set `config.ranker.model.name`.
-- **Different embedding model:** Change `MODEL` and `DIM` in `embedder.js`; re-embed everything (`text_hash` changes).
+- **Different embedding model:** set `ranker.embedding.model` in `config.json`. Switching purges embeddings written by the previous model (`embeddings.model` holds `<key>:<dtype>`) and re-embeds the pool on the next run; the refit cache is keyed on the embedding config.

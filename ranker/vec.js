@@ -1,4 +1,4 @@
-// Tiny vector helpers. All embeddings are L2-normalised Float32Array(384), so cosine = dot.
+// Tiny vector helpers. All embeddings are L2-normalised Float32Array(dim), so cosine = dot. dim depends on the model (embedder.js embeddingOf).
 export const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
 export function normalize(v) {
   const n = Math.sqrt(dot(v, v)) || 1;

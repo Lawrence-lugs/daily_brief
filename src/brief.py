@@ -258,6 +258,12 @@ def main() -> int:
         p["rejected"] = max(0, p["rejected"] - sd_rej.get(p["id"], 0))
         p["age_days"] = age_days(p, now)
 
+    # Exclude liked/saved items from re-selection (both engines)
+    liked_ids = db.load_liked_ids(conn)
+    pool = [p for p in pool if p["id"] not in liked_ids]
+    if liked_ids:
+        log(f"excluded {len(liked_ids)} liked/saved items from pool")
+
     # 2. Selection per desk (keyword or LR engine)
     n, k = cfg["stories_per_desk"], cfg["reserve_per_desk"]
     selected: dict[str, list[dict]] = {}

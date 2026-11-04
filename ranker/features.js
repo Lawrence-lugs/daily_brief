@@ -38,6 +38,7 @@ export const EXTRACTORS = {
     return ks.map((k) => [`a:${k}`, 1 / Math.sqrt(ks.length)]);   // many-author papers must not dominate
   },
   medoid: (it, ctx) => topDistances(ctx.interests, it.vec, 3).map((x, i) => [`n:d${i + 1}`, x.d]),
+  keyword: (it) => it.rel != null ? [['rel', it.rel]] : [],
 };
 
 /** @returns {{keys:string[], vals:number[]}} duplicates summed */

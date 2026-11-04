@@ -131,6 +131,23 @@ Written by Python `db.upsert_pool`; needed to retrain on old stories after pool 
 `fitKey = SHA1([perfect, likedIds, trainingRows, config sections, ENCODING_VERSION])`. Cache hit → hydrate
 interests + model; skip recomputation. `--force` ignores the cache.
 
+#### `model_eval` — embedding model comparison log
+
+One row per `node ranker/cli.js eval` run. Written by `store.logModelEval`; keeps AUC / logloss per embedding model so switching models does not lose results.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | INTEGER PK AUTOINCREMENT | |
+| `created_at` | TEXT NOT NULL | `datetime('now')` |
+| `embedding_tag` | TEXT NOT NULL | e.g. `bge-micro:q8`, `leaf-mt:fp32` |
+| `cutoff_date` | TEXT | `--date` if given, else NULL |
+| `test_frac` | REAL | held-out fraction (default 0.2) |
+| `n_train`, `n_test` | INTEGER | chronological split sizes |
+| `prior_auc`, `prior_logloss` | REAL | prior-only baseline |
+| `keyword_auc`, `keyword_logloss` | REAL | keyword `rel` baseline |
+| `fitted_auc`, `fitted_logloss` | REAL | fitted LR model |
+| `results` | TEXT NOT NULL | full eval JSON (incl. `cut`) |
+
 ---
 
 ## 2. Who Writes What

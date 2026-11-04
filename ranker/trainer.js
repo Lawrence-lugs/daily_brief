@@ -5,7 +5,8 @@
 import { createHash } from 'node:crypto';
 import { buildInterests } from './interests.js';
 import { encode } from './features.js';
-import { assertVec, DIM } from './vec.js';
+import { assertVec } from './vec.js';
+import { embeddingOf } from './embedder.js';
 
 export const foldOf = (id, K) => parseInt(createHash('sha1').update(String(id)).digest('hex').slice(0, 8), 16) % K;
 
@@ -17,6 +18,7 @@ export const foldOf = (id, K) => parseInt(createHash('sha1').update(String(id)).
  */
 export function buildTrainingSet({ perfect, liked, rows, vecs, cfg }) {
   const K = cfg.crossFit.folds;
+  const dim = embeddingOf(cfg).dim;
   const full = buildInterests(perfect, liked, cfg.interests);
   const foldI = Array.from({ length: K }, (_, f) => {
     const sub = liked.filter((l) => foldOf(l.id, K) !== f);
@@ -26,7 +28,7 @@ export function buildTrainingSet({ perfect, liked, rows, vecs, cfg }) {
   for (const r of rows) {
     const vec = vecs.get(r.item_id);
     if (!vec) continue;
-    assertVec(vec, DIM, r.item_id);
+    assertVec(vec, dim, r.item_id);
     const fold = foldOf(r.item_id, K);
     const ctx = { interests: foldI[fold], authorCfg: cfg.authors };
     const { keys, vals } = encode({ ...r, vec }, ctx, cfg.features);

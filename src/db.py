@@ -89,6 +89,16 @@ def load_pool(conn) -> list[dict]:
     return out
 
 
+def load_liked_ids(conn) -> set[str]:
+    """Item IDs that have been liked or saved in any brief (excluded from re-selection)."""
+    rows = conn.execute("""
+        SELECT DISTINCT s.item_id
+        FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
+        WHERE s.liked = 1 OR s.saved = 1
+    """).fetchall()
+    return {r[0] for r in rows}
+
+
 def upsert_pool(conn, fresh: list[dict], now: dt.datetime) -> int:
     """Port of merge_pool (without pruning). Existing rows are RE-CLASSIFIED (rel/subtopic/desk/
     source_type) but keep their counters; an empty snippet is filled. Returns #new rows."""

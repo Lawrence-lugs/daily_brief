@@ -141,13 +141,22 @@
     {% if not model_eval %}
         <p><small>No model evaluation data available. Run with Node.js and ensure training data exists.</small></p>
     {% else %}
+        {# Support both a flat dict (single variant, backward compat) and a nested
+           dict of {variant_label: {prior, keyword, fitted}} for multiple variants. #}
+        {% set is_flat = model_eval.get('prior') is not none
+                          or model_eval.get('keyword') is not none
+                          or model_eval.get('fitted') is not none %}
+        {% set variants = {'default': model_eval} if is_flat else model_eval %}
+
+        {% for label, res in variants.items() %}
+        <h3>Model Accuracy — {{ label }}</h3>
         <p><small>Chronological holdout evaluation (test_frac=0.2). Higher AUC = better discrimination. Lower logLoss = better calibration.</small></p>
         <table>
             <tr><th>Model</th><th>AUC</th><th>Log Loss</th><th>Interpretation</th></tr>
             {% for model_name in ['prior', 'keyword', 'fitted'] %}
-            {% set res = model_eval.get(model_name, {}) %}
-            {% set auc = res.get('auc') %}
-            {% set ll = res.get('logLoss') %}
+            {% set m = res.get(model_name, {}) %}
+            {% set auc = m.get('auc') %}
+            {% set ll = m.get('logLoss') %}
             {% if auc is not none and auc == auc %}  {# not NaN #}
             <tr>
                 <td>{{ model_name|capitalize }}</td>
@@ -167,18 +176,24 @@
             {% endif %}
             {% endfor %}
         </table>
-        
-        {% if model_eval.get('fitted', {}).get('auc') is not none and model_eval.get('fitted', {}).get('auc') == model_eval.get('fitted', {}).get('auc') %}
+
+        {% set fitted_auc = res.get('fitted', {}).get('auc') %}
+        {% set prior_auc = res.get('prior', {}).get('auc') %}
+        {% set keyword_auc = res.get('keyword', {}).get('auc') %}
+        {% if fitted_auc is not none and fitted_auc == fitted_auc and prior_auc is not none and prior_auc == prior_auc %}
         <div class="metric-grid" style="margin-top: 15px;">
             <div class="metric-card">
-                <div class="metric-value">{{ '%.1f'|format((model_eval.fitted.auc - model_eval.prior.auc) * 100) }}%</div>
+                <div class="metric-value">{{ '%.1f'|format((fitted_auc - prior_auc) * 100) }}%</div>
                 <div class="metric-label">AUC Improvement over Prior</div>
             </div>
+            {% if keyword_auc is not none and keyword_auc == keyword_auc %}
             <div class="metric-card">
-                <div class="metric-value">{{ '%.1f'|format((model_eval.fitted.auc - model_eval.keyword.auc) * 100) }}%</div>
+                <div class="metric-value">{{ '%.1f'|format((fitted_auc - keyword_auc) * 100) }}%</div>
                 <div class="metric-label">AUC Improvement over Keyword</div>
             </div>
+            {% endif %}
         </div>
         {% endif %}
+        {% endfor %}
     {% endif %}
 {% endmacro %}

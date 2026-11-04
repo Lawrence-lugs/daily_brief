@@ -8,13 +8,17 @@ seeds, and prints comparison metrics per desk (overlap/Jaccard, freshness,
 source types, selection modes) plus aggregate stability stats and model
 accuracy estimates against the liked training/test set.
 
+The LR engine can run either the Bayesian model (``bayes_lr``, the default)
+or the non-Bayesian L2-penalised logistic regression (registered as ``lr`` in
+``ranker/model.js``). Use ``--lr-model`` to select which variant(s) to include.
+
 Results (JSON + HTML) are written to docs/experiments/ by default.
 
 Usage (run from the project root):
-    python compare_lr_vs_keyword.py                    # uses today's date
+    python compare_lr_vs_keyword.py                    # uses today's date, both LR variants
     python compare_lr_vs_keyword.py --date 2026-10-29 --seeds 1-10
-    python compare_lr_vs_keyword.py --no-model-eval
-    python compare_lr_vs_keyword.py --test-frac 0.3
+    python compare_lr_vs_keyword.py --lr-model nonbayes --no-model-eval
+    python compare_lr_vs_keyword.py --lr-model bayes --test-frac 0.3
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ import json
 import statistics
 import subprocess
 import sys
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 
@@ -62,6 +67,13 @@ def parse_args() -> argparse.Namespace:
         help="Seed range (e.g., 1-10 or 1,2,3)",
     )
     parser.add_argument(
+        "--lr-model",
+        default="both",
+        choices=["bayes", "nonbayes", "both"],
+        help="Which LR model variant(s) to include: 'bayes' (SparseBayesLogReg, default), "
+        "'nonbayes' (SparseLogReg, L2-penalised MLE), or 'both' (default: both)",
+    )
+    parser.add_argument(
         "--no-model-eval",
         action="store_true",
         help="Skip model evaluation against liked training/test set",
@@ -82,27 +94,44 @@ def parse_seeds(seeds_str: str) -> list[int]:
     return [int(s) for s in seeds_str.split(",")]
 
 
-def run_model_eval(project_root: Path, date: str, test_frac: float = 0.2) -> dict | None:
+def run_model_eval(
+    project_root: Path, date: str, test_frac: float = 0.2, model_name: str | None = None
+) -> dict | None:
     """Run the LR model evaluation against liked training/test set.
-    
+
     Calls `node ranker/cli.js eval` which computes AUC and logLoss for:
     - Prior-only model
     - Keyword rel baseline
     - Fitted LR model
-    
+
     Uses chronological holdout (test_frac of most recent dates).
+
+    Args:
+        project_root: Path to the project root.
+        date: Date string (YYYY-MM-DD) used as cutoff.
+        test_frac: Test fraction for chronological holdout.
+        model_name: Optional LR model variant name ('bayes_lr' or 'lr'). When set,
+            passed via ``--set model.name=<name>`` so the non-Bayesian variant can be
+            evaluated alongside the default Bayesian one. When None, uses the config
+            default (bayes_lr).
+
+    Returns:
+        Dict keyed by model name ("prior", "keyword", "fitted"), or None on failure.
     """
     cli_path = project_root / "ranker" / "cli.js"
     if not cli_path.exists():
         print(f"  Warning: LR CLI not found at {cli_path}, skipping model evaluation")
         return None
-    
+
     try:
         cmd = ["node", str(cli_path), "eval", "--date", date]
+        if model_name is not None:
+            cmd.extend(["--set", f"model.name={model_name}"])
         if test_frac:
             cmd.extend(["--testFrac", str(test_frac)])
-        
-        print(f"  Running model evaluation (test_frac={test_frac})...")
+
+        label = model_name or "bayes_lr (default)"
+        print(f"  Running model evaluation (model={label}, test_frac={test_frac})...")
         result = subprocess.run(
             cmd,
             cwd=project_root,
@@ -112,11 +141,11 @@ def run_model_eval(project_root: Path, date: str, test_frac: float = 0.2) -> dic
             errors='replace',
             timeout=180,
         )
-        
+
         if result.returncode != 0:
-            print(f"  Warning: Model evaluation failed: {result.stderr[:200]}")
+            print(f"  Warning: Model evaluation failed ({label}): {result.stderr[:200]}")
             return None
-        
+
         # Parse JSON output (may have log lines on stderr)
         try:
             # Find the first line that starts with {
@@ -124,17 +153,17 @@ def run_model_eval(project_root: Path, date: str, test_frac: float = 0.2) -> dic
             json_start = next(i for i, line in enumerate(lines) if line.strip().startswith('{'))
             json_str = '\n'.join(lines[json_start:])
             eval_results = json.loads(json_str)
-            print(f"  Model evaluation complete")
+            print(f"  Model evaluation complete ({label})")
             return eval_results
         except (json.JSONDecodeError, StopIteration) as e:
-            print(f"  Warning: Failed to parse eval output: {result.stdout[:200]}")
+            print(f"  Warning: Failed to parse eval output ({label}): {result.stdout[:200]}")
             return None
-            
+
     except subprocess.TimeoutExpired:
-        print(f"  Warning: Model evaluation timed out")
+        print(f"  Warning: Model evaluation timed out ({label})")
         return None
     except Exception as e:
-        print(f"  Warning: Model evaluation error: {e}")
+        print(f"  Warning: Model evaluation error ({label}): {e}")
         return None
 
 
@@ -163,31 +192,60 @@ def main() -> None:
     print("===============================\n")
 
     # --- Engines ---------------------------------------------------------
-    engines = [
-        KeywordEngine(config),
-        LREngine(project_root=PROJECT_ROOT),
-    ]
+    engines = [KeywordEngine(config)]
+    if args.lr_model in ("bayes", "both"):
+        engines.append(LREngine(project_root=PROJECT_ROOT))  # bayes_lr, engine name "lr"
+    if args.lr_model in ("nonbayes", "both"):
+        engines.append(
+            LREngine(
+                project_root=PROJECT_ROOT,
+                model_name="lr",
+                name="lr_nonbayes",
+            )
+        )  # non-bayesian SparseLogReg (L2-penalised MLE)
     print(f"Engines: {[e.name for e in engines]}")
     print(f"Seeds:   {seeds}\n")
 
     # --- Model evaluation (accuracy against liked training/test set) ------
-    eval_results = None
+    eval_results: dict | None = None
     if not args.no_model_eval:
         print("--- Model Evaluation (Liked Training/Test Set) ---")
-        eval_results = run_model_eval(PROJECT_ROOT, args.date, test_frac=args.test_frac)
 
-        # Print model evaluation results
-        if eval_results:
+        # Which LR model variants to evaluate. Default (bayes_lr) is always
+        # evaluated; the non-bayesian variant ('lr') is added when requested.
+        lr_variants: list[tuple[str, str | None]] = [("bayes_lr (default)", None)]
+        if args.lr_model in ("nonbayes", "both"):
+            lr_variants.append(("lr (non-bayes)", "lr"))
+
+        # Evaluate each variant and collect results.
+        variant_results: dict[str, dict] = {}
+        for label, model_name in lr_variants:
+            res = run_model_eval(
+                PROJECT_ROOT, args.date, test_frac=args.test_frac, model_name=model_name
+            )
+            if res is not None:
+                variant_results[label] = res
+
+        # Print model evaluation results for every variant evaluated.
+        if variant_results:
             print(f"--- Model Accuracy (Chronological Holdout, test_frac={args.test_frac}) ---")
-            for model_name in ["prior", "keyword", "fitted"]:
-                res = eval_results.get(model_name, {})
-                auc = res.get("auc")
-                ll = res.get("logLoss")
-                if auc is not None and not (isinstance(auc, float) and auc != auc):  # not NaN
-                    print(f"  {model_name:10s}: AUC = {auc:.4f}  logLoss = {ll:.4f}")
-                else:
-                    print(f"  {model_name:10s}: N/A (insufficient training data)")
+            for label, res in variant_results.items():
+                for model_name in ["prior", "keyword", "fitted"]:
+                    m = res.get(model_name, {})
+                    auc = m.get("auc")
+                    ll = m.get("logLoss")
+                    if auc is not None and not (isinstance(auc, float) and auc != auc):  # not NaN
+                        print(f"  [{label}] {model_name:10s}: AUC = {auc:.4f}  logLoss = {ll:.4f}")
+                    else:
+                        print(f"  [{label}] {model_name:10s}: N/A (insufficient training data)")
             print()
+
+        # Pass the nested variants dict to compare_engines / the HTML report
+        # template so every evaluated LR variant appears in the model accuracy
+        # card. The template macro handles both a flat dict (single variant,
+        # backward compat) and a nested {label: {prior, keyword, fitted}} dict.
+        if variant_results:
+            eval_results = variant_results
 
     # --- Run comparison --------------------------------------------------
     try:
@@ -235,23 +293,36 @@ def main() -> None:
                 print(f"    top items:          {top}")
         print()
 
-    print("Per-desk overlap (keyword vs lr), averaged across seeds:")
+    print("\nPer-desk overlap (mean Jaccard across seeds), by engine pair:")
+    engine_names = results["engines"]
     for desk in ["primary", "science"]:
-        jaccards = []
-        for run in results.get("runs", []):
-            comp = run.get("comparison", {}).get(desk)
-            if comp and "overlap" in comp:
-                jaccards.append(comp["overlap"]["jaccard"])
-        if jaccards:
-            print(
-                f"  {desk}: mean Jaccard = {statistics.mean(jaccards):.3f}  "
-                f"(n={len(jaccards)})"
-            )
-        else:
-            print(f"  {desk}: no comparison data")
+        for i in range(len(engine_names)):
+            for j in range(i + 1, len(engine_names)):
+                a, b = engine_names[i], engine_names[j]
+                jaccards = []
+                for run in results.get("runs", []):
+                    sel = run.get("selections", {})
+                    ids_a = {it["id"] for it in sel.get(a, {}).get(desk, [])}
+                    ids_b = {it["id"] for it in sel.get(b, {}).get(desk, [])}
+                    if ids_a and ids_b:
+                        jaccards.append(len(ids_a & ids_b) / len(ids_a | ids_b))
+                if jaccards:
+                    print(
+                        f"  {desk}: {a} vs {b}: mean Jaccard = {statistics.mean(jaccards):.3f}  "
+                        f"(n={len(jaccards)})"
+                    )
+                else:
+                    print(f"  {desk}: {a} vs {b}: no comparison data")
 
     print(f"\nJSON results: {json_path}")
     print(f"HTML report:  {html_path}")
+
+    # Auto-open the HTML report in the default browser.
+    try:
+        webbrowser.open(html_path.resolve().as_uri())
+    except Exception as exc:
+        print(f"  (Could not auto-open report: {exc})")
+
     print("\nDone.")
 
 

@@ -24,22 +24,73 @@ class LREngine(Engine):
                  cli_path: str = "ranker/cli.js",
                  db_path: str = "daily_brief.db",
                  config_path: str = "config.json",
-                 project_root: str | None = None):
+                 project_root: str | None = None,
+                 model_name: str = "bayes_lr",
+                 name: str | None = None):
         self.cli_path = Path(cli_path)
         self.db_path = Path(db_path)
         self.config_path = Path(config_path)
         self.project_root = Path(project_root) if project_root else Path.cwd()
-        
+        self.model_name = model_name
+
         # Verify CLI exists
         if not (self.project_root / self.cli_path).exists():
             raise FileNotFoundError(f"LR CLI not found: {self.project_root / self.cli_path}")
-        
+
+        # Engine name. Default to "lr" for the Bayesian model (backward compatible);
+        # derive a distinct name for other model variants (e.g. the non-bayesian
+        # SparseLogReg, registered as "lr" in ranker/model.js).
+        if name is None:
+            name = "lr" if model_name == "bayes_lr" else f"lr_{model_name}"
+        self._name = name
+
         # Cache for cluster metadata
         self._cluster_metadata = None
-    
+
     @property
     def name(self) -> str:
-        return "lr"
+        return self._name
+
+    def _cli_overrides(self, config: Dict) -> List[str]:
+        """Build ``--set`` overrides for the Node CLI from the flattened config.
+
+        Passes the ``sampling`` and ``model`` sections so the CLI can override
+        freshness/sampling parameters and the model variant. The engine's own
+        ``model_name`` is forced as ``model.name`` (last override wins in
+        ``applyOverrides``) so two LR engines don't both inherit config.json's
+        ``model.name`` (e.g. a non-bayesian ``lr`` engine alongside ``bayes_lr``).
+        The ``desks`` block is also forwarded under ``sampling.desks.*``.
+        """
+        overrides: List[str] = []
+        for section, prefix in (("sampling", "sampling"), ("model", "model")):
+            section_config = config.get(section, {})
+            if not isinstance(section_config, dict):
+                continue
+            for key, value in section_config.items():
+                if section == "model" and key == "name":
+                    # Forced below to self.model_name so each engine variant is distinct.
+                    continue
+                if isinstance(value, dict):
+                    for subkey, subvalue in value.items():
+                        overrides.append(f"{prefix}.{key}.{subkey}={json.dumps(subvalue)}")
+                else:
+                    overrides.append(f"{prefix}.{key}={json.dumps(value)}")
+
+        # Force the engine's model variant so the two LR engines don't both
+        # inherit config.json's model.name (applyOverrides: last override wins).
+        overrides.append(f"model.name={json.dumps(self.model_name)}")
+
+        # Also pass desks config if present (top-level after merge_config flattens it,
+        # but fall back to sampling.desks for nested layouts).
+        desks_config = config.get("desks", {})
+        if not isinstance(desks_config, dict) or not desks_config:
+            sampling = config.get("sampling", {})
+            desks_config = sampling.get("desks", {}) if isinstance(sampling, dict) else {}
+        if desks_config:
+            for key, value in desks_config.items():
+                overrides.append(f"sampling.desks.{key}={json.dumps(value)}")
+
+        return overrides
     
     def select(self, pool: List[Dict], config: Dict, seed: int) -> Dict[str, List[Dict]]:
         """Run LR selection via Node.js CLI and merge with pool data.
@@ -57,23 +108,10 @@ class LREngine(Engine):
             Dict with 'primary' and 'science' keys, each a list of selected items
             with fields: id, mode, p, V, cluster, core, source_type, title, etc.
         """
-        # Build overrides for Node CLI - only pass sampling and desks config
-        # The Node CLI loads its own config.json, we only override sampling params
-        overrides = []
-        sampling_config = config.get("sampling", {})
-        if sampling_config:
-            for key, value in sampling_config.items():
-                if isinstance(value, dict):
-                    for subkey, subvalue in value.items():
-                        overrides.append(f"sampling.{key}.{subkey}={json.dumps(subvalue)}")
-                else:
-                    overrides.append(f"sampling.{key}={json.dumps(value)}")
-
-        # Also pass desks config if present
-        desks_config = config.get("desks", {})
-        if desks_config:
-            for key, value in desks_config.items():
-                overrides.append(f"sampling.desks.{key}={json.dumps(value)}")
+        # Build overrides for Node CLI (sampling, desks, and model sections).
+        # The Node CLI loads its own config.json; we only forward overrides so a
+        # different model variant (e.g. model.name=lr) can be selected per engine.
+        overrides = self._cli_overrides(config)
 
         # Run the CLI
         cmd = [
@@ -215,21 +253,8 @@ class LREngine(Engine):
             "--date", config.get("date", "2026-10-29"),
         ]
         
-        # Add overrides if present
-        overrides = []
-        sampling_config = config.get("sampling", {})
-        if sampling_config:
-            for key, value in sampling_config.items():
-                if isinstance(value, dict):
-                    for subkey, subvalue in value.items():
-                        overrides.append(f"sampling.{key}.{subkey}={json.dumps(subvalue)}")
-                else:
-                    overrides.append(f"sampling.{key}={json.dumps(value)}")
-        
-        desks_config = config.get("desks", {})
-        if desks_config:
-            for key, value in desks_config.items():
-                overrides.append(f"sampling.desks.{key}={json.dumps(value)}")
+        # Add overrides if present (sampling, desks, and model sections)
+        overrides = self._cli_overrides(config)
         
         if overrides:
             for ov in overrides:
