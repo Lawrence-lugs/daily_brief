@@ -166,12 +166,16 @@ export class Store {
   // Log one eval run (embedding model comparison)
   logModelEval({ embeddingTag, cutoffDate, testFrac, nTrain, nTest, results }) {
     const n = (x) => (Number.isFinite(x) ? x : null);
+    const get = (model, key) => {
+      const m = results && results[model];
+      return m != null && typeof m === 'object' ? n(m[key]) : null;
+    };
     this.stmts.insertModelEval.run(
       embeddingTag, cutoffDate ?? null, n(testFrac), nTrain ?? null, nTest ?? null,
-      n(results.prior.auc), n(results.prior.logLoss),
-      n(results.keyword.auc), n(results.keyword.logLoss),
-      n(results.fitted.auc), n(results.fitted.logLoss),
-      JSON.stringify(results),
+      get('prior', 'auc'), get('prior', 'logLoss'),
+      get('keyword', 'auc'), get('keyword', 'logLoss'),
+      get('fitted', 'auc'), get('fitted', 'logLoss'),
+      JSON.stringify(results ?? {}),
     );
   }
 

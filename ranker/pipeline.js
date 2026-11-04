@@ -11,6 +11,13 @@ import { codeHashes, NULL_RUN } from './debuglog.js';
 
 const ENCODING_VERSION = 1; // bump when encode() schema changes
 
+/** Compute a YYYY-MM-DD cutoff date `days` days before now. */
+function cutoffDateDays(days) {
+  if (!days || days <= 0) return null;
+  const d = new Date(Date.now() - days * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
 /**
  * Ensure all pool/story items and perfect samples have embeddings.
  * Re-embeds pool items if their text_hash changed.
@@ -20,7 +27,6 @@ const ENCODING_VERSION = 1; // bump when encode() schema changes
  */
 export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
   const emb = embeddingOf(cfg);
-  if (persist) store.pruneEmbeddingsOtherModels(emb.tag);
   // Pool items: missing, embedded by another model, or text_hash mismatch
   const poolItems = store.getPool();
   const existingEmbs = store.getAllEmbeddings();
@@ -84,8 +90,10 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
     }
   }
 
-  // Prune embeddings for items no longer in pool or stories
+  // Prune embeddings written by other models (now that we've re-embedded what we need).
+  // This avoids data loss if embedding fails partway.
   if (persist) {
+    store.pruneEmbeddingsOtherModels(emb.tag);
     store.pruneEmbeddings();
   }
 }
@@ -140,7 +148,8 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
     console.error('[refit] no perfect_samples.json found');
   }
 
-  const likedIds = store.getLikedIds(cfg.interests.maxLikedDays);
+  const likedCutoff = cutoffDateDays(cfg.interests.maxLikedDays);
+  const likedIds = store.getLikedIds(likedCutoff);
   const trainingRows = store.getTrainingRows(cutoffDate);
   const inputsHash = buildInputsHash(perfectSamples, likedIds, trainingRows, cfg);
   const code = codeHashes();
@@ -334,7 +343,8 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
   const lastShown = new Map(store.getLastShown(dateKey).map((r) => [r.item_id, r.last]));
 
   // Exclude items the user has ever liked or saved from re-selection.
-  const likedIds = new Set(store.getLikedIds(cfg.interests.maxLikedDays).map(String));
+  const likedCutoff = cutoffDateDays(cfg.interests.maxLikedDays);
+  const likedIds = new Set(store.getLikedIds(likedCutoff).map(String));
 
   const candidates = [];
   let missingEmb = 0;
@@ -469,18 +479,13 @@ export async function evalModel(store, cfg, { testFrac = 0.2, cutoffDate = null,
     cfg,
   });
 
-  // Filter examples that have embeddings (should already be filtered in buildTrainingSet)
-  const examplesWithVec = examples.filter((e) => {
-    return true; // buildTrainingSet already skips rows without vecs
-  });
-
-  if (examplesWithVec.length === 0) {
+  if (examples.length === 0) {
     console.error('[eval] no training examples with embeddings');
     return { cut, nTrain: 0, nTest: 0, prior: { auc: NaN, logLoss: NaN }, keyword: { auc: NaN, logLoss: NaN }, fitted: { auc: NaN, logLoss: NaN } };
   }
 
   // Chronological split
-  const { train, test } = chronoSplit(examplesWithVec, testFrac);
+  const { train, test } = chronoSplit(examples, testFrac);
   console.error(`[eval] train=${train.length} test=${test.length} (testFrac=${testFrac})`);
 
   // Get pool items for scaling and for keyword baseline (rel scores)

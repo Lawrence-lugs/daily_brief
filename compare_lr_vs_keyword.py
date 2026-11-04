@@ -139,7 +139,7 @@ def run_model_eval(
             text=True,
             encoding='utf-8',
             errors='replace',
-            timeout=180,
+            timeout=600,
         )
 
         if result.returncode != 0:

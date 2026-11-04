@@ -61,9 +61,21 @@ function load(spec, dtype, device) {
 
 // Reads the single F32 [out, in] matrix of a safetensors file from the Hub (the Dense layer has no bias).
 async function loadDense(spec) {
-  const res = await fetch(`https://huggingface.co/${spec.id}/resolve/main/${spec.dense}`);
-  if (!res.ok) throw new Error(`fetch ${spec.dense} for ${spec.id}: HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  let buf;
+  try {
+    const res = await fetch(`https://huggingface.co/${spec.id}/resolve/main/${spec.dense}`, { signal: controller.signal });
+    if (!res.ok) throw new Error(`fetch ${spec.dense} for ${spec.id}: HTTP ${res.status}`);
+    buf = Buffer.from(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timeout);
+  }
+  return parseDense(buf, spec);
+}
+
+// Parses the safetensors buffer into { W, rows, cols }.
+function parseDense(buf, spec) {
   const headerLen = Number(buf.readBigUInt64LE(0));
   const header = JSON.parse(buf.subarray(8, 8 + headerLen).toString('utf8'));
   const name = Object.keys(header).find((k) => k !== '__metadata__');
@@ -94,6 +106,7 @@ function project({ W, rows, cols }, x) {
 async function embedBatchAuto(h, spec, slice) {
   const inputs = h.tokenizer(slice, { padding: true, truncation: true, max_length: spec.maxTokens });
   const { last_hidden_state: hidden } = await h.model(inputs);
+  if (!hidden || !hidden.dims) throw new Error(`${spec.key}: AutoModel output missing last_hidden_state.dims`);
   const [B, T, H] = hidden.dims;
   const hs = hidden.data, mask = inputs.attention_mask.data;
   return Array.from({ length: B }, (_, b) => {

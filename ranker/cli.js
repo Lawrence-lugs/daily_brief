@@ -21,7 +21,10 @@ function loadConfig() {
 function applyOverrides(cfg, overrides) {
   // overrides: ['a.b=c', 'x.y=2']
   for (const ov of overrides) {
-    const [path, val] = ov.split('=');
+    const eq = ov.indexOf('=');
+    if (eq === -1) continue;
+    const path = ov.slice(0, eq);
+    const val = ov.slice(eq + 1);
     if (!val) continue;
     let parsed;
     try {
@@ -32,6 +35,9 @@ function applyOverrides(cfg, overrides) {
     const keys = path.split('.');
     let o = cfg;
     for (let i = 0; i < keys.length - 1; i++) {
+      if (o == null || !(keys[i] in o)) {
+        throw new Error(`config path "${path}" does not exist (missing "${keys[i]}")`);
+      }
       o = o[keys[i]];
     }
     o[keys[keys.length - 1]] = parsed;

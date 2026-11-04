@@ -259,7 +259,11 @@ def main() -> int:
         p["age_days"] = age_days(p, now)
 
     # Exclude liked/saved items from re-selection (both engines)
-    liked_ids = db.load_liked_ids(conn)
+    max_liked_days = cfg.get("ranker", {}).get("interests", {}).get("maxLikedDays")
+    cutoff_date = None
+    if max_liked_days and max_liked_days > 0:
+        cutoff_date = (now - dt.timedelta(days=max_liked_days)).date().isoformat()
+    liked_ids = db.load_liked_ids(conn, cutoff_date)
     pool = [p for p in pool if p["id"] not in liked_ids]
     if liked_ids:
         log(f"excluded {len(liked_ids)} liked/saved items from pool")

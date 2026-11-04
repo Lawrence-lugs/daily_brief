@@ -89,13 +89,23 @@ def load_pool(conn) -> list[dict]:
     return out
 
 
-def load_liked_ids(conn) -> set[str]:
-    """Item IDs that have been liked or saved in any brief (excluded from re-selection)."""
-    rows = conn.execute("""
-        SELECT DISTINCT s.item_id
-        FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
-        WHERE s.liked = 1 OR s.saved = 1
-    """).fetchall()
+def load_liked_ids(conn, cutoff_date: str | None = None) -> set[str]:
+    """Item IDs that have been liked or saved in any brief (excluded from re-selection).
+
+    If cutoff_date (YYYY-MM-DD) is given, only likes/saves on or after that date count.
+    """
+    if cutoff_date:
+        rows = conn.execute("""
+            SELECT DISTINCT s.item_id
+            FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
+            WHERE (s.liked = 1 OR s.saved = 1) AND b.date >= ?
+        """, (cutoff_date,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT DISTINCT s.item_id
+            FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
+            WHERE s.liked = 1 OR s.saved = 1
+        """).fetchall()
     return {r[0] for r in rows}
 
 

@@ -60,7 +60,7 @@
     },
     "interests": {
       "kappa": 5,
-      "maxLikedDays": 100,
+      "maxLikedDays": 1000,
       "mode": "constrained",
       "minClusters": 1
     },

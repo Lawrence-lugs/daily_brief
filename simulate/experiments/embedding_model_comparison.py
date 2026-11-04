@@ -220,11 +220,16 @@ def main() -> int:
     if args.skip_eval:
         print("Skipping eval runs; reading existing model_eval rows...")
     else:
+        errors = []
         for model in models:
             try:
                 run_eval(model, args.date, args.testFrac)
             except Exception as e:
                 print(f"ERROR evaluating {model}: {e}")
+                errors.append(model)
+        if errors:
+            print(f"WARNING: {len(errors)} model(s) failed: {', '.join(errors)}")
+            if len(errors) == len(models):
                 return 1
 
     # Read results from DB
