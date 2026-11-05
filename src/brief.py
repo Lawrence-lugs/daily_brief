@@ -108,6 +108,8 @@ def select_lr(
             merged_item["V"] = ranker_item["V"]
             merged_item["cluster"] = ranker_item["cluster"]
             merged_item["core"] = ranker_item["core"]
+            for k in ("cos_dist", "cluster_size", "cluster_pool", "medoid_id"):
+                merged_item[k] = ranker_item.get(k)   # absent from older ranker output -> None
             # Compute age_days and kind for consistency with keyword path
             merged_item["age_days"] = age_days(merged_item, now)
             merged_item["kind"] = sel.kind_of(merged_item, {**sel.DEFAULTS, **cfg["selection"]})

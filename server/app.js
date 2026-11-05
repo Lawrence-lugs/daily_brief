@@ -48,13 +48,25 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
     const data = id ? q.getBrief(id) : null;
     if (id && !data) return json(res, 404, { error: 'no such brief' });
 
-    // Enrich stories with cluster medoid titles if using LR engine
+    // Medoid titles come from the per-story snapshot (medoid_id, taken at generation time).
+    if (data) {
+      for (const desk of Object.values(data.desks)) {
+        for (const story of desk.stories) {
+          if (!story.medoid_id) continue;
+          story.medoid_title = q.medoidTitle(story.medoid_id);
+          story.clusterMedoidTitle = story.medoid_title;   // keeps the existing cluster badge tooltip correct
+        }
+      }
+    }
+
+    // LEGACY fallback (briefs made before the snapshot existed): live interests, may be stale.
     if (data && data.brief && data.brief.meta?.engine === 'lr') {
       const interests = q.getInterestsWithMedoidTitles();
       if (interests) {
         const clusterById = new Map(interests.clusters.map((c) => [c.id, c]));
         for (const desk of Object.values(data.desks)) {
           for (const story of desk.stories) {
+            if (story.medoid_id) continue;   // already resolved from the snapshot
             if (story.cluster !== undefined && story.cluster !== null) {
               // DB stores cluster as TEXT, but interests uses numeric IDs
               const clusterKey = Number(story.cluster);

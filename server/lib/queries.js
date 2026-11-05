@@ -14,6 +14,12 @@ export function openDb(file, schemaFile) {
   for (const ddl of [
     'ALTER TABLE stories ADD COLUMN cluster TEXT',
     'ALTER TABLE stories ADD COLUMN core INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE stories ADD COLUMN score_p REAL',
+    'ALTER TABLE stories ADD COLUMN score_v REAL',
+    'ALTER TABLE stories ADD COLUMN cos_dist REAL',
+    'ALTER TABLE stories ADD COLUMN cluster_size INTEGER',
+    'ALTER TABLE stories ADD COLUMN cluster_pool INTEGER',
+    'ALTER TABLE stories ADD COLUMN medoid_id TEXT',
   ]) {
     try { db.exec(ddl); } catch (e) { if (!String(e).includes('duplicate column name')) throw e; }
   }
@@ -131,5 +137,7 @@ export function makeQueries(db, root = '.') {
         })),
       };
     },
+
+    medoidTitle: resolveMedoidTitle,
   };
 }

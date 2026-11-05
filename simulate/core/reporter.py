@@ -153,6 +153,15 @@ class Reporter:
         cluster_labels = sorted(cluster_counts.keys())
         cluster_data = [cluster_counts.get(c, 0) for c in cluster_labels]
         
+        # Medoid titles per cluster (for hover on the cluster coverage chart).
+        medoid_titles: List[str] | None = None
+        if cluster_metadata:
+            clusters = cluster_metadata.get("clusters", [])
+            medoid_by_id = {
+                c["id"]: c.get("medoid_title", f"C{c['id']}") for c in clusters
+            }
+            medoid_titles = [medoid_by_id.get(c, f"C{c}") for c in cluster_labels]
+        
         mode_labels = sorted(set().union(*[set(c.keys()) for c in mode_counts.values()]))
         mode_totals = [
             sum(mode_counts.get(e, {}).get(l, 0) for e in engines) for l in mode_labels
@@ -178,7 +187,7 @@ class Reporter:
         charts = {
             "source_type": create_source_type_chart(source_labels, source_datasets),
             "mode": create_mode_chart(mode_labels, mode_totals),
-            "cluster": create_cluster_chart(cluster_labels, cluster_data),
+            "cluster": create_cluster_chart(cluster_labels, cluster_data, medoid_titles),
             "combined_age_histograms": create_combined_age_histograms(desk_age_hist_data),
         }
         
@@ -200,6 +209,7 @@ class Reporter:
             source_type_counts=source_type_counts,
             mode_counts=mode_counts,
             cluster_metadata=cluster_metadata,
+            cluster_counts=cluster_counts,
             freshness_config=freshness_config,
             summary_stats=summary_stats,
             model_eval=model_eval,

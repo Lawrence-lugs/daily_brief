@@ -41,7 +41,7 @@
     <tr><td>Jaccard (science)</td><td>--</td><td>{{ '%.3f'|format(summary_stats.jaccard_science) }}</td><td>{% if summary_stats.jaccard_science == 0 %}No overlap{% elif summary_stats.jaccard_science < 0.1 %}Very low{% else %}Low{% endif %}</td></tr>
 {% endmacro %}
 
-{% macro cluster_details(cluster_metadata) %}
+{% macro cluster_details(cluster_metadata, cluster_counts={}) %}
     {% if not cluster_metadata %}
         <p><small>No cluster metadata available.</small></p>
     {% else %}
@@ -65,16 +65,19 @@
             </div>
         </div>
         <table style="margin-top: 15px;">
-            <tr><th>Cluster</th><th>Medoid Title</th><th>Size</th><th>Type</th></tr>
+            <tr><th>Cluster</th><th>Medoid Title</th><th>Corpus Size</th><th>Picks</th><th>Type</th></tr>
             {% for c in clusters %}
+            {% set picks = cluster_counts.get(c.id, 0) %}
             <tr>
                 <td>C{{ c.id }}</td>
                 <td>{{ c.medoid_title }}</td>
                 <td>{{ c.size }}</td>
+                <td>{{ picks }}</td>
                 <td><span class="badge {% if c.core %}badge-core{% else %}badge-side{% endif %}">{% if c.core %}CORE{% else %}SIDE{% endif %}</span></td>
             </tr>
             {% endfor %}
         </table>
+        <p class="small"><small>Corpus size = total items in the cluster (static). Picks = times items from that cluster were selected across runs (experimental coverage).</small></p>
     {% endif %}
 {% endmacro %}
 

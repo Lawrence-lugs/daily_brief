@@ -91,27 +91,23 @@
         </div>
     </div>
 
-    {% if charts.cluster %}
     <div class="card">
-        <h2>Cluster Coverage (LR Engine)</h2>
+        <h2>LR Cluster Coverage & Details</h2>
+        {% if charts.cluster %}
         <div class="chart-container">
             {{ charts.cluster | safe }}
         </div>
         <p><small>Green = core clusters (guaranteed 1 pick/day via round-robin), Yellow = side clusters</small></p>
+        {% endif %}
+        {% from 'macros.j2' import cluster_details %}
+        {{ cluster_details(cluster_metadata, cluster_counts) }}
     </div>
-    {% endif %}
 
     <div class="card">
         <h2>Freshness Configuration (Hook + Hyperparameters)</h2>
         <p><small>Freshness decay functions and config hyperparameters used in this experiment.</small></p>
         {% from 'macros.j2' import freshness_config_html %}
         {{ freshness_config_html(freshness_config) }}
-    </div>
-
-    <div class="card">
-        <h2>LR Cluster Details</h2>
-        {% from 'macros.j2' import cluster_details %}
-        {{ cluster_details(cluster_metadata) }}
     </div>
 
     <div class="card">

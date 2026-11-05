@@ -1,0 +1,11 @@
+<div class="story-face story-back" aria-hidden="true" inert>
+  <dl class="back-grid">
+    <dt>Cluster pool</dt><dd>{{pool}}</dd>
+    <dt title="Model probability of a like">P score</dt><dd>{{p}}</dd>
+    <dt title="P x freshness x repeat-penalty: the number the sampler ranks by">V score</dt><dd>{{v}}</dd>
+    <dt>Medoid</dt><dd class="back-medoid">{{medoid}}</dd>
+    <dt title="1 minus cosine similarity to the cluster medoid: 0 = same direction, 1 = unrelated">Distance to medoid</dt><dd>{{dist}}</dd>
+  </dl>
+  <p class="back-note">{{note}}</p>
+  <button type="button" class="btn-flip btn-flip-back" data-flip>&larr; Back to story</button>
+</div>

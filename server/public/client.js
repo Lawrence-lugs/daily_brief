@@ -45,7 +45,24 @@
     applyState();
   }
 
+  // ---- card flip. The hidden face is made `inert` so its links/buttons can't be tabbed to or clicked.
+  function setFlipped(card, on) {
+    card.classList.toggle('is-flipped', on);
+    const front = card.querySelector('.story-front'), back = card.querySelector('.story-back');
+    front.inert = on; back.inert = !on;
+    front.setAttribute('aria-hidden', String(on)); back.setAttribute('aria-hidden', String(!on));
+    front.querySelector('[data-flip]')?.setAttribute('aria-expanded', String(on));
+    (on ? back : front).querySelector('[data-flip]')?.focus({ preventScroll: true });
+  }
+
   document.addEventListener('click', (e) => {
+    const flip = e.target.closest('[data-flip]');     // NOT data-action: that is the like/save toggle
+    if (flip) {
+      e.preventDefault();
+      const card = flip.closest('.story-card');
+      if (card) setFlipped(card, !card.classList.contains('is-flipped'));
+      return;
+    }
     const btn = e.target.closest('[data-action]');
     if (btn) { e.preventDefault(); toggle(btn); return; }
     const a = e.target.closest('a[href]');

@@ -30,6 +30,7 @@ const ins = seed.prepare(`INSERT INTO stories (brief_id,item_id,desk,position,he
 ins.run('aaa', 'primary', 0, 'Lead <script>x</script>', 'blurb', 'https://e.com/a', 'S', 'sub', 0.5, '["t1"]', 'fresh');
 ins.run('bbb', 'primary', 1, 'Second', 'blurb', 'javascript:alert(1)', 'S', 'sub', 3, '[]', 'archive');
 ins.run('ccc', 'science', 0, 'Sci', 'blurb', 'https://e.com/c', 'S', 'sub', 20, '[]', 'fresh');
+seed.exec(`UPDATE stories SET score_p=0.731, score_v=0.2, cos_dist=0.1234, cluster_size=7, cluster_pool=19, medoid_id='ps:x' WHERE story_id=1`);
 seed.close();
 
 const PORT = 45873;
@@ -97,4 +98,11 @@ test('shutdown endpoint: missing client header is refused, valid request shuts d
   assert.equal(r.status, 200);
   assert.deepEqual(JSON.parse(r.body), { ok: true });
   assert.ok(shutdownCalled);
+});
+
+test('backside renders the snapshot (and dashes for stories without one)', async () => {
+  const b = (await call('GET', '/')).body;
+  assert.ok(b.includes('0.731') && b.includes('0.123') && b.includes('19 candidates'));
+  assert.ok(b.includes('ps:x'));                       // no perfect_samples.json in the temp root -> id fallback
+  assert.ok(b.includes('No ranker data for this card'));   // stories 2 and 3 have no snapshot
 });

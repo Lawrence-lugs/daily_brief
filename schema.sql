@@ -63,6 +63,12 @@ CREATE TABLE IF NOT EXISTS stories (
   times_shown_before INTEGER NOT NULL DEFAULT 0, -- feature snapshot
   cluster      TEXT,                          -- LR engine: cluster id
   core         INTEGER NOT NULL DEFAULT 0,    -- LR engine: core cluster flag
+  score_p      REAL,                          -- LR engine: model probability at pick time
+  score_v      REAL,                          -- LR engine: V = p * freshness * dedupe * repeat penalty
+  cos_dist     REAL,                          -- 1 - cos(story, medoid of its cluster), at pick time
+  cluster_size INTEGER,                       -- interest points in the cluster at pick time
+  cluster_pool INTEGER,                       -- candidates assigned to the cluster at pick time
+  medoid_id    TEXT,                          -- item_id (or ps:<id>) of the cluster medoid at pick time
   liked        INTEGER NOT NULL DEFAULT 0,
   saved        INTEGER NOT NULL DEFAULT 0,
   liked_at     TEXT,

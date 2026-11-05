@@ -2,6 +2,7 @@
 // template or rebuilding tailwind.css takes effect on reload (this replaces the old --re-render).
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { formatBackside } from './backside.js';
 
 class Raw { constructor(s) { this.s = s; } }
 export const raw = (s) => new Raw(s);
@@ -56,9 +57,10 @@ export function makeRenderer({ templatesDir, cssFile, paperName }) {
     } else {
       clusterBadge = raw('');
     }
+    const back = raw(fill(tpl('story-back.html'), formatBackside(s)));
     return fill(tpl(lead ? 'lead.html' : 'story.html'), {
       id: s.story_id, headline: s.headline, blurb: s.blurb, url: safeUrl(s.url), source: s.source,
-      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge,
+      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge, back,
     });
   }
 

@@ -9,6 +9,8 @@ import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './
 import { embeddingOf } from './embedder.js';
 import { openRun, takeDebugFlag } from './debuglog.js';
 import { selectBrief, mulberry32, value } from './sampler.js';
+import { fromBlob } from './vec.js';
+import { makeBackside, poolCountsByCluster } from './backside.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const CONFIG_FILE = resolve(__dirname, '..', 'config.json');
@@ -94,7 +96,21 @@ async function cmdSelect(args) {
     const rng = mulberry32(seed);
     const trace = run.want('trace') ? (kind, data) => run.event(kind, data, 'trace') : undefined;
     const out = selectBrief(candidates, cfg.sampling, rng, trace);
-    // Output format: { desk: [{id, mode, p, V, cluster, core}] }
+    // Snapshot of the card backside, frozen now (interests get refitted later; see ranker/backside.js).
+    const embRows = new Map((store.getAllEmbeddings() || []).map((e) => [e.item_id, e]));
+    const vecOf = (id) => {
+      const e = embRows.get(id);
+      if (!e || !e.vec) return null;
+      return e.vec instanceof Float32Array ? e.vec : fromBlob(e.vec);
+    };
+    // Cache hits strip medoid vecs from interests (serializeInterests). Re-hydrate them so cos_dist can be
+    // computed against the cluster medoid. (Fresh fits already carry vecs.)
+    const medoidVec = (id) => { const e = embRows.get(id); return e && e.vec ? e.vec : null; };
+    for (const cl of fitted.interests.clusters) {
+      if (!(cl.vec instanceof Float32Array)) cl.vec = medoidVec(cl.medoid);
+    }
+    const backside = makeBackside(fitted.interests, vecOf, poolCountsByCluster(candidates));
+    // Output format: { desk: [{id, mode, p, V, cluster, core, cos_dist, cluster_size, cluster_pool, medoid_id}] }
     const result = {};
     for (const [desk, items] of Object.entries(out)) {
       result[desk] = items.map((c) => ({
@@ -104,6 +120,7 @@ async function cmdSelect(args) {
         V: c.V,
         cluster: c.cluster,
         core: c.core,
+        ...backside(c),
       }));
     }
     console.log(JSON.stringify(result));

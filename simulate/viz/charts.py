@@ -75,8 +75,15 @@ def create_mode_chart(mode_labels: List[str], mode_totals: List[int]) -> str:
     return _fig_to_html(fig)
 
 
-def create_cluster_chart(cluster_labels: List[int], cluster_data: List[int]) -> str:
-    """Create bar chart for LR cluster coverage with core/side coloring."""
+def create_cluster_chart(
+    cluster_labels: List[int],
+    cluster_data: List[int],
+    medoid_titles: List[str] | None = None,
+) -> str:
+    """Create bar chart for LR cluster coverage with core/side coloring.
+
+    Bars show the cluster medoid title on hover (when medoid_titles is provided).
+    """
     if not cluster_labels:
         return ""
     
@@ -90,11 +97,22 @@ def create_cluster_chart(cluster_labels: List[int], cluster_data: List[int]) -> 
             colors.append("rgba(241,196,15,0.7)")    # side = yellow
             border_colors.append("#f1c40f")
     
+    if medoid_titles:
+        hovertemplate = (
+            "Cluster: %{x}<br>"
+            "Medoid: %{customdata}<br>"
+            "Picks: %{y}<extra></extra>"
+        )
+    else:
+        hovertemplate = "Cluster: %{x}<br>Picks: %{y}<extra></extra>"
+    
     fig = go.Figure(data=[go.Bar(
         x=[f"C{c}" for c in cluster_labels],
         y=cluster_data,
+        customdata=medoid_titles,
         marker=dict(color=colors, line=dict(color=border_colors, width=1)),
         name="Picks per run (aggregated)",
+        hovertemplate=hovertemplate,
     )])
     
     fig.update_layout(

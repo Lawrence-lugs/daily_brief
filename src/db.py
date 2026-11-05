@@ -33,7 +33,13 @@ def connect(path) -> sqlite3.Connection:
     conn.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
     # Migration: add cluster and core columns to stories if missing
     for col, ddl in (("cluster", "ALTER TABLE stories ADD COLUMN cluster TEXT"),
-                     ("core", "ALTER TABLE stories ADD COLUMN core INTEGER NOT NULL DEFAULT 0")):
+                     ("core", "ALTER TABLE stories ADD COLUMN core INTEGER NOT NULL DEFAULT 0"),
+                     ("score_p", "ALTER TABLE stories ADD COLUMN score_p REAL"),
+                     ("score_v", "ALTER TABLE stories ADD COLUMN score_v REAL"),
+                     ("cos_dist", "ALTER TABLE stories ADD COLUMN cos_dist REAL"),
+                     ("cluster_size", "ALTER TABLE stories ADD COLUMN cluster_size INTEGER"),
+                     ("cluster_pool", "ALTER TABLE stories ADD COLUMN cluster_pool INTEGER"),
+                     ("medoid_id", "ALTER TABLE stories ADD COLUMN medoid_id TEXT")):
         try:
             conn.execute(ddl)
         except sqlite3.OperationalError as e:
@@ -208,6 +214,30 @@ WHERE brief_id=:bid
 """
 
 
+_STORY_COLS = ("brief_id", "item_id", "desk", "position", "headline", "blurb", "why_care", "tags",
+               "significance", "summarized", "url", "source", "source_type", "subtopic", "kind", "mode",
+               "age_days", "rel", "times_shown_before", "cluster", "core",
+               "score_p", "score_v", "cos_dist", "cluster_size", "cluster_pool", "medoid_id")
+_STORY_SQL = (f"INSERT INTO stories ({','.join(_STORY_COLS)}) "
+              f"VALUES ({','.join('?' * len(_STORY_COLS))})")
+
+
+def _num(v, cast=float):
+    """None stays None (keyword engine has no ranker fields); never float(None)."""
+    return None if v is None else cast(v)
+
+
+def _story_row(bid, desk, pos, s):
+    return (bid, s["id"], desk, pos, s["headline"], s["blurb"], s.get("why_care", ""),
+            json.dumps(s.get("tags", []), ensure_ascii=False), int(s.get("significance", 3)),
+            int(bool(s.get("summarized", True))), s["url"], s["source"],
+            s.get("source_type") or "commentary", s["subtopic"], s.get("kind", "fresh"),
+            s.get("mode"), float(s.get("age_days", 0)), float(s.get("rel", 0)),
+            int(s.get("times_shown", 0)), s.get("cluster"), int(bool(s.get("core", False))),
+            _num(s.get("p")), _num(s.get("V")), _num(s.get("cos_dist")),
+            _num(s.get("cluster_size"), int), _num(s.get("cluster_pool"), int), s.get("medoid_id"))
+
+
 def insert_brief(conn, *, date_key: str, generated_at: str, model: str, llm_requests: int,
                  rejected_ids: list[str], desks_out: dict, meta: dict,
                  edition: int | None = None, counted: int = 1) -> int:
@@ -232,18 +262,7 @@ def insert_brief(conn, *, date_key: str, generated_at: str, model: str, llm_requ
     bid = cur.lastrowid
     for desk, d in desks_out.items():
         for pos, s in enumerate(d["stories"]):
-            conn.execute(
-                """INSERT INTO stories
-                     (brief_id,item_id,desk,position,headline,blurb,why_care,tags,significance,summarized,
-                      url,source,source_type,subtopic,kind,mode,age_days,rel,times_shown_before,cluster,core)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (bid, s["id"], desk, pos, s["headline"], s["blurb"], s.get("why_care", ""),
-                 json.dumps(s.get("tags", []), ensure_ascii=False), int(s.get("significance", 3)),
-                 int(bool(s.get("summarized", True))), s["url"], s["source"],
-                 s.get("source_type") or "commentary", s["subtopic"], s.get("kind", "fresh"),
-                 s.get("mode"), float(s.get("age_days", 0)), float(s.get("rel", 0)),
-                 int(s.get("times_shown", 0)), s.get("cluster"), int(bool(s.get("core", False)))),
-            )
+            conn.execute(_STORY_SQL, _story_row(bid, desk, pos, s))
     conn.execute(_CARRY, {"date": date_key, "bid": bid})
     return bid
 

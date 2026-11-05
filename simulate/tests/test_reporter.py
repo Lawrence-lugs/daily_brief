@@ -225,10 +225,12 @@ class TestGenerateComparisonHtml:
         
         html = reporter.generate_comparison_html(sample_results, "Test")
         
-        assert "LR Cluster Details" in html
+        assert "LR Cluster Coverage & Details" in html
         assert "CORE" in html
         assert "SIDE" in html
         assert "Cluster 0" in html
+        assert "Corpus Size" in html
+        assert "Picks" in html
 
     def test_generate_comparison_html_missing_cluster_metadata(self, sample_results):
         reporter = Reporter("dummy")
