@@ -86,37 +86,77 @@ Use `eval` to tune `model.prior.rules` (per-feature Gaussian precision). Target:
 
 ---
 
-## 3. `experiments/` Folder (Ad-Hoc Comparison Scripts)
+## 3. Sacred Experiments (replacing ad-hoc scripts)
 
-The `experiments/` directory contains Python scripts for running comparative experiments between the keyword and LR
-engines. These are ad-hoc tools, not a formal package.
+All experiment scripts have been rewritten as [Sacred](https://sacred.readthedocs.io/) experiments
+in `simulate/experiments/`. Each old standalone script corresponds to one sacred `Experiment`,
+run through the unified CLI:
 
-| File | Purpose |
-|------|---------|
-| `run_comparison.py` | Compare engines on a given date/seeds |
-| `make_report.py` / `gen_report.py` | Generate comparison reports |
-| `write_report.py` | Write report output |
-| `SIMULATION_FRAMEWORK.md` | Design doc for a unified simulation framework (planned, not implemented) |
-| `results/` | JSON output from past runs (`comparison_*.json`, `aggregated_*.json`) |
-| `comparison_report.html` | HTML report from a past run |
+| Sacred experiment | CLI command | Replaces |
+|-------------------|-------------|----------|
+| `daily_brief_engine_comparison` | `python -m simulate.cli sacred` / `compare` | `compare_lr_vs_keyword.py` |
+| `daily_brief_parameter_sweep` | `python -m simulate.cli sweep` | `test_params.py`, `test_sweep_*.py` |
+| `daily_brief_monte_carlo` | `python -m simulate.cli monte-carlo` | ad-hoc Monte Carlo scripts |
+| `daily_brief_ablation` | `python -m simulate.cli ablation` | ad-hoc ablation scripts |
 
-### Running a comparison
+The old `experiments/` folder scripts (`compare_experiments.py`, `compare_experiments2.py`,
+`test_*.py`, etc.) have been removed — every experiment now goes through Sacred.
+
+Each Sacred experiment:
+
+- **Config** — all experiment parameters (`date`, `seeds`, `engine`, `db_path`, `config_path`,
+  `output_dir`, ...) plus `db_hash`, a SHA-256 of the SQLite database file, so any change to
+  DB state produces a distinct config value.
+- **Resources** — all input JSON files are snapshotted as sacred resources:
+  `config.json`, `sources.json`, `perfect_samples.json`, `perfect-samples-new.json`,
+  `state.json` (missing files are skipped gracefully).
+- **Artefacts** — generated comparison JSON/HTML reports are attached to each run.
+- **Runs** — persisted by a `SqlObserver` (SQLAlchemy) in `docs/experiments/runs.db`
+  (SQLite by default; override with `--sql-url <connection-string>`).
+
+### Running a Sacred experiment
 
 ```bash
-# Example (adapt arguments to the script)
-python experiments/run_comparison.py --date 2026-10-29 --seeds 1..10
-python experiments/make_report.py --input results/aggregated_*.json --output experiments/comparison_report.html
+# Compare keyword vs LR (default: keyword engine, seeds 1-10)
+python -m simulate.cli sacred
+python -m simulate.cli compare  # alias for the same experiment
+
+# Custom date, seeds, engines
+python -m simulate.cli sacred --date 2026-10-29 --seeds 1-10 --engines keyword,lr
+
+# Parameter sweep
+python -m simulate.cli sweep --engine lr --param "epsilon=0.25,0.5,0.8" --seeds 1-5
+
+# Monte Carlo stability simulation
+python -m simulate.cli monte-carlo --engine keyword --runs 100
+
+# Ablation study
+python -m simulate.cli ablation --engine lr --seeds 1-5
+
+# Use a different SQL database (e.g. PostgreSQL)
+python -m simulate.cli sacred --sql-url postgresql://user:pass@localhost/daily_brief
+
+# Run without any sacred observer (quick tests, nothing persisted)
+python -m simulate.cli sacred --unobserved
+
+# Programmatic use
+from simulate.experiments.sacred_runner import ex as compare_ex
+compare_ex.run(config_updates={"seeds": [1, 2, 3]})
 ```
 
-The design doc (`SIMULATION_FRAMEWORK.md`) describes a future `simulate/` package with:
-- `Engine` interface (Python + JS) with `select(pool, config, seed)`
-- `KeywordEngine` (wraps `src/selection.py`) and `LREngine` (calls `node ranker/cli.js select`)
-- `PoolProvider` (load from DB or generate synthetic)
-- `MetricsCollector` (Jaccard overlap, diversity, freshness, coverage)
-- Experiment runners: `compare`, `sweep`, `ablation`, `monte_carlo`
-- HTML report generator with Chart.js
+### Browse past runs
 
-That package is **planned, not implemented** — the current `experiments/` scripts are the working alternative.
+Sacred stores each run as a row in the `run` table of `docs/experiments/runs.db`,
+with related tables `resource` (snapshotted input JSONs), `artifact` (comparison
+JSON/HTML reports), `experiment`, `host`, and `dependency`.
+
+| Table | Meaning |
+|-------|---------|
+| `run` | One row per experiment run: `run_id`, `status`, `command`, `config` (JSON incl. `db_hash`), `info`, `stop_time` |
+| `resource` | Input JSON files (`config.json`, `sources.json`, etc.) stored as blobs |
+| `artifact` | Generated comparison JSON/HTML reports stored as blobs |
+
+Sacred's own CLI (`python -m sacred ...`) can also be used to query and compare runs.
 
 ---
 
