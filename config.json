@@ -30,6 +30,7 @@
   },
   "llm": {
     "models": [
+      "nvidia/nemotron-3.5-super-vl:free",
       "nvidia/nemotron-3-ultra-550b-a55b:free",
       "nvidia/nemotron-3-super-120b-a12b:free",
       "nvidia/nemotron-3.5-lightning:free",
@@ -41,7 +42,7 @@
     "retries": 2,
     "max_requests_per_run": 24,
     "min_remaining_daily": 3,
-    "effort": "high"
+    "effort": "low"
   },
   "ranker": {
     "engine": "lr",
