@@ -28,6 +28,7 @@ import selection as sel
 import util
 import db
 from runlog import RunLog
+from progress import Progress
 from util import log, warn
 from fetch.fetcher import (  # noqa: F401  (Fetcher/CACHE are re-imported by fetcher.py)
     Fetcher,
@@ -206,6 +207,7 @@ def main() -> int:
     ap.add_argument("--no-refresh-api-feeds", action="store_false", dest="refresh_api_auto",
                     default=True, help=argparse.SUPPRESS)
     ap.add_argument("--log-file", type=Path, help=argparse.SUPPRESS)
+    ap.add_argument("--progress-file", type=Path, help=argparse.SUPPRESS)
     args = ap.parse_args()
     util.LOG_FILE = args.log_file
 
@@ -229,6 +231,7 @@ def main() -> int:
     now = dt.datetime.now(UTC)
     date_key = now.astimezone().strftime("%Y-%m-%d")
     run = RunLog(PROJECT_ROOT, "brief", date=date_key, seed=args.seed, argv=sys.argv[1:])
+    prog = Progress(args.progress_file)
 
     # 1. fetch + classify + upsert
     if args.no_fetch:
@@ -270,6 +273,8 @@ def main() -> int:
     if liked_ids:
         log(f"excluded {len(liked_ids)} liked/saved items from pool")
 
+    prog.phase("selecting")
+
     # 2. Selection per desk (keyword or LR engine)
     n, k = cfg["stories_per_desk"], cfg["reserve_per_desk"]
     selected: dict[str, list[dict]] = {}
@@ -308,6 +313,8 @@ def main() -> int:
             log(f"{desk}: {len(chosen)} picked ({sum(1 for _, m in picks if m == 'explore')} explore) "
                 f"+ {len(reserve)} reserve")
 
+    prog.set_engine(engine)          # final engine, after any LR -> keyword fallback
+
     for desk, items in selected.items():
         run.event("selection", {
             "desk": desk,
@@ -335,7 +342,13 @@ def main() -> int:
     max_cap = int(cfg.get("max_agent_output_items_per_desk", n))
     system = system.replace("{{max_agent_output_items_per_desk}}", str(max_cap))
     for desk, spec in src["desks"].items():
+        prog.desk_init(desk, spec["title"], n)
+        if engine == "lr":           # winners are pre-decided: show them raw while the editor works
+            prog.desk_raw(desk, [c for c in selected[desk] if c["mode"] != "reserve"])
+    prog.phase("editing")
+    for desk, spec in src["desks"].items():
         result = None
+        prog.desk_working(desk, True)
         # For LR engine, only show picks (not reserves) to the LLM; reserves backfill rejections
         cands_for_llm = [c for c in selected[desk] if c["mode"] != "reserve"] if engine == "lr" else selected[desk]
         if llm:
@@ -350,6 +363,7 @@ def main() -> int:
                 warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
                 llm = None
         stories, rejected, deck = apply_editor(selected[desk], result, n)
+        prog.desk_edited(desk, stories, deck)
         run.event("editor", {
             "desk": desk, "llm_answered": result is not None,
             "input": [item_view(c, now) for c in cands_for_llm],
@@ -379,11 +393,13 @@ def main() -> int:
     if args.dry_run:
         print(f"DRY-RUN {len(all_stories)} stories, model={meta['model']}, llm_requests={llm_requests}")
         return 0
+    prog.phase("committing")
     brief_id = db.append_brief(conn, date_key=date_key, now=now, model=meta["model"],
                                llm_requests=llm_requests, rejected_ids=all_rejected,
                                desks_out=desks_out, meta=meta)
     log(f"brief generation done: brief_id={brief_id} ({len(all_stories)} stories, "
         f"model={meta['model']}, llm_requests={llm_requests})")  # jobs.js watches for this exact phrase
+    prog.phase("done")
     print(f"OK brief_id={brief_id} ({len(all_stories)} stories, model={meta['model']}, "
           f"llm_requests={llm_requests})")
     return 0

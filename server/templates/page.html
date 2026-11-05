@@ -8,6 +8,7 @@
 <style>{{css}}</style>
 <link rel="stylesheet" href="/static/app.css">
 <script id="boot" type="application/json">{{boot}}</script>
+<script src="/static/genmodel.js"></script>
 <script src="/static/client.js" defer></script>
 </head>
 <body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200">
@@ -26,9 +27,10 @@
     <button id="btn-archive" type="button">Archive</button>
     <button id="btn-logs" type="button">Logs</button>
   </div>
+  <section id="gen-panel" class="gen-panel" hidden aria-live="polite"></section>
   <pre id="log-popup" hidden>Logs appear here while a brief is being generated.</pre>
 
-  <header class="text-center">
+  <header class="text-center" data-swap="masthead">
     <div class="flex items-center justify-between border-b border-stone-400 pb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500 dark:border-slate-600 dark:text-slate-400">
       <span>{{edition}}</span>
       <span>Research &amp; Silicon</span>
@@ -46,19 +48,19 @@
 </header>
 
   <main class="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-0 md:divide-x md:divide-stone-400 dark:md:divide-slate-700">
-    <section class="md:pr-6">
+    <section data-swap="desk-primary" class="md:pr-6">
       <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{primary_title}}</h2>
-      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400">{{primary_deck}}</p>
-      {{primary_stories}}
+      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400" data-desk-deck="primary">{{primary_deck}}</p>
+      <div data-desk-stories="primary">{{primary_stories}}</div>
     </section>
-    <section class="md:pl-6">
+    <section data-swap="desk-science" class="md:pl-6">
       <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{science_title}}</h2>
-      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400">{{science_deck}}</p>
-      {{science_stories}}
+      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400" data-desk-deck="science">{{science_deck}}</p>
+      <div data-desk-stories="science">{{science_stories}}</div>
     </section>
   </main>
 
-  <footer class="mt-10 border-t-4 border-double border-stone-800 pt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:border-slate-400 dark:text-slate-400">
+  <footer class="mt-10 border-t-4 border-double border-stone-800 pt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:border-slate-400 dark:text-slate-400" data-swap="footer">
     {{footer}}
   </footer>
 </div>

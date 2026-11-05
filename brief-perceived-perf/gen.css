@@ -1,0 +1,28 @@
+/* Append to tailwind.input.css, then run build_css.ps1. Theme-agnostic: uses currentColor/opacity only. */
+.gen-panel { margin: 0.75rem 0 1rem; padding: 0.75rem 1rem; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 18%, transparent); border-radius: 0.5rem; }
+.gen-title { font-weight: 600; margin-bottom: 0.5rem; }
+.gen-bar { height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 12%, transparent); overflow: hidden; }
+.gen-bar-fill { height: 100%; width: 0; background: currentColor; opacity: .7; transition: width .4s ease-out; }
+.gen-steps { list-style: none; margin: .6rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .85em; }
+.gen-step { opacity: .45; } .gen-step--active { opacity: 1; font-weight: 600; } .gen-step--done { opacity: .7; }
+.gen-step--done::before { content: "\2713\00a0"; } .gen-step--active::before { content: "\2022\00a0"; }
+.gen-note { margin-top: .4rem; font-size: .8em; opacity: .65; min-height: 1.2em; }
+
+/* skeleton cards (desks with no previous edition to keep on screen) */
+.gen-skel { padding: 1rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+.gen-skel-line { height: .8rem; margin: .5rem 0; border-radius: 3px; background: currentColor; opacity: .08; animation: gen-pulse 1.4s ease-in-out infinite; }
+.gen-skel-line--title { height: 1.2rem; width: 70%; } .gen-skel-line--short { width: 45%; }
+.gen-skel--lead .gen-skel-line--title { height: 1.8rem; width: 85%; }
+@keyframes gen-pulse { 50% { opacity: .16; } }
+
+/* previous edition kept on screen but visibly stale while a new one is being made */
+.is-dim { opacity: .45; transition: opacity .3s; pointer-events: none; }
+/* preview cards: readable, links work, like/save/flip are inert until the real edition lands */
+.is-preview [data-action], .is-preview [data-flip] { opacity: .35; cursor: default; }
+
+.gen-swap-out { opacity: 0; transition: opacity .15s; }
+.gen-swap-in { animation: gen-in .3s ease-out; }
+@keyframes gen-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .gen-skel-line, .gen-swap-in { animation: none; } .gen-bar-fill, .gen-swap-out, .is-dim { transition: none; }
+}

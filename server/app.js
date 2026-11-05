@@ -4,6 +4,7 @@ import path from 'node:path';
 import { openDb, makeQueries } from './lib/queries.js';
 import { makeRenderer } from './lib/render.js';
 import { JobRunner } from './lib/jobs.js';
+import { buildPreview } from './lib/progress.js';
 import { guard } from './lib/guard.js';
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -119,7 +120,10 @@ export function createApp({ root, port, python = process.env.BRIEF_PYTHON ?? 'py
           return d ? json(res, 200, d) : json(res, 404, { error: 'no such brief' });
         }
         if (p === '/api/job') {
-          return json(res, 200, jobs.view(Number(url.searchParams.get('id')), url.searchParams.get('since')));
+          const v = jobs.view(Number(url.searchParams.get('id')), url.searchParams.get('since'), url.searchParams.get('pseq'));
+          if (v.progress) v.preview = buildPreview(v.progress, { renderStory: renderer.renderStory, medoidTitle: q.medoidTitle });
+          delete v.progress;
+          return json(res, 200, v);
         }
         if (p === '/api/export/training.jsonl') {
           const lines = q.trainingRows().map((r) => JSON.stringify({ ...r, y_like: r.liked, y_save: r.saved }));
