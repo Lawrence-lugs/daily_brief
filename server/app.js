@@ -9,7 +9,9 @@ import { guard } from './lib/guard.js';
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2', '.woff': 'font/woff',
+};
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** @param {{root:string, port:number, python?:string}} o  root = project dir holding config.json */
