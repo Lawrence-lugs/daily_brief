@@ -33,7 +33,7 @@ app.whenReady().then(async () => {
     width: 1280,
     height: 900,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
+    titleBarOverlay: { 
       color: '#00000000',
       symbolColor: '#4a453f',
       height: 32,
