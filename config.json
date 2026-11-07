@@ -42,7 +42,7 @@
     "retries": 2,
     "max_requests_per_run": 24,
     "min_remaining_daily": 3,
-    "effort": "low"
+    "effort": "high"
   },
   "ranker": {
     "engine": "lr",

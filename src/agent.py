@@ -238,6 +238,108 @@ def build_user_message(desk_title: str, n: int, cands: list[dict], today: str,
             f"CANDIDATES:\n{json.dumps(slim, ensure_ascii=False, indent=1)}")
 
 
+def build_user_message_multi(desks: list[dict], n: int, cands_by_desk: dict[str, list[dict]], today: str,
+                             keep_cap: int | None = None) -> str:
+    """Build ONE user message covering every desk.
+
+    ``desks`` is a list of {"key": desk_key, "title": desk_title}; ``cands_by_desk`` maps each desk key to its
+    pre-selected candidates. Each slimmed candidate carries a "desk" field so the model knows which desk it
+    already belongs to and never moves items between desks.
+    """
+    cap = keep_cap if keep_cap is not None else n
+    sections: list[str] = []
+    for d in desks:
+        desk_key = d["key"]
+        desk_title = d["title"]
+        cands = cands_by_desk.get(desk_key, [])
+        slim = [{"id": c["id"], "desk": desk_key, "kind": c["kind"], "subtopic": c["subtopic"],
+                 "source": c["source"], "source_type": c.get("source_type", "commentary"),
+                 "age_days": round(c["age_days"], 1), "title": c["title"][:220],
+                 "snippet": c["snippet"][:600]} for c in cands]
+        sections.append(f"DESK: {desk_key} — {desk_title}\n{json.dumps(slim, ensure_ascii=False, indent=1)}")
+    return (f"Today is {today}. Desks: " + ", ".join(f"{d['key']} ({d['title']})" for d in desks) + ".\n"
+            f"Keep at least {cap} items for EACH desk below, best first per desk, and write them up per the schema. "
+            "Include at least one newslike candidate when one is available on that desk. "
+            "Candidates are listed in the editor's suggested order but you may reorder by importance. "
+            "Never change an item's desk.\n\n"
+            + "\n\n".join(sections))
+
+
+def apply_editor_multi(selected_by_desk: dict[str, list[dict]], result: dict | None, n: int
+                       ) -> dict[str, tuple[list[dict], list[str], str]]:
+    """Split one multi-desk editor result back into per-desk (stories, rejected, deck).
+
+    Desk membership was fixed before the LLM edit, so each output item is routed back to its pre-assigned
+    desk via its "desk" field (falling back to an id lookup across all selected candidates). Each desk is
+    backfilled to ``n`` stories independently and sorted by that desk's lead story.
+    """
+    by_id_all = {c["id"]: c for items in selected_by_desk.values() for c in items}
+    decks = result.get("decks", {}) if isinstance(result, dict) else {}
+    items = result.get("items", []) if isinstance(result, dict) else []
+    if not isinstance(items, list):
+        items = []
+
+    per_desk: dict[str, list[dict]] = {desk: [] for desk in selected_by_desk}
+    rejected: dict[str, list[str]] = {desk: [] for desk in selected_by_desk}
+    seen: set[str] = set()
+    for e in items:
+        if not isinstance(e, dict):
+            continue
+        iid = str(e.get("id", ""))
+        if not iid or iid in seen:
+            continue
+        seen.add(iid)
+        desk = e.get("desk")
+        if desk not in selected_by_desk:
+            c = by_id_all.get(iid)
+            desk = c.get("desk") if isinstance(c, dict) else None
+        if desk not in selected_by_desk:
+            continue  # cannot place this item on a known desk
+        c = by_id_all.get(iid)
+        if not c:
+            continue
+        if e.get("keep") is False:
+            rejected[desk].append(iid)
+            continue
+        head, blurb = _clip(e.get("headline"), 140), _clip(e.get("blurb"), 650)
+        if not head or not blurb:
+            continue
+        try:
+            sig = max(1, min(5, int(e.get("significance", 3))))
+        except (TypeError, ValueError):
+            sig = 3
+        tags = [_clip(t, 24) for t in (e.get("tags") or [])[:3] if isinstance(t, str) and t.strip()]
+        per_desk[desk].append({**c, "headline": head, "blurb": blurb,
+                               "why_care": _clip(e.get("why_care"), 170), "tags": tags,
+                               "significance": sig, "summarized": True})
+
+    out: dict[str, tuple[list[dict], list[str], str]] = {}
+    for desk, cands in selected_by_desk.items():
+        stories = per_desk[desk]
+        # Backfill with raw candidates from this desk the editor did not explicitly reject.
+        if len(stories) < n:
+            have = {s["id"] for s in stories}
+            for c in cands:
+                if len(stories) >= n:
+                    break
+                if c["id"] in have or c["id"] in rejected[desk]:
+                    continue
+                stories.append({**c, "headline": c["title"][:140],
+                                "blurb": c["snippet"][:320] or "No summary available.",
+                                "why_care": "", "tags": [c["subtopic"]], "significance": 1,
+                                "summarized": False})
+        stories = stories[:n]
+        deck_entry = decks.get(desk) if isinstance(decks, dict) else None
+        lead = str(deck_entry.get("lead_id", "")) if isinstance(deck_entry, dict) else ""
+        if lead and stories:  # mirror apply_editor: lead first only when present; else significance order
+            stories.sort(key=lambda s: 0 if s["id"] == lead else 1)  # stable: lead first
+            if stories[0]["id"] != lead:
+                stories.sort(key=lambda s: -s["significance"])
+        deck = _clip(str(deck_entry.get("deck", "")) if isinstance(deck_entry, dict) else "", 220)
+        out[desk] = (stories, rejected[desk], deck)
+    return out
+
+
 def _clip(v, n: int) -> str:
     return re.sub(r"\s+", " ", str(v or "")).strip()[:n]
 

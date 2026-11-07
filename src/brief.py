@@ -38,7 +38,7 @@ from fetch.fetcher import (  # noqa: F401  (Fetcher/CACHE are re-imported by fet
     _iter_feed_specs,
 )
 from fetch.semanticscholar import fetch_semanticscholar  # noqa: F401  (registers the api fetcher)
-from agent import LLM, LLMUnavailable, build_user_message, apply_editor
+from agent import LLM, LLMUnavailable, build_user_message_multi, apply_editor_multi, apply_editor
 
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parent
@@ -341,32 +341,47 @@ def main() -> int:
     system = (PROJECT_ROOT / "prompt_system.md").read_text(encoding="utf-8")
     max_cap = int(cfg.get("max_agent_output_items_per_desk", n))
     system = system.replace("{{max_agent_output_items_per_desk}}", str(max_cap))
+
+    # Per-desk candidates shown to the editor. Desk membership is fixed before the LLM edit, so a single
+    # combined call can cover both desks; each candidate carries its desk in the user message.
+    cands_by_desk = {}
+    for desk, spec in src["desks"].items():
+        # For LR engine, only show picks (not reserves) to the LLM; reserves backfill rejections
+        cands_by_desk[desk] = [c for c in selected[desk] if c["mode"] != "reserve"] if engine == "lr" \
+            else selected[desk]
+
+    desk_specs = [{"key": desk, "title": spec["title"]} for desk, spec in src["desks"].items()]
     for desk, spec in src["desks"].items():
         prog.desk_init(desk, spec["title"], n)
         if engine == "lr":           # winners are pre-decided: show them raw while the editor works
-            prog.desk_raw(desk, [c for c in selected[desk] if c["mode"] != "reserve"])
+            prog.desk_raw(desk, cands_by_desk[desk])
     prog.phase("editing")
-    for desk, spec in src["desks"].items():
-        result = None
-        prog.desk_working(desk, True)
-        # For LR engine, only show picks (not reserves) to the LLM; reserves backfill rejections
-        cands_for_llm = [c for c in selected[desk] if c["mode"] != "reserve"] if engine == "lr" else selected[desk]
-        if llm:
-            try:
-                result = llm.chat(system, build_user_message(spec["title"], n, cands_for_llm, today_s,
-                                                             keep_cap=max_cap))
-            except LLMUnavailable as e:
-                warn(f"{spec['title']}: editor unavailable ({e}); showing raw items")
-                if "cap" in str(e) or "HTTP 401" in str(e):
-                    llm = None
-            except Exception as e:  # one desk's editor failure must never kill the whole edition
-                warn(f"{spec['title']}: editor errored ({type(e).__name__}: {e}); showing raw items")
+
+    # ONE editor call for both desks; each candidate already carries its desk.
+    result = None
+    if llm:
+        try:
+            result = llm.chat(system, build_user_message_multi(desk_specs, n, cands_by_desk,
+                                                               today_s, keep_cap=max_cap))
+        except LLMUnavailable as e:
+            warn(f"editor unavailable ({e}); showing raw items on all desks")
+            if "cap" in str(e) or "HTTP 401" in str(e):
                 llm = None
-        stories, rejected, deck = apply_editor(selected[desk], result, n)
+        except Exception as e:  # the editor failure must never kill the whole edition
+            warn(f"editor errored ({type(e).__name__}: {e}); showing raw items on all desks")
+            llm = None
+
+    split = apply_editor_multi(selected, result, n) if result is not None else None
+    for desk, spec in src["desks"].items():
+        prog.desk_working(desk, True)
+        if split is not None:
+            stories, rejected, deck = split[desk]
+        else:
+            stories, rejected, deck = apply_editor(selected[desk], None, n)
         prog.desk_edited(desk, stories, deck)
         run.event("editor", {
             "desk": desk, "llm_answered": result is not None,
-            "input": [item_view(c, now) for c in cands_for_llm],
+            "input": [item_view(c, now) for c in cands_by_desk[desk]],
             "output": [item_view(s, now) | {"summarized": s.get("summarized")} for s in stories],
             "rejected": rejected, "reserves_used": [s.get("id") for s in stories if s.get("mode") == "reserve"],
             "deck": deck,
