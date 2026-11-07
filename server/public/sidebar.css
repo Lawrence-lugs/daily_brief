@@ -17,6 +17,22 @@ html[data-sb="collapsed"] { --sb-cur: var(--sb-wc); }
 
 .sb-content { margin-left: var(--sb-cur, var(--sb-w)); padding-top: env(titlebar-area-height, 0); transition: margin-left .2s ease; }
 
+/* Drag region across the top of the Electron window, matching titleBarOverlay.height.
+   Empty element: its only job is to let the user drag the window from anywhere in the top strip.
+   Native caption buttons (min/max/close) are drawn by the OS above this layer. */
+#titlebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 32px;                 /* match titleBarOverlay.height */
+  -webkit-app-region: drag;
+  z-index: 1000;
+  pointer-events: auto;
+}
+#titlebar button, #titlebar input {
+  -webkit-app-region: no-drag;
+}
+
 .sb {
   position: fixed; inset: 0 auto 0 0; z-index: 50; width: var(--sb-cur, var(--sb-w));
   display: flex; flex-direction: column; gap: .25rem; padding: .5rem;
