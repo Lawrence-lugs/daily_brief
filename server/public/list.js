@@ -12,10 +12,23 @@
   const hl = (marked, plain) => esc(marked ?? plain).replace(/\x01/g, '<mark>').replace(/\x02/g, '</mark>');
   const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // ---- theme (same contract as client.js: ?theme= wins, parent window may push updates, else follow the OS)
-  const setTheme = (t) => { const c = document.documentElement.classList; c.remove('dark', 'light'); c.add(t === 'dark' ? 'dark' : 'light'); };
-  setTheme(sp0.get('theme') ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  // ---- theme (same contract as client.js: ?theme= wins, then an explicit saved choice, else follow the OS)
+  const THEME_KEY = 'db-theme';
+  const setTheme = (t) => { const c = document.documentElement.classList; c.remove('dark', 'light'); c.add(t === 'dark' ? 'dark' : 'light');
+    const tb = $('btn-theme');
+    if (tb) { tb.setAttribute('aria-pressed', String(t === 'dark')); tb.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; } };
+  const savedTheme = () => { try { const v = localStorage.getItem(THEME_KEY); return v === 'dark' || v === 'light' ? v : null; } catch { return null; } };
+  setTheme(sp0.get('theme') ?? savedTheme() ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   addEventListener('message', (e) => { if (e.source === window.parent && e.data && e.data.type === 'theme') setTheme(e.data.theme); });
+  const tb = $('btn-theme');
+  if (tb) tb.onclick = () => {
+    const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    setTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch {}
+    const p = new URLSearchParams(location.search);
+    p.set('theme', next);
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : ''));
+  };
 
   // ---- filter state <-> URL (so a filtered view is bookmarkable and survives reload)
   const KEYS = ['q', 'mark', 'desk', 'subtopic', 'source', 'from', 'to', 'sort'];

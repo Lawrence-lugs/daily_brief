@@ -58,9 +58,13 @@ export function makeRenderer({ templatesDir, cssFile, paperName }) {
       clusterBadge = raw('');
     }
     const back = raw(fill(tpl('story-back.html'), formatBackside(s)));
+    // AlphaXiv mirror link for arxiv papers: same id, host swapped (arxiv.org -> alphaxiv.org)
+    const alphaxiv = /arxiv\.org/i.test(s.url ?? '')
+      ? raw(`<a href="${esc(String(s.url).replace('arxiv', 'alphaxiv'))}" target="_blank" rel="noopener noreferrer" class="btn-alpha" title="Read on AlphaXiv" aria-label="AlphaXiv">α</a>`)
+      : '';
     return fill(tpl(lead ? 'lead.html' : 'story.html'), {
       id: s.story_id, headline: s.headline, blurb: s.blurb, url: safeUrl(s.url), source: s.source,
-      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge, back,
+      age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge, alphaxiv, back,
     });
   }
 

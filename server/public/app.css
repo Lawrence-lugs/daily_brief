@@ -1,5 +1,23 @@
 /* Toolbar + log popup only. Everything else comes from tailwind.css. */
 .brief-toolbar { display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; font:13px system-ui,sans-serif; }
+.btn-theme { display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; line-height: 1; padding: 0 .45rem; }
+.theme-icon { display: inline-flex; align-items: center; justify-content: center; }
+.theme-icon svg { display: block; }
+.theme-icon--dark { display: none; }
+html.dark .theme-icon--light { display: none; }
+html.dark .theme-icon--dark { display: inline-block; }
+
+/* alpha -> AlphaXiv link on arxiv cards */
+.btn-alpha {
+  display: inline-flex; align-items: center; gap: .2rem;
+  font-size: .75rem; font-weight: 600;
+  padding: .05rem .45rem; border-radius: 4px;
+  border: 1px solid #a8a29e; color: #78716c; background: #fff;
+  text-decoration: none; cursor: pointer;
+}
+.btn-alpha:hover { border-color: #45413c; color: #111; }
+html.dark .btn-alpha { border-color: #475569; color: #94a3b8; background: #0b1016; }
+html.dark .btn-alpha:hover { border-color: #94a3b8; color: #e2e8f0; }
 .brief-toolbar .spacer { flex:1; }
 .brief-toolbar button, .brief-toolbar select { font:inherit; padding:.25rem .6rem; border-radius:6px;
   border:1px solid #a8a29e; background:transparent; color:inherit; cursor:pointer; }

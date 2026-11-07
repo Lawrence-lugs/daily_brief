@@ -17,16 +17,32 @@
     body: JSON.stringify(body ?? {}),
   });
 
-  // ---- theme: ?theme=dark|light wins, parent window may update it, else follow the OS
+  // ---- theme: ?theme=dark|light wins, then an explicit saved choice, else follow the OS
+  const THEME_KEY = 'db-theme';
   const setTheme = (t) => {
     const c = document.documentElement.classList;
     c.remove('dark', 'light'); c.add(t === 'dark' ? 'dark' : 'light');
+    const tb = $('btn-theme');
+    if (tb) { tb.setAttribute('aria-pressed', String(t === 'dark')); tb.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; }
+  };
+  const savedTheme = () => {
+    try { const v = localStorage.getItem(THEME_KEY); return v === 'dark' || v === 'light' ? v : null; }
+    catch { return null; }
   };
   const qTheme = new URLSearchParams(location.search).get('theme');
-  setTheme(qTheme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  setTheme(qTheme ?? savedTheme() ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
   addEventListener('message', (e) => {
     if (e.source === window.parent && e.data && e.data.type === 'theme') setTheme(e.data.theme);
   });
+  const tb = $('btn-theme');
+  if (tb) tb.onclick = () => {
+    const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    setTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch {}
+    const p = new URLSearchParams(location.search);
+    p.set('theme', next);
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : ''));
+  };
 
   // ---- like / save
   function applyState() {
