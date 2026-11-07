@@ -29,7 +29,20 @@ async function ensureServer() {
 
 app.whenReady().then(async () => {
   await ensureServer();
-  const win = new BrowserWindow({ width: 1280, height: 900 });
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 900,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#00000000',
+      symbolColor: '#4a453f',
+      height: 32,
+    },
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
   const external = (url) => { if (/^https?:/i.test(url)) shell.openExternal(url); };
   win.webContents.setWindowOpenHandler(({ url }) => { external(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(ORIGIN)) { e.preventDefault(); external(url); } });
