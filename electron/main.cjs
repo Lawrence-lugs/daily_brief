@@ -7,9 +7,35 @@ const path = require('node:path');
 
 const PORT = Number(process.env.BRIEF_PORT || 4873);
 const ROOT = path.resolve(__dirname, '..');
+// Writable per-user app data, shared by `npm run app` and packaged builds so both
+// read the same DB and editable config. Pinned before anything reads userData.
+app.setPath('userData', path.join(app.getPath('appData'), 'daily-brief'));
+const DATA_DIR = app.getPath('userData');
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 let server = null;
 let win = null;
+
+
+// ---- already-running check -------------------------------------------------
+// Returns true when a daily-brief server is already answering on PORT
+// (e.g. started by the Obsidian embed or a previous run), so we can reuse it
+// instead of crashing with EADDRINUSE.
+function alreadyRunning() {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { host: '127.0.0.1', port: PORT, path: '/api/health', timeout: 800 },
+      (res) => {
+        let b = '';
+        res.on('data', (d) => (b += d));
+        res.on('end', () => {
+          try { resolve(JSON.parse(b).name === 'daily-brief'); } catch { resolve(false); }
+        });
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
 
 // ---- single instance -------------------------------------------------------
 // Prevent a second launch from leaving an orphaned server/window (the
@@ -54,17 +80,38 @@ function fatalError(title, err) {
 app.whenReady().then(async () => {
   try {
     const { createApp } = await import('../server/app.js');
+    const { seedDataDir } = await import('../server/lib/datadir.js');
+    seedDataDir(DATA_DIR, ROOT);
     // createApp() reads config.json, opens the SQLite DB, and loads schema.sql.
     // Any of those can throw (missing file, locked DB, bad SQL).
-    const { handler } = createApp({ root: ROOT, port: PORT });
-    server = http.createServer(handler);
-    server.listen(PORT, '127.0.0.1', () => {
-      log(`daily-brief listening on http://127.0.0.1:${PORT}`);
-    });
-    server.on('error', (e) => {
-      log(`cannot listen on ${PORT}: ${e.message}`);
-      fatalError('Daily Brief — could not start server', e);
-    });
+
+    // Don't start a duplicate server if one is already answering (e.g. launched
+    // by the Obsidian embed or a previous run). Reuse it instead of dying with
+    // EADDRINUSE, which used to look like a crash. Only open the DB / build the
+    // handler when we are the server owner.
+    let ownsServer = false;
+    if (await alreadyRunning()) {
+      log(`reusing existing daily-brief server on ${ORIGIN}`);
+      server = null;
+    } else {
+      const { handler } = createApp({ root: ROOT, dataDir: DATA_DIR, port: PORT });
+      server = http.createServer(handler);
+      server.listen(PORT, '127.0.0.1', () => {
+        ownsServer = true;
+        log(`daily-brief listening on http://127.0.0.1:${PORT}`);
+      });
+      server.on('error', (e) => {
+        if (e.code === 'EADDRINUSE') {
+          // A server appeared between the check and listen; reuse it.
+          try { server.close(); } catch {}
+          server = null;
+          log(`port ${PORT} now in use by another server; reusing it`);
+        } else {
+          log(`cannot listen on ${PORT}: ${e.message}`);
+          fatalError('Daily Brief — could not start server', e);
+        }
+      });
+    }
 
     win = new BrowserWindow({
       width: 1280,

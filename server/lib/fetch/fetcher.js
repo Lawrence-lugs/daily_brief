@@ -5,7 +5,7 @@ makeItem, parseFeed, fetchRss, FETCHERS registry, API_FETCHERS registry,
 registerApiFetcher, refreshApiFeeds, fetchAll.
 */
 import crypto from 'node:crypto';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
+import { readFile, mkdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -40,22 +40,23 @@ export class Fetcher {
     this.cfg = cfg;
     this._throttle = new Throttler(cfg.api_delay_s ?? 0);
     this._cacheDir = cacheDir();
-    mkdirSync(this._cacheDir, { recursive: true });
+    mkdir(this._cacheDir, { recursive: true }).catch(() => {});
   }
   async get(url, useCache = true, headers = null) {
     const hash = crypto.createHash('sha1').update(url).digest('hex');
     const cacheFile = join(this._cacheDir, hash + '.txt');
     const ttl = (this.cfg.cache_ttl_hours ?? 6) * 3600 * 1000;
-    if (useCache && existsSync(cacheFile)) {
+    if (useCache) {
       try {
-        const st = statSync(cacheFile);
-        if (Date.now() - st.mtimeMs < ttl) return readFileSync(cacheFile, 'utf8');
+        const st = await stat(cacheFile).catch(() => null);
+        if (st && Date.now() - st.mtimeMs < ttl) return await readFile(cacheFile, 'utf8');
       } catch {}
     }
     const reqHeaders = { 'User-Agent': this.cfg.user_agent, ...(headers || {}) };
     const res = await fetch(url, { headers: reqHeaders });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     const text = await res.text();
-    try { writeFileSync(cacheFile, text, 'utf8'); } catch {}
+    try { await writeFile(cacheFile, text, 'utf8'); } catch {}
     return text;
   }
   throttle() { return this._throttle.wait(); }
@@ -167,8 +168,8 @@ export function parseFeed(xmlText, name, weight, hint, sourceType = 'researchlik
   return extractItems(xmlText, name, weight, hint, sourceType);
 }
 
-export function fetchRss(f, spec) {
-  return parseFeed(f.get(spec.url), spec.name, spec.weight, spec.default_subtopic, spec.type ?? 'newslike');
+export async function fetchRss(f, spec) {
+  return parseFeed(await f.get(spec.url), spec.name, spec.weight, spec.default_subtopic, spec.type ?? 'newslike');
 }
 
 // --------------------------------------------------------------------------- registry

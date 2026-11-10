@@ -14,17 +14,20 @@ const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; chars
 };
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** @param {{root:string, port:number}} o  root = project dir holding config.json */
-export function createApp({ root, port, onShutdown }) {
-  const cfg = JSON.parse(readFileSync(path.join(root, 'config.json'), 'utf8'));
-  const db = openDb(path.resolve(root, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
-  const q = makeQueries(db, root);
+/** @param {{root:string, port:number, dataDir?:string}} o  root = project dir holding config.json; dataDir = writable per-user dir for the SQLite DB (Electron packaged builds) */
+export function createApp({ root, port, onShutdown, dataDir }) {
+  // Mutable per-user data (DB, config.json, sources.json, perfect_samples.json) lives in
+  // dataDir; falls back to root for tests when dataDir is not provided.
+  const dbDir = dataDir ?? root;
+  const cfg = JSON.parse(readFileSync(path.join(dbDir, 'config.json'), 'utf8'));
+  const db = openDb(path.resolve(dbDir, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
+  const q = makeQueries(db, dbDir);
   const renderer = makeRenderer({
     templatesDir: path.join(root, 'server', 'templates'),
     cssFile: path.join(root, 'tailwind.css'),
     paperName: cfg.paper_name ?? 'The Daily Brief',
   });
-  const jobs = new JobRunner({ cwd: root });
+  const jobs = new JobRunner({ cwd: root, dataDir: dbDir });
   const publicDir = path.join(root, 'server', 'public');
 
   const send = (res, code, body, type) => {

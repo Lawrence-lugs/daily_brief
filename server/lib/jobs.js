@@ -18,8 +18,8 @@ const TAIL_DEADLINE_MS = 15 * 60 * 1000;
 export class JobRunner {
   /** @param {{cwd:string, progress?:boolean, runBrief?:(flags:object)=>Promise<number>}} o
    *  progress=false skips --progress-file. runBrief is injected for testing. */
-  constructor({ cwd, progress = true, runBrief = defaultRunBrief }) {
-    Object.assign(this, { cwd, useProgress: progress, runBrief });
+  constructor({ cwd, dataDir = null, progress = true, runBrief = defaultRunBrief }) {
+    Object.assign(this, { cwd, dataDir, useProgress: progress, runBrief });
     this.state = { id: 0, status: 'idle', exitCode: null, error: '', log: '', startedAt: null, progress: null };
     this.timer = null;
     this.logDir = null;
@@ -44,6 +44,7 @@ export class JobRunner {
       logFile,
       progressFile: this.useProgress ? progressFile : null,
       refreshApiFeeds: flags.refreshApiFeeds === true,
+      dataDir: this.dataDir,
     };
 
     this.state = {

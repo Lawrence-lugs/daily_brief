@@ -17,6 +17,7 @@ import { Progress } from './progress.js';
 import { log, warn, setLogFile, LOG_FILE } from './util.js';
 import { fetchAll, refreshApiFeeds, setCacheResolver } from './fetch/fetcher.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
+import { defaultDataDir, seedDataDir } from './datadir.js';
 
 // Ranker (LR engine) imports — called in-process instead of spawning node ranker/cli.js
 import { Store as RankerStore } from '../../ranker/store.js';
@@ -34,8 +35,12 @@ function loadJson(file, def = null) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return def; }
 }
 
+let dataDirOverride = null;
+export function setDataDir(dir) { dataDirOverride = dir; }
+function dataDir() { return dataDirOverride ?? defaultDataDir(); }
+
 function dbPath(cfg) {
-  return join(PROJECT_ROOT, cfg.db_file ?? 'daily_brief.db');
+  return join(dataDir(), cfg.db_file ?? 'daily_brief.db');
 }
 
 function parseDate(s) {
@@ -107,7 +112,7 @@ export function classify(item, keywords, subtopicToDesk) {
 // --------------------------------------------------------------------------- LR selection (in-process, replaces spawning node ranker/cli.js)
 
 export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
-  const rankerCfg = cfg.ranker ?? {};
+  const rankerCfg = { ...(cfg.ranker ?? {}), perfect_samples_file: join(dataDir(), cfg.ranker?.perfect_samples_file ?? 'perfect_samples.json') };
   const store = new RankerStore(dbPath(cfg));
   try {
     await ensureEmbeddings(store, rankerCfg, { persist: true });
@@ -194,10 +199,12 @@ export async function main(flags = {}) {
   } = flags;
 
   if (logFile) setLogFile(logFile);
+  if (flags.dataDir) setDataDir(flags.dataDir);
+  seedDataDir(dataDir(), PROJECT_ROOT);
 
   const prog = new Progress(progressFile, null);
-  const cfg = loadJson(join(PROJECT_ROOT, 'config.json'));
-  const src = loadJson(join(PROJECT_ROOT, 'sources.json'));
+  const cfg = loadJson(join(dataDir(), 'config.json'));
+  const src = loadJson(join(dataDir(), 'sources.json'));
   const sub2Desk = {};
   for (const [desk, spec] of Object.entries(src.desks ?? {})) {
     for (const s of spec.subtopics ?? []) sub2Desk[s] = desk;
@@ -223,11 +230,9 @@ export async function main(flags = {}) {
         if (c) classified.push(c);
       }
       const now = new Date();
-      tx(conn, () => {
-        upsertPool(conn, classified, now);
-        prunePool(conn, now, maxAge);
-        log(`[refresh-api] upserted ${classified.length} items, pruned to max_age ${maxAge}d`);
-      });
+      upsertPool(conn, classified, now);
+      prunePool(conn, now, maxAge);
+      log(`[refresh-api] upserted ${classified.length} items, pruned to max_age ${maxAge}d`);
       log('API background refresh complete');
     } catch (e) {
       warn(`API refresh failed: ${e.constructor.name}: ${e.message}`);
@@ -240,7 +245,7 @@ export async function main(flags = {}) {
   const seededRng = makeRng(seed ?? Date.now());
   const now = new Date();
   const dateKey = now.toISOString().slice(0, 10);
-  const run = new RunLog(PROJECT_ROOT, 'brief', { date: dateKey, seed, argv: process.argv.slice(2) });
+  const run = new RunLog(dataDir(), 'brief', { date: dateKey, seed, argv: process.argv.slice(2) });
 
   // --- fetch + classify + upsert ---
   if (noFetch) {
@@ -255,12 +260,10 @@ export async function main(flags = {}) {
       if (!seen[c.id] || c.rel > seen[c.id].rel) seen[c.id] = c;
     }
     const classified = Object.values(seen);
-    tx(conn, () => {
-      const added = upsertPool(conn, classified, now);
-      deletePool(conn, [...dropped].filter(id => !seen[id]));
-      prunePool(conn, now, maxAge);
-      log(`classified ${classified.length}/${raw.length} items, ${added} new in pool`);
-    });
+    const added = upsertPool(conn, classified, now);
+    deletePool(conn, [...dropped].filter(id => !seen[id]));
+    prunePool(conn, now, maxAge);
+    log(`classified ${classified.length}/${raw.length} items, ${added} new in pool`);
   }
 
   let pool = loadPool(conn);
@@ -356,7 +359,7 @@ export async function main(flags = {}) {
     }
   }
 
-  const debugDir = join(PROJECT_ROOT, cfg.debug_dir ?? 'logs');
+  const debugDir = join(dataDir(), cfg.debug_dir ?? 'logs');
   mkdirSync(debugDir, { recursive: true });
   setDebugLog(join(debugDir, 'agent_responses.jsonl'));
 
@@ -435,9 +438,9 @@ export async function main(flags = {}) {
   }
 
   prog.phase('committing');
-  const briefId = tx(conn, () => appendBrief(conn, {
+  const briefId = appendBrief(conn, {
     dateKey, now, model: meta.model, llmRequests, rejectedIds: allRejected, desksOut, meta,
-  }));
+  });
   log(`brief generation done: brief_id=${briefId} (${allStories.length} stories, model=${meta.model}, llm_requests=${llmRequests})`);
   prog.phase('done');
   log(`OK brief_id=${briefId} (${allStories.length} stories, model=${meta.model}, llm_requests=${llmRequests})`);

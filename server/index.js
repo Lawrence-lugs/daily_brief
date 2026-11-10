@@ -5,8 +5,11 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
+import { defaultDataDir, seedDataDir } from './lib/datadir.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const dataDir = defaultDataDir();
+seedDataDir(dataDir, root);
 const i = process.argv.indexOf('--port');
 const port = Number(i > -1 ? process.argv[i + 1] : process.env.BRIEF_PORT ?? 4873);
 const host = '127.0.0.1'; // never bind a public interface
@@ -32,7 +35,7 @@ function shutdown() {
   process.exit(0);
 }
 
-const app = createApp({ root, port, onShutdown: shutdown });
+const app = createApp({ root, port, dataDir, onShutdown: shutdown });
 const server = http.createServer(app.handler);
 server.on('error', (e) => { console.error(`cannot listen on ${host}:${port}: ${e.message}`); process.exit(1); });
 server.listen(port, host, () => console.log(`daily-brief listening on http://${host}:${port}`));

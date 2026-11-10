@@ -44,7 +44,7 @@ export function makeQueries(db, root = '.') {
     latestOnDate: db.prepare('SELECT brief_id FROM briefs WHERE date = ? ORDER BY brief_id DESC LIMIT 1'),
     brief: db.prepare('SELECT * FROM briefs WHERE brief_id = ?'),
     stories: db.prepare('SELECT * FROM stories WHERE brief_id = ? ORDER BY desk, position'),
-    list: db.prepare('SELECT brief_id, date, generated_at, model, meta FROM briefs ORDER BY brief_id DESC LIMIT ?'),
+    list: db.prepare('SELECT brief_id, date, generated_at, model, meta FROM briefs WHERE brief_id IN (SELECT MAX(brief_id) FROM briefs GROUP BY date) ORDER BY brief_id DESC LIMIT ?'),
     story: db.prepare('SELECT story_id, liked, saved FROM stories WHERE story_id = ?'),
     training: db.prepare('SELECT * FROM training_examples ORDER BY story_id'),
     // Ranker state
