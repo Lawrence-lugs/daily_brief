@@ -16,6 +16,7 @@ services:
     volumes:
       - dailydie-data:/app/data
       - dailydie-models:/app/.cache
+      - dailydie-hf:/app/node_modules/@huggingface/transformers/.cache
     env_file: .env
 
   dailydie-scheduler:
@@ -28,6 +29,7 @@ services:
     volumes:
       - dailydie-data:/app/data
       - dailydie-models:/app/.cache
+      - dailydie-hf:/app/node_modules/@huggingface/transformers/.cache
     env_file: .env
     environment:
       BRIEF_SCHEDULE_TIME: "09:00"
@@ -39,3 +41,4 @@ networks:
 volumes:
   dailydie-data:
   dailydie-models:
+  dailydie-hf:

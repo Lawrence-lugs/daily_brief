@@ -4,7 +4,7 @@ fetch -> classify -> upsert -> select -> LLM edit -> append to DB.
 Entry point: main(flags) -> exit code.
 */
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 
@@ -37,10 +37,10 @@ function loadJson(file, def = null) {
 
 let dataDirOverride = null;
 export function setDataDir(dir) { dataDirOverride = dir; }
-function dataDir() { return dataDirOverride ?? defaultDataDir(); }
+function dataDir() { return dataDirOverride ?? process.env.BRIEF_DATA_DIR ?? defaultDataDir(); }
 
 function dbPath(cfg) {
-  return join(dataDir(), cfg.db_file ?? 'daily_brief.db');
+  return resolve(dataDir(), cfg.db_file ?? 'daily_brief.db');
 }
 
 function parseDate(s) {
@@ -112,7 +112,7 @@ export function classify(item, keywords, subtopicToDesk) {
 // --------------------------------------------------------------------------- LR selection (in-process, replaces spawning node ranker/cli.js)
 
 export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
-  const rankerCfg = { ...(cfg.ranker ?? {}), perfect_samples_file: join(dataDir(), cfg.ranker?.perfect_samples_file ?? 'perfect_samples.json') };
+  const rankerCfg = { ...(cfg.ranker ?? {}), perfect_samples_file: resolve(dataDir(), cfg.ranker?.perfect_samples_file ?? 'perfect_samples.json') };
   const store = new RankerStore(dbPath(cfg));
   try {
     await ensureEmbeddings(store, rankerCfg, { persist: true });
@@ -359,7 +359,7 @@ export async function main(flags = {}) {
     }
   }
 
-  const debugDir = join(dataDir(), cfg.debug_dir ?? 'logs');
+  const debugDir = resolve(dataDir(), cfg.debug_dir ?? 'logs');
   mkdirSync(debugDir, { recursive: true });
   setDebugLog(join(debugDir, 'agent_responses.jsonl'));
 

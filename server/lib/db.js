@@ -46,7 +46,7 @@ export function connect(dbPath) {
   const ftsRow = conn.prepare("SELECT 1 FROM ranker_state WHERE key='fts_v1'").get();
   if (!ftsRow) {
     conn.exec("INSERT INTO stories_fts(stories_fts) VALUES('rebuild')");
-    conn.exec("INSERT OR REPLACE INTO ranker_state(key,value,updated_at) VALUES('fts_v1','1',?)", [new Date().toISOString()]);
+    conn.prepare("INSERT OR REPLACE INTO ranker_state(key,value,updated_at) VALUES('fts_v1','1',?)").run(new Date().toISOString());
   }
   return conn;
 }

@@ -36,6 +36,10 @@ EXPOSE 4873
 # Production dependencies.
 COPY --from=deps /app/node_modules ./node_modules
 
+# Writable model cache for @huggingface/transformers (it caches inside its own package dir).
+RUN mkdir -p /app/node_modules/@huggingface/transformers/.cache \
+    && chown -R brief:brief /app/node_modules/@huggingface/transformers/.cache
+
 # Application files.
 COPY server/ ./server/
 COPY ranker/ ./ranker/
