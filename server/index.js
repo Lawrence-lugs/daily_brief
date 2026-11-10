@@ -8,11 +8,11 @@ import { createApp } from './app.js';
 import { defaultDataDir, seedDataDir } from './lib/datadir.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const dataDir = defaultDataDir();
+const dataDir = process.env.BRIEF_DATA_DIR ?? defaultDataDir();
 seedDataDir(dataDir, root);
 const i = process.argv.indexOf('--port');
 const port = Number(i > -1 ? process.argv[i + 1] : process.env.BRIEF_PORT ?? 4873);
-const host = '127.0.0.1'; // never bind a public interface
+const host = process.env.BRIEF_HOST ?? '127.0.0.1';
 
 function alreadyRunning() {
   return new Promise((resolve) => {

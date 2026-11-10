@@ -9,6 +9,9 @@
   const boot = JSON.parse(document.getElementById('boot').textContent);
   const stories = boot.stories;          // mutated in place after an in-place swap
   const $ = (id) => document.getElementById(id);
+  const base = document.body.dataset.base || '';
+  const hosted = document.body.dataset.hosted === '1';   // hosted site is stateless: no likes/saves
+  const u = (p) => base + p;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[c]));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const post = (url, body) => fetch(url, {
@@ -52,13 +55,14 @@
     });
   }
   async function toggle(btn) {
+    if (hosted) return;
     const id = btn.dataset.storyId, action = btn.dataset.action;
     const key = action === 'save' ? 'saved' : 'liked';
     const s = stories[id] || (stories[id] = { liked: false, saved: false });
     const next = !s[key];
     s[key] = next; applyState();                       // optimistic
     try {
-      const r = await post(`/api/stories/${id}/feedback`, { action, value: next });
+      const r = await post(u(`/api/stories/${id}/feedback`), { action, value: next });
       if (!r.ok) throw new Error(String(r.status));
       const j = await r.json();
       s.liked = !!j.liked; s.saved = !!j.saved;
@@ -102,10 +106,10 @@
   const statusEl = $('status'), logEl = $('log-popup'), genBtn = $('btn-generate'), engineSel = $('engine-select');
   function setStatus(t, bad) { statusEl.textContent = t; statusEl.classList.toggle('error', !!bad); }
   $('btn-logs').onclick = () => { logEl.hidden = !logEl.hidden; };
-  $('btn-archive').onclick = () => { location.href = '/archive' + location.search; }; // keeps ?embed= / ?theme=
+  $('btn-archive').onclick = () => { location.href = u('/archive') + location.search; }; // keeps ?embed= / ?theme=
   // delegated: #brief-select's options are replaced by the in-place swap
   document.addEventListener('change', (e) => {
-    if (e.target && e.target.id === 'brief-select') location.href = `/brief/${e.target.value}${location.search}`;
+    if (e.target && e.target.id === 'brief-select') location.href = u(`/brief/${e.target.value}`) + location.search;
   });
 
   // ---- generation state
@@ -211,7 +215,7 @@
   async function startJob(engine, label) {
     setStatus(`${label}...`);
     resetRun();
-    const r = await post('/api/generate', { engine });
+    const r = await post(u('/api/generate'), { engine });
     if (r.status !== 202 && r.status !== 409) { setStatus(`${label} failed to start`, true); return false; }
     return watchJob();
   }
@@ -219,7 +223,7 @@
   /** Fetch the finished page and swap every [data-swap] region in place. Falls back to a reload. */
   async function swapToLatest() {
     try {
-      const r = await fetch('/' + location.search, { cache: 'no-store' });
+      const r = await fetch(u('/' + location.search), { cache: 'no-store' });
       if (!r.ok) throw new Error(String(r.status));
       const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
       const regions = [...document.querySelectorAll('[data-swap]')];
@@ -236,12 +240,12 @@
       for (const k of Object.keys(stories)) delete stories[k];
       Object.assign(stories, nb.stories);
       boot.briefId = nb.briefId; boot.date = nb.date;
-      history.replaceState(null, '', '/' + location.search);   // we are now showing the latest brief
+      history.replaceState(null, '', u('/' + location.search));   // we are now showing the latest brief
       applyState();
       return true;
     } catch (err) {
       console.warn('in-place swap failed, reloading:', err);
-      location.href = '/' + location.search;
+      location.href = u('/' + location.search);
       return false;
     }
   }
@@ -280,7 +284,7 @@
 
   applyState();
   // Attach to a job that is already running (started from another window, or before a page reload).
-  fetch('/api/job?id=0&since=0&pseq=-1').then((r) => r.json()).then((j) => {
+  fetch(u('/api/job?id=0&since=0&pseq=-1')).then((r) => r.json()).then((j) => {
     if (j.status !== 'running') return;
     runFlow(async () => { startedAtS = (j.preview && j.preview.t0) || nowS(); setStatus('Generating...'); return watchJob(); });
   }).catch(() => { /* server unreachable: nothing to attach to */ });

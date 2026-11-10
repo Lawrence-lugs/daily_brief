@@ -14,11 +14,14 @@ const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; chars
 };
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** @param {{root:string, port:number, dataDir?:string}} o  root = project dir holding config.json; dataDir = writable per-user dir for the SQLite DB (Electron packaged builds) */
-export function createApp({ root, port, onShutdown, dataDir }) {
+/** @param {{root:string, port:number, dataDir?:string, basePath?:string}} o  root = project dir holding config.json; dataDir = writable per-user dir for the SQLite DB (Electron packaged builds); basePath = URL prefix stripped from requests (defaults to BRIEF_BASE_PATH env, empty = current behaviour) */
+export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePath }) {
   // Mutable per-user data (DB, config.json, sources.json, perfect_samples.json) lives in
   // dataDir; falls back to root for tests when dataDir is not provided.
   const dbDir = dataDir ?? root;
+  const basePath = (optBasePath ?? process.env.BRIEF_BASE_PATH ?? '').replace(/\/+$/, '');
+  // Public hostnames the hosted deployment is reached on (e.g. behind Traefik). Empty = localhost only.
+  const allowedHosts = (process.env.BRIEF_ALLOWED_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
   const cfg = JSON.parse(readFileSync(path.join(dbDir, 'config.json'), 'utf8'));
   const db = openDb(path.resolve(dbDir, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
   const q = makeQueries(db, dbDir);
@@ -26,6 +29,7 @@ export function createApp({ root, port, onShutdown, dataDir }) {
     templatesDir: path.join(root, 'server', 'templates'),
     cssFile: path.join(root, 'tailwind.css'),
     paperName: cfg.paper_name ?? 'The Daily Brief',
+    basePath,
   });
   const jobs = new JobRunner({ cwd: root, dataDir: dbDir });
   const publicDir = path.join(root, 'server', 'public');
@@ -107,36 +111,56 @@ export function createApp({ root, port, onShutdown, dataDir }) {
     try {
       const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
       const isWrite = req.method !== 'GET' && req.method !== 'HEAD';
-      const denied = guard(req, port, isWrite);
+      const denied = guard(req, port, isWrite, allowedHosts);
       if (denied) return json(res, 403, { error: denied });
       const p = url.pathname;
       let m;
 
+      // ---- base-path handling -----------------------------------------------------------
+      // When BRIEF_BASE_PATH is set, Traefik forwards the full PathPrefix path. Strip it here.
+      // A bare base path (/dailydie) redirects to /dailydie/. Anything outside the prefix 404s.
+      if (basePath) {
+        if (p === basePath) {
+          res.writeHead(302, { 'Location': basePath + '/', 'Cache-Control': 'no-store' });
+          res.end();
+          return;
+        }
+        if (!p.startsWith(basePath + '/')) return json(res, 404, { error: 'not found' });
+      }
+      const routePath = basePath ? p.slice(basePath.length) : p;
+      // Hosted (prefixed) deployments are stateless: no generation, likes/saves, or remote shutdown.
+      if (basePath && req.method === 'POST' && /^\/api\/(shutdown|generate|stories\/\d+\/feedback)$/.test(routePath)) return json(res, 404, { error: 'not found' });
+
       if (req.method === 'GET') {
-        if (p === '/' ) return servePage(res, url, null);
-        if ((m = p.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]));
-        if (p === '/api/health') return json(res, 200, { ok: true, name: 'daily-brief' });
-        if (p === '/archive') return serveStatic(res, 'list.html');
-        if (p === '/api/stories') return json(res, 200, q.listStories(url.searchParams));
-        if (p === '/api/stories/facets') return json(res, 200, q.facets());
-        if (p === '/api/briefs') return json(res, 200, q.listBriefs(Math.min(Number(url.searchParams.get('limit')) || 30, 200)));
-        if ((m = p.match(/^\/api\/briefs\/(\d+)$/))) {
+        if (routePath === '/' ) return servePage(res, url, null);
+        if ((m = routePath.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]));
+        if (routePath === '/api/health') return json(res, 200, { ok: true, name: 'daily-brief' });
+        if (routePath === '/archive') {
+          let html = readFileSync(path.join(publicDir, 'list.html'), 'utf8');
+          if (basePath) html = html.replace('</head>', `<base href="${basePath}/">\n</head>`);
+          html = html.replace('<body>', `<body data-base="${basePath}"${basePath ? ' data-hosted="1"' : ''}>`);
+          return send(res, 200, html, 'text/html; charset=utf-8');
+        }
+        if (routePath === '/api/stories') return json(res, 200, q.listStories(url.searchParams));
+        if (routePath === '/api/stories/facets') return json(res, 200, q.facets());
+        if (routePath === '/api/briefs') return json(res, 200, q.listBriefs(Math.min(Number(url.searchParams.get('limit')) || 30, 200)));
+        if ((m = routePath.match(/^\/api\/briefs\/(\d+)$/))) {
           const d = q.getBrief(Number(m[1]));
           return d ? json(res, 200, d) : json(res, 404, { error: 'no such brief' });
         }
-        if (p === '/api/job') {
+        if (routePath === '/api/job') {
           const v = jobs.view(Number(url.searchParams.get('id')), url.searchParams.get('since'), url.searchParams.get('pseq'));
           if (v.progress) v.preview = buildPreview(v.progress, { renderStory: renderer.renderStory, medoidTitle: q.medoidTitle });
           delete v.progress;
           return json(res, 200, v);
         }
-        if (p === '/api/export/training.jsonl') {
+        if (routePath === '/api/export/training.jsonl') {
           const lines = q.trainingRows().map((r) => JSON.stringify({ ...r, y_like: r.liked, y_save: r.saved }));
           return send(res, 200, lines.join('\n') + (lines.length ? '\n' : ''), 'application/x-ndjson; charset=utf-8');
         }
-        if (p.startsWith('/static/')) return serveStatic(res, p.slice('/static/'.length));
+        if (routePath.startsWith('/static/')) return serveStatic(res, routePath.slice('/static/'.length));
       } else if (req.method === 'POST') {
-        if ((m = p.match(/^\/api\/stories\/(\d+)\/feedback$/))) {
+        if ((m = routePath.match(/^\/api\/stories\/(\d+)\/feedback$/))) {
           const body = await readJson(req);
           if (!['like', 'save'].includes(body.action) || typeof body.value !== 'boolean') {
             return json(res, 400, { error: 'expected {action:"like"|"save", value:boolean}' });
@@ -144,12 +168,12 @@ export function createApp({ root, port, onShutdown, dataDir }) {
           const r = q.setFeedback(Number(m[1]), body.action, body.value);
           return r ? json(res, 200, r) : json(res, 404, { error: 'no such story' });
         }
-        if (p === '/api/generate') {
+        if (routePath === '/api/generate') {
           const body = await readJson(req);
           const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, engine: body.engine });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });
         }
-        if (p === '/api/shutdown') {
+        if (routePath === '/api/shutdown') {
           // Clean off-switch for the background server. Guarded like any other write (requires the
           // X-Brief-Client header, which a foreign origin cannot forge due to the missing CORS
           // preflight response). Respond first, then shut down once the response is on its way.

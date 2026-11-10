@@ -34,15 +34,26 @@ seed.exec(`UPDATE stories SET score_p=0.731, score_v=0.2, cos_dist=0.1234, clust
 seed.close();
 
 const PORT = 45873;
+const PORT2 = 45874;
 let shutdownCalled = false;
 const app = createApp({ root, port: PORT, onShutdown: () => { shutdownCalled = true; } });
 const server = http.createServer(app.handler);
 await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
-test.after(() => { server.close(); app.close(); });
+// Prefixed app: BRIEF_BASE_PATH equivalent via the createApp option.
+const app2 = createApp({ root, port: PORT2, basePath: '/dailydie' });
+const server2 = http.createServer(app2.handler);
+await new Promise((r) => server2.listen(PORT2, '127.0.0.1', r));
+test.after(() => { server.close(); app.close(); server2.close(); app2.close(); });
 
 const call = (method, p, { headers = {}, body } = {}) => new Promise((resolve, reject) => {
   const req = http.request({ host: '127.0.0.1', port: PORT, path: p, method, headers: { ...headers } }, (res) => {
-    let b = ''; res.on('data', (d) => (b += d)); res.on('end', () => resolve({ status: res.statusCode, body: b }));
+    let b = ''; res.on('data', (d) => (b += d)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: b }));
+  });
+  req.on('error', reject); if (body) req.write(body); req.end();
+});
+const call2 = (method, p, { headers = {}, body } = {}) => new Promise((resolve, reject) => {
+  const req = http.request({ host: '127.0.0.1', port: PORT2, path: p, method, headers: { ...headers } }, (res) => {
+    let b = ''; res.on('data', (d) => (b += d)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: b }));
   });
   req.on('error', reject); if (body) req.write(body); req.end();
 });
@@ -105,4 +116,59 @@ test('backside renders the snapshot (and dashes for stories without one)', async
   assert.ok(b.includes('0.731') && b.includes('0.123') && b.includes('19 candidates'));
   assert.ok(b.includes('ps:x'));                       // no perfect_samples.json in the temp root -> id fallback
   assert.ok(b.includes('No ranker data for this card'));   // stories 2 and 3 have no snapshot
+});
+
+test('prefix: bare base path redirects to base path with trailing slash', async () => {
+  const r = await call2('GET', '/dailydie');
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.location, '/dailydie/');
+});
+
+test('prefix: base path serves the brief page', async () => {
+  const r = await call2('GET', '/dailydie/');
+  assert.equal(r.status, 200);
+  assert.ok(r.body.includes('Lead &lt;script&gt;x&lt;/script&gt;'));
+  assert.ok(r.body.includes('<base href="/dailydie/">'));
+  assert.ok(r.body.includes('data-base="/dailydie"'));
+});
+
+test('prefix: API routes work under the base path', async () => {
+  const r = await call2('GET', '/dailydie/api/health');
+  assert.equal(r.status, 200);
+  assert.equal(JSON.parse(r.body).name, 'daily-brief');
+  const r2 = await call2('GET', '/dailydie/brief/999');
+  assert.equal(r2.status, 404);
+});
+
+test('prefix: requests outside the prefix 404', async () => {
+  assert.equal((await call2('GET', '/')).status, 404);
+  assert.equal((await call2('GET', '/api/health')).status, 404);
+  assert.equal((await call2('GET', '/foo')).status, 404);
+});
+
+test('prefix: shutdown endpoint is not exposed when hosted', async () => {
+  const r = await call2('POST', '/dailydie/api/shutdown', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(r.status, 404);
+});
+
+test('hosted: no generate, likes/saves or shutdown; generate UI hidden', async () => {
+  for (const p of ['/dailydie/api/generate', '/dailydie/api/stories/1/feedback', '/dailydie/api/shutdown']) {
+    const r = await call2('POST', p, { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"action":"like","value":true}' });
+    assert.equal(r.status, 404, p);
+  }
+  const page = await call2('GET', '/dailydie/');
+  assert.ok(page.body.includes('data-hosted="1"'));
+  assert.ok(page.body.includes('style="display:none"'));
+});
+
+test('local: generate UI visible and not hosted', async () => {
+  const page = await call('GET', '/');
+  assert.ok(page.body.includes('data-hosted=""'));
+  assert.ok(!page.body.includes('style="display:none"'));
+});
+
+test('prefix: without a base path set, behaviour is unchanged', async () => {
+  assert.equal((await call('GET', '/api/health')).status, 200);
+  assert.equal((await call('GET', '/dailydie/')).status, 404);
+  assert.equal((await call('GET', '/')).status, 200);
 });

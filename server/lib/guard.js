@@ -5,12 +5,13 @@
 //    never answer OPTIONS, so a foreign origin cannot send it.
 //  - If an Origin header is present it must equal our own origin.
 // Returns an error string, or null when the request is allowed.
-export function guard(req, port, isWrite) {
+export function guard(req, port, isWrite, extraHosts = []) {
   const host = String(req.headers.host ?? '').toLowerCase();
-  if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return 'bad host';
+  const external = extraHosts.includes(host);
+  if (!external && host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) return 'bad host';
   if (!isWrite) return null;
   if (req.headers['x-brief-client'] !== '1') return 'missing X-Brief-Client header';
   const origin = req.headers.origin;
-  if (origin && origin !== `http://${host}`) return 'bad origin';
+  if (origin && origin !== `http://${host}` && !(external && origin === `https://${host}`)) return 'bad origin';
   return null;
 }

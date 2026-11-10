@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>The Daily Die - Archive</title>
-<link rel="stylesheet" href="/static/app.css">
-<link rel="stylesheet" href="/static/list.css">
-<script src="/static/vendor/gridjs.umd.js" defer></script>
-<script src="/static/list.js" defer></script>
+<link rel="stylesheet" href="static/app.css">
+<link rel="stylesheet" href="static/list.css">
+<script src="static/vendor/gridjs.umd.js" defer></script>
+<script src="static/list.js" defer></script>
 </head>
 <body>
 <main class="newspaper-shell">
@@ -51,6 +51,6 @@
 
   <div id="grid" aria-label="Story archive"></div>
 </main>
-<script>document.getElementById('back').href = '/' + location.search;</script>
+<script>const base = document.body.dataset.base || ''; document.getElementById('back').href = base + '/' + location.search;</script>
 </body>
 </html>

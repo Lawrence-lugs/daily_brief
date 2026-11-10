@@ -1,0 +1,41 @@
+services:
+  dailydie-server:
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
+    expose:
+      - 4873
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - 'traefik.http.routers.dailydie.rule=PathPrefix(`/dailydie`)'
+      - "traefik.http.routers.dailydie.entrypoints=web"
+      - "traefik.http.services.dailydie.loadbalancer.server.port=4873"
+    restart: unless-stopped
+    volumes:
+      - dailydie-data:/app/data
+      - dailydie-models:/app/.cache
+    env_file: .env
+
+  dailydie-scheduler:
+    # Same image as the server; runs `npm run brief` once a day (UTC+8). No ports, no Traefik labels, no network needed.
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
+    command: ["/bin/sh", "/app/scheduler/entrypoint.sh"]
+    restart: unless-stopped
+    volumes:
+      - dailydie-data:/app/data
+      - dailydie-models:/app/.cache
+    env_file: .env
+    environment:
+      BRIEF_SCHEDULE_TIME: "09:00"
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  dailydie-data:
+  dailydie-models:

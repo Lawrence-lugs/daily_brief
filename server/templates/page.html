@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>{{paper_name}} - {{date_long}}</title>
+<base href="{{basePath}}/">
 <style>{{css}}</style>
-<link rel="stylesheet" href="/static/app.css">
-<link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.css">
-<link rel="stylesheet" href="/static/sidebar.css">
+<link rel="stylesheet" href="static/app.css">
+<link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
+<link rel="stylesheet" href="static/sidebar.css">
 <script>
 // Set the sidebar state before first paint so the layout never jumps. Narrow screens always start closed.
 (function () {
@@ -20,16 +21,16 @@
 })();
 </script>
 <script id="boot" type="application/json">{{boot}}</script>
-<script src="/static/genmodel.js"></script>
-<script src="/static/client.js" defer></script>
-<script src="/static/sidebar.js" defer></script>
+<script src="static/genmodel.js"></script>
+<script src="static/client.js" defer></script>
+<script src="static/sidebar.js" defer></script>
 </head>
-<body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200">
+<body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200" data-base="{{basePath}}" data-hosted="{{hosted}}">
 <div id="titlebar"></div>
 
 <!-- Sidebar. Lives OUTSIDE every [data-swap] region. client.js owns every id below except the sb-* ones. -->
 <aside id="sidebar" class="sb" aria-label="Brief controls">
-  <a id="sb-brand" class="sb-btn sb-brand" href="/" title="Latest brief">
+  <a id="sb-brand" class="sb-btn sb-brand" href="" title="Latest brief">
     <i class="bi bi-newspaper" aria-hidden="true"></i><span class="sb-label">{{paper_name}}</span>
   </a>
 
@@ -49,7 +50,7 @@
     </div>
   </div>
 
-  <div class="sb-group">
+  <div class="sb-group"{{gen_hidden}}>
     <div id="sb-engine-seg" class="sb-seg" role="group" aria-label="Selection engine"></div>
     <button id="sb-engine" type="button" class="sb-btn" aria-haspopup="listbox" aria-expanded="false" title="Selection engine">
       <i class="bi bi-cpu" aria-hidden="true"></i><span class="sb-label">Engine</span>

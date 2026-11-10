@@ -1,0 +1,12 @@
+# BuildKit per-Dockerfile ignore (build context is the project root, dockerfile is container/Dockerfile).
+node_modules
+electron/
+release/
+build/
+backup/
+*.db*
+logs/
+tests/
+simulate/
+dummy/
+.git

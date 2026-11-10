@@ -3,6 +3,8 @@
 // the grid (so paging always restarts at page 1 and a stale response can never overwrite a newer one).
 (() => {
   const $ = (id) => document.getElementById(id);
+  const base = document.body.dataset.base || '';
+  const hosted = document.body.dataset.hosted === '1';
   const sp0 = new URLSearchParams(location.search);
   const embed = sp0.get('embed') === '1';
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -46,7 +48,7 @@
     for (const k of KEYS) if (state[k]) p.set(k, state[k]);
     state.tags.forEach((t) => p.append('tag', t));
     const qs = p.toString();
-    return '/api/stories?' + qs; // always include ? so Grid.js can append with &
+    return base + '/api/stories?' + qs; // always include ? so Grid.js can append with &
   }
 
   // ---- cell renderers (all text goes through esc()/hl())
@@ -104,10 +106,11 @@
 
   // ---- like / save (same endpoint + guard header as client.js; optimistic with revert)
   async function toggle(btn) {
+    if (hosted) return;
     const on = btn.getAttribute('aria-pressed') !== 'true';
     btn.setAttribute('aria-pressed', String(on));
     try {
-      const r = await fetch(`/api/stories/${btn.dataset.storyId}/feedback`, {
+      const r = await fetch(base + `/api/stories/${btn.dataset.storyId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
         body: JSON.stringify({ action: btn.dataset.action, value: on }),
@@ -160,7 +163,7 @@
     state.tags = state.tags.includes(t) ? state.tags.filter((x) => x !== t) : [...state.tags, t].slice(0, 5);
     drawTags(); render();
   });
-  fetch('/api/stories/facets').then((r) => r.json()).then((f) => {
+  fetch(base + '/api/stories/facets').then((r) => r.json()).then((f) => {
     for (const k of ['desk', 'subtopic', 'source']) {
       const sel = $(k);
       const vals = f[k].map((x) => x.value);

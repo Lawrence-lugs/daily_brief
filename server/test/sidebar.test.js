@@ -8,7 +8,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const SIDEBAR = read('../public/sidebar.js');
 // Same {{name}} substitution contract as render.js fill(); unknown placeholders fail the test.
 const KNOWN = new Set(['css', 'paper_name', 'date_long', 'boot', 'brief_options', 'status', 'status_class', 'generate_label',
-  'edition', 'generated', 'primary_title', 'primary_deck', 'primary_stories', 'science_title', 'science_deck', 'science_stories', 'footer']);
+  'edition', 'generated', 'primary_title', 'primary_deck', 'primary_stories', 'science_title', 'science_deck', 'science_stories', 'footer', 'basePath', 'hosted', 'gen_hidden']);
 const p2 = (n) => String(n).padStart(2, '0');
 const day = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
 const OPTIONS = `<option value="3" selected>${day(0)} 09:10 [lr]</option><option value="2">${day(0)} 07:00 [keyword]</option><option value="1">${day(1)} 18:30</option>`;

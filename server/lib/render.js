@@ -42,7 +42,7 @@ const localToday = () => {
   return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
 };
 
-export function makeRenderer({ templatesDir, cssFile, paperName }) {
+export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }) {
   const tpl = (n) => readFileSync(path.join(templatesDir, n), 'utf8');
 
   function renderStory(s, lead) {
@@ -108,6 +108,9 @@ export function makeRenderer({ templatesDir, cssFile, paperName }) {
       science_title: science.title, science_deck: science.deck, science_stories: raw(renderDesk(science.stories)),
       footer, boot: raw(boot), status, status_class: stale ? 'stale' : '',
       brief_options: raw(options), generate_label: brief ? 'Regenerate' : 'Generate brief',
+      basePath,
+      hosted: raw(basePath ? '1' : ''),
+      gen_hidden: raw(basePath ? ' style="display:none"' : ''),
     });
   }
 

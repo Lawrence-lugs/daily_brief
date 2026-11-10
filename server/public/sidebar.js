@@ -5,6 +5,7 @@
 // client.js's delegated handler already listens for.
 (() => {
   const $ = (id) => document.getElementById(id);
+  const base = document.body.dataset.base || '';
   const root = document.documentElement;
   const sb = $('sidebar');
   if (!sb) return;
@@ -16,7 +17,7 @@
   const p2 = (n) => String(n).padStart(2, '0');
 
   // Keep ?embed= / ?theme= when going back to the latest brief (same contract as list.html's back link).
-  $('sb-brand').href = '/' + location.search;
+  $('sb-brand').href = base + '/' + location.search;
 
   // ---- collapse / expand
   function setState(s, persist = true) {
