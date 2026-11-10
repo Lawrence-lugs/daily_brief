@@ -31,7 +31,7 @@ function addStoryRow(db, briefId, o = {}) {
     significance,summarized,url,source,source_type,subtopic,kind,mode,age_days,rel,
     times_shown_before,cluster,core,score_p,score_v,cos_dist,cluster_size,cluster_pool,medoid_id,
     liked,saved)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(briefId, id, o.desk ?? 'primary', o.position ?? 0, o.headline ?? 'Headline', o.blurb ?? '', '',
       '[]', o.significance ?? 3, o.summarized ?? 1, o.url ?? 'http://x/' + id, o.source ?? 'arXiv',
       o.source_type ?? 'commentary', o.subtopic ?? 'dse', o.kind ?? 'fresh', o.mode ?? 'greedy',
@@ -66,7 +66,7 @@ test('upsertPool / loadPool: inserts new, updates rel on conflict, sets id field
   const db = freshDb();
   const added = upsertPool(db, [{
     id: 'p1', url: 'http://x/p1', title: 'T1', snippet: 'S', published: null,
-    source: 'arXiv', rel: 0.5,
+    source: 'arXiv', subtopic: 'dse', desk: 'primary', rel: 0.5,
   }], new Date('2026-01-01T12:00:00Z'));
   assert.equal(added, 1);
   const pool = loadPool(db);
@@ -75,7 +75,7 @@ test('upsertPool / loadPool: inserts new, updates rel on conflict, sets id field
   assert.equal(pool[0].title, 'T1');
   const added2 = upsertPool(db, [{
     id: 'p1', url: 'http://x/p1', title: 'T1', snippet: 'S2', published: null,
-    source: 'arXiv', rel: 0.9,
+    source: 'arXiv', subtopic: 'dse', desk: 'primary', rel: 0.9,
   }], new Date('2026-01-02T12:00:00Z'));
   assert.equal(added2, 0);
   assert.equal(loadPool(db)[0].rel, 0.9);

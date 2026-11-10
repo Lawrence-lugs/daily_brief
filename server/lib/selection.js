@@ -68,11 +68,13 @@ export function pickDesk(candidates, subtopics, n, cfg, rng, minimumTypes = null
   const counts = {};
   for (const s of subtopics) counts[s] = 0;
   const typeCounts = {};
+  let neededTypes = null;
   const picks = [];
 
   while (remaining.length && picks.length < n) {
-    const neededTypes = {};
+    neededTypes = null;
     if (minimumTypes) {
+      neededTypes = {};
       for (const [kind, minimum] of Object.entries(minimumTypes)) {
         if (typeCounts[kind] < minimum && remaining.some(c => c.source_type === kind)) {
           neededTypes[kind] = true;

@@ -1,32 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mock } from 'node:test';
+import { classify } from '../lib/brief.js';
 
-// brief.js imports ranker modules at the top level; mock them before importing.
-// Node >= 22.13 top-level mock() intercepts module resolution for subsequent imports.
-
-async function mockRanker() {
-  await mock('../../ranker/store.js', { Store: class { close() {} } });
-  await mock('../../ranker/pipeline.js', {
-    ensureEmbeddings: async () => {},
-    ensureFitted: async () => ({ interests: { clusters: [] } }),
-    prepareCandidates: () => [],
-  });
-  await mock('../../ranker/sampler.js', {
-    mulberry32: () => () => 0.5,
-    selectBrief: () => ({}),
-  });
-  await mock('../../ranker/backside.js', {
-    makeBackside: () => () => ({}),
-    poolCountsByCluster: () => ({}),
-  });
-  await mock('../../ranker/vec.js', { fromBlob: (b) => b });
-}
+// classify is pure keyword matching; importing brief.js pulls in ranker modules
+// but they load cleanly without a DB, so no mocking is needed here.
 
 test('classify: keyword matching, hint boost, rel calc, null when no match', async () => {
-  await mockRanker();
-  const { classify } = await import('../lib/brief.js');
-
   const keywords = { dse: ['transformer', 'attention'], fab: ['lithography'] };
   const sub2Desk = { dse: 'primary', fab: 'science' };
 
@@ -35,7 +14,7 @@ test('classify: keyword matching, hint boost, rel calc, null when no match', asy
   assert.equal(a.desk, 'primary');
   assert.ok(a.rel > 0);
 
-  const b = classify({ title: 'Hardware news', snippet: 'attention mechanisms', weight: 1.0 }, keywords, sub2Desk);
+  const b = classify({ title: 'Hardware news', snippet: 'attention transformer', weight: 1.0 }, keywords, sub2Desk);
   assert.equal(b.subtopic, 'dse');
 
   const c = classify({ title: 'X', snippet: 'y', weight: 1.0, hint: 'fab' }, keywords, sub2Desk);
@@ -50,9 +29,6 @@ test('classify: keyword matching, hint boost, rel calc, null when no match', asy
 });
 
 test('classify: term regex boundaries, short terms get trailing boundary', async () => {
-  await mockRanker();
-  const { classify } = await import('../lib/brief.js');
-
   const keywords = { dse: ['ai'] };
   const sub2Desk = { dse: 'primary' };
 

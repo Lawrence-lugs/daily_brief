@@ -106,11 +106,11 @@ export function loadLikedIds(conn, cutoffDate = null) {
       WHERE s.liked = 1 OR s.saved = 1
     `).all();
   }
-  return new Set(rows.map(r => r[0]));
+  return new Set(rows.map(r => r.item_id));
 }
 
 export function upsertPool(conn, fresh, now) {
-  const existing = new Set(conn.prepare('SELECT item_id FROM candidate_pool').all().map(r => r[0]));
+  const existing = new Set(conn.prepare('SELECT item_id FROM candidate_pool').all().map(r => r.item_id));
   let added = 0;
   tx(conn, () => {
     for (const it of fresh) {
@@ -233,8 +233,8 @@ function storyRow(bid, desk, pos, s) {
 
 export function insertBrief(conn, { dateKey, generatedAt, model, llmRequests, rejectedIds, desksOut, meta, edition = null, counted = 1 }) {
   if (edition === null) {
-    const n = conn.prepare('SELECT COUNT(DISTINCT date) FROM briefs WHERE date <> ?').get(dateKey)[0];
-    edition = n + 1;
+    const row = conn.prepare('SELECT COUNT(DISTINCT date) AS n FROM briefs WHERE date <> ?').get(dateKey);
+    edition = (row ? row.n : 0) + 1;
   }
   const desksMeta = {};
   for (const [k, v] of Object.entries(desksOut)) desksMeta[k] = { title: v.title, deck: v.deck };

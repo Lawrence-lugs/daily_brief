@@ -191,7 +191,8 @@ test('auc sanity', () => {
   assert.equal(auc([0.5, 0.5, 0.5, 0.5], [0, 1, 0, 1]), 0.5);
 });
 
-const CFG = { epsilon: 0.25, halfLifeDays: 7, dedupe: { hardWindowDays: 2, t0: 7, scale: 2 }, explore: { gamma: 0.5, floor: 0.01 },
+const CFG = { epsilon: 0.25, halfLifeDays: 7, freshness: { model: 'logistic', steepness: 1 },
+  dedupe: { hardWindowDays: 2, t0: 7, scale: 2 }, explore: { gamma: 0.5, floor: 0.01 },
   slots: { primary: 5, science: 5, reserve: 2 }, desks: { core: 'primary', side: 'science' } };
 const mk = (n, core, base) => Array.from({ length: n }, (_, i) => ({ id: `${core ? 'c' : 's'}${i}`, p: 0.2 + 0.05 * (i % 8), age_days: i, days_since_shown: null, cluster: base + (i % 3), core }));
 
