@@ -41,6 +41,7 @@ RUN mkdir -p /app/node_modules/@huggingface/transformers/.cache \
     && chown -R brief:brief /app/node_modules/@huggingface/transformers/.cache
 
 # Application files.
+COPY package.json ./
 COPY server/ ./server/
 COPY ranker/ ./ranker/
 COPY scripts/ ./scripts/
