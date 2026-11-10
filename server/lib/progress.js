@@ -49,3 +49,92 @@ export function buildPreview(progress, { renderStory, medoidTitle }) {
   }
   return { seq: progress.seq, phase: progress.phase, engine: progress.engine ?? null, t0: progress.t0, desks };
 }
+
+// --------------------------------------------------------------------------- Progress class (port of src/progress.py)
+
+/** Progress file for the live generation UI (stdlib only, never raises).
+
+brief.js passes `--progress-file <path>`; the server tails it and the client renders it.
+The file is rewritten atomically (tmp + rename) after every state change.
+Contract (v1):
+  {"v":1, "seq":int, "phase":"fetching|selecting|editing|committing|done",
+   "engine":"lr|keyword|null", "t0":unix_seconds,
+   "desks":{name:{"title":str, "n":int, "stage":"pending|raw|edited", "working":bool,
+                 "deck":str, "items":[slim item,...]}}}
+*/
+import { writeFileSync, renameSync } from 'node:fs';
+
+const ITEM_FIELDS = [
+  'id', 'title', 'url', 'source', 'source_type', 'subtopic', 'kind', 'mode', 'age_days',
+  'p', 'V', 'cluster', 'core', 'cos_dist', 'cluster_size', 'cluster_pool', 'medoid_id',
+  'headline', 'blurb', 'why_care', 'tags', 'significance', 'summarized',
+];
+
+function clean(v) {
+  if (v === null || v === undefined || typeof v === 'boolean' || typeof v === 'string' || typeof v === 'number') {
+    if (typeof v === 'number' && !Number.isFinite(v)) return null;
+    return v;
+  }
+  if (Array.isArray(v)) return v.map(clean);
+  if (typeof v === 'object') {
+    const o = {};
+    for (const [k, val] of Object.entries(v)) o[String(k)] = clean(val);
+    return o;
+  }
+  return String(v);
+}
+
+function slimItem(it) {
+  const out = {};
+  for (const k of ITEM_FIELDS) if (k in it) out[k] = clean(it[k]);
+  out.snippet = String(it.snippet ?? '').slice(0, 320);
+  return out;
+}
+
+export class Progress {
+  constructor(pathOrNull, engine = null) {
+    this.path = pathOrNull || null;
+    this.data = { v: 1, seq: 0, phase: 'fetching', engine, t0: Date.now() / 1000, desks: {} };
+    this._flush();
+  }
+
+  _flush() {
+    if (!this.path) return;
+    this.data.seq += 1;
+    try {
+      const tmp = this.path + '.tmp';
+      writeFileSync(tmp, JSON.stringify(this.data, { allow_nan: false }), 'utf8');
+      renameSync(tmp, this.path);
+    } catch {
+      // progress must never break a generation
+    }
+  }
+
+  setEngine(engine) { this.data.engine = engine; this._flush(); }
+  phase(name) { this.data.phase = name; this._flush(); }
+  deskInit(desk, title, n) {
+    this.data.desks[desk] = { title, n: Number(n), stage: 'pending', working: false, deck: '', items: [] };
+    this._flush();
+  }
+  deskRaw(desk, items) {
+    const d = this.data.desks[desk] || { title: desk, n: items.length, deck: '' };
+    d.stage = 'raw';
+    d.working = false;
+    d.items = items.map(slimItem);
+    this.data.desks[desk] = d;
+    this._flush();
+  }
+  deskWorking(desk, flag = true) {
+    if (desk in this.data.desks) this.data.desks[desk].working = Boolean(flag);
+    this._flush();
+  }
+  deskEdited(desk, stories, deck = '') {
+    const d = this.data.desks[desk] || { title: desk, n: stories.length };
+    d.stage = 'edited';
+    d.working = false;
+    d.deck = String(deck ?? '');
+    d.items = stories.map(slimItem);
+    this.data.desks[desk] = d;
+    this._flush();
+  }
+}
