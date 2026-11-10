@@ -53,15 +53,21 @@ daily_brief/
 
 ## Running it
 
+Brief generation was ported from `src/brief.py` (Python) to `server/lib/brief.js` (Node ESM). Invoke it with
+the CLI wrapper `scripts/run_brief.js` (exposed as `npm run brief`); logs go to stderr. The old
+`python src/brief.py ...` commands no longer exist.
+
 | What | How |
 |---|---|
 | From a shell (server) | `npm run serve`  → `http://127.0.0.1:4873/` |
 | From a shell (Electron app) | `npm run app` → opens a window on the same URL |
 | From Obsidian | open `obsidian/daily-brief.md` (dataviewjs iframe; auto-starts the server if needed) |
-| No network LLM | `python src/brief.py --no-llm` (raw items, no OpenRouter calls) |
-| Reuse the pool | `python src/brief.py --no-fetch` |
-| Don't persist state | `python src/brief.py --dry-run` |
-| Refresh feeds only | `python src/brief.py --refresh-api-feeds` |
+| No network LLM | `npm run brief -- --no-llm` (raw items, no OpenRouter calls) |
+| Reuse the pool | `npm run brief -- --no-fetch` |
+| Don't persist state | `npm run brief -- --dry-run` |
+| Dry-run, offline | `npm run brief -- --dry-run --no-llm --no-fetch` |
+| Refresh feeds only | `npm run brief -- --refresh-api-feeds` |
+| Pick an engine | `npm run brief -- --engine lr` (or `--engine keyword`) |
 | Ranker CLI | `node ranker/cli.js <command>` (see `ranker/README.md`) |
 | Tests | `python -m unittest src/test_db.py`  and  `npm test` |
 

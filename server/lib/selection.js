@@ -80,6 +80,11 @@ export function pickDesk(candidates, subtopics, n, cfg, rng, minimumTypes = null
           neededTypes[kind] = true;
         }
       }
+      // No remaining item matches any required source type: do not let an empty
+      // neededTypes object (`!{}` is false) filter out every available item.
+      // Fall back to picking from whatever matches the subtopics instead of
+      // returning zero picks.
+      if (Object.keys(neededTypes).length === 0) neededTypes = null;
     }
     const pools = {};
     for (const s of subtopics) {

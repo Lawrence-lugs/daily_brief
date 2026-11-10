@@ -58,6 +58,50 @@ test('pickDesk: returns n picks, respects subtopics', () => {
   assert.ok(pickedIds.includes('a')); // highest rel greedy pick
 });
 
+test('pickDesk: still picks from available items when minimumTypes are unavailable', () => {
+  // Blindspot: when the pool has no items of the minimumTypes (e.g. all
+  // 'commentary'), neededTypes ends up as `{}`. Since `!{}` is `false`, the
+  // pool filter `c.source_type in neededTypes` matches nothing and pickDesk
+  // returns 0 picks instead of falling back to the available items. This
+  // causes brief generation to emit only reserve stories when the pool is
+  // all commentary.
+  const cfg = { ...DEFAULTS, epsilon: 0 };
+  const cands = [
+    item({ id: 'a', subtopic: 'dse', source_type: 'commentary', rel: 0.9 }),
+    item({ id: 'b', subtopic: 'dse', source_type: 'commentary', rel: 0.8 }),
+    item({ id: 'c', subtopic: 'fab', source_type: 'commentary', rel: 0.85 }),
+  ];
+  const picks = pickDesk(cands, ['dse', 'fab'], 2, cfg, rng, { newslike: 1, paperlike: 2 });
+  assert.ok(picks.length > 0, 'should pick from available items even when minimumTypes are unavailable');
+});
+
+test('pickDesk: never returns zero picks when items match the requested subtopics', async (t) => {
+  // minimumTypes must never cause total selection failure: when the available
+  // pool has no items of the required source types, fall back to picking from
+  // whatever items match the subtopics, rather than returning zero picks.
+  const cfg = { ...DEFAULTS, epsilon: 0 };
+  const makeItem = (id, st) => item({ id, subtopic: 'dse', source_type: st, rel: 0.8 });
+  await t.test('all commentary, minimumTypes unsatisfiable', () => {
+    const cands = [makeItem('a', 'commentary'), makeItem('b', 'commentary'), makeItem('c', 'commentary')];
+    const picks = pickDesk(cands, ['dse'], 2, cfg, rng, { newslike: 1, paperlike: 2 });
+    assert.ok(picks.length > 0, 'should pick from available commentary items when newslike/paperlike are absent');
+  });
+  await t.test('mixed types, one minimumType unsatisfiable', () => {
+    const cands = [makeItem('a', 'newslike'), makeItem('b', 'commentary'), makeItem('c', 'commentary')];
+    const picks = pickDesk(cands, ['dse'], 2, cfg, rng, { newslike: 1, paperlike: 5 });
+    assert.ok(picks.length > 0, 'should pick from available items when paperlike minimum is unsatisfiable');
+  });
+  await t.test('no minimumTypes constraint', () => {
+    const cands = [makeItem('a', 'commentary'), makeItem('b', 'commentary')];
+    const picks = pickDesk(cands, ['dse'], 2, cfg, rng, null);
+    assert.equal(picks.length, 2, 'should pick all available items when no minimumTypes');
+  });
+  await t.test('empty candidate pool', () => {
+    const picks = pickDesk([], ['dse'], 2, cfg, rng, { newslike: 1 });
+    assert.equal(picks.length, 0, 'empty pool yields zero picks');
+  });
+});
+
 test('pickDesk: skip_exhausted prefers never-shown subtopics first', () => {
   const cfg = { ...DEFAULTS, epsilon: 0, skip_exhausted_subtopics: true };
   const cands = [
