@@ -14,6 +14,7 @@ from simulate.experiments.sacred_runner import ex as compare_ex
 from simulate.experiments.sweep_runner import ex as sweep_ex
 from simulate.experiments.monte_carlo_runner import ex as monte_carlo_ex
 from simulate.experiments.ablation_runner import ex as ablation_ex
+from simulate.experiments.clustering_ablation import ex as clustering_ablation_ex
 
 
 def _parse_seeds(seeds_str: str) -> list[int]:
@@ -129,6 +130,26 @@ def main():
         help="SQLAlchemy connection URL for the sacred SQL observer",
     )
     p_abl.add_argument(
+        "--unobserved",
+        action="store_true",
+        help="Run without any sacred observer (no run persisted)",
+    )
+
+    # clustering-ablation command
+    p_clab = subparsers.add_parser("clustering-ablation", help="Clustering ablation: liked items vs perfect samples only (Sacred experiment)")
+    add_common(p_clab)
+    p_clab.add_argument(
+        "--test-frac",
+        type=float,
+        default=0.2,
+        help="Test fraction for chronological holdout (default: 0.2)",
+    )
+    p_clab.add_argument(
+        "--sql-url",
+        default=None,
+        help="SQLAlchemy connection URL for the sacred SQL observer",
+    )
+    p_clab.add_argument(
         "--unobserved",
         action="store_true",
         help="Run without any sacred observer (no run persisted)",
@@ -253,6 +274,28 @@ def main():
                 "engine": args.engine,
                 "seeds": seeds,
                 "features": args.features,
+            },
+        )
+        print("\nSacred run complete. See docs/experiments/runs.db for the SQL observer store.")
+
+    elif args.command == "clustering-ablation":
+        _configure_observer(clustering_ablation_ex, args.sql_url, args.unobserved)
+
+        print(f"=== Sacred Experiment: daily_brief_clustering_ablation ===")
+        print(f"Date:        {args.date}")
+        print(f"Test frac:   {args.test_frac}")
+        print(f"DB path:     {args.db}")
+        print(f"Config:      {args.config}")
+        print(f"SQL observer: {args.sql_url or 'sqlite:///docs/experiments/runs.db'}")
+        print("========================================================")
+
+        clustering_ablation_ex.run(
+            command_name="run",
+            config_updates={
+                "date": args.date,
+                "test_frac": args.test_frac,
+                "db_path": args.db,
+                "config_path": args.config,
             },
         )
         print("\nSacred run complete. See docs/experiments/runs.db for the SQL observer store.")

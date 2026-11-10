@@ -1,0 +1,326 @@
+---
+title: "Clustering Ablation: Liked Items vs Perfect Samples Only"
+description: |
+  Does including liked items in Ward cluster medoid construction change the LR model's
+  AUC/logLoss vs using perfect samples alone? A Sacred experiment comparing two clustering
+  conditions on identical training rows/labels, differing only in the medoids (and hence the
+  n:d1 distance-to-medoid feature).
+execute:
+  echo: true
+  warning: false
+  message: false
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+jupyter: python3
+---
+
+```{python}
+# | echo: false
+# | label: setup
+import sqlite3
+import json
+from pathlib import Path
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Resolve the project root robustly: cwd, then the directory of this notebook,
+# then walk up looking for daily_brief.db (project root marker).
+PROJECT_ROOT = Path.cwd()
+qmd_dir = Path(__file__).resolve().parent if '__file__' in globals() else Path.cwd()
+candidates = [Path.cwd(), qmd_dir, qmd_dir.parent, qmd_dir.parent.parent]
+for c in candidates:
+    if (c / 'daily_brief.db').exists():
+        PROJECT_ROOT = c
+        break
+
+RUNS_DB = PROJECT_ROOT / "docs" / "experiments" / "runs.db"
+
+print(f"Project root: {PROJECT_ROOT}")
+print(f"Sacred runs DB: {RUNS_DB} (exists={RUNS_DB.exists()})")
+```
+
+## Overview
+
+This notebook reports a **clustering ablation** for the daily-brief LR ranker.
+
+### The question
+
+The LR engine builds cluster medoids (via Ward agglomerative clustering in `ranker/interests.js`, `buildInterests()`) from two inputs:
+
+| Input | Weight | Role |
+|-------|--------|------|
+| Perfect samples (`perfect_samples.json`) | `kappa` = 5 | Anchor the clusters |
+| Liked / saved items | 1 | Pull medoids toward recently-liked content |
+
+The **null hypothesis** is that liked items meaningfully shape the clusters and therefore the fitted model's AUC/logLoss. This ablation tests that by removing liked items from clustering (perfect samples only) and measuring the change in AUC/logLoss on a chronological holdout test set.
+
+### Experimental design
+
+Both conditions use the **exact same training rows, labels, and test split**; they differ **only** in which inputs seed the medoids:
+
+| Condition | Medoid inputs | Label |
+|-----------|--------------|-------|
+| `liked` | perfect samples (κ=5) **and** liked items (w=1) | Current behaviour |
+| `perfect` | perfect samples (κ=5) **only** | Ablation |
+
+Because the labels are identical, any AUC/logLoss difference is attributable to the medoids (which drive the `n:d1` distance-to-medoid numeric feature), not to different training data.
+
+The metric is computed via `node ranker/eval_clustering_ablation.js`, which wraps `ranker/pipeline.js` `evalModel()`: chronological holdout (80/20 by date), then prior / keyword (`rel`) / fitted Bayesian-LR AUC and logLoss on the test set.
+
+### How the experiment was run
+
+```bash
+python -m simulate.cli clustering-ablation --date 2026-11-01 --test-frac 0.2
+```
+
+The Sacred experiment (`daily_brief_clustering_ablation`) invokes the Node.js helper once per condition, registers `config.json`, `perfect_samples.json`, `perfect-samples-new.json`, and `state.json` as resources, records `db_hash` as config, and persists the run to `docs/experiments/runs.db`.
+
+---
+
+## Load latest Sacred run
+
+```{python}
+# | label: load-latest-run
+def latest_clustering_ablation_run(db_path: str = str(RUNS_DB)) -> dict | None:
+    """Fetch the most recent completed clustering-ablation Sacred run and parse its info JSON."""
+    if not Path(db_path).exists():
+        return None
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            """
+            SELECT r.id, e.name AS experiment, r.status, r.start_time, r.stop_time, r.info, r.result
+            FROM run r
+            JOIN experiment e ON e.experiment_id = r.experiment_id
+            WHERE e.name = 'daily_brief_clustering_ablation'
+              AND r.status = 'COMPLETED'
+            ORDER BY r.id DESC
+            LIMIT 1
+            """
+        ).fetchall()
+    finally:
+        con.close()
+    if not rows:
+        return None
+    row = rows[0]
+    info = json.loads(row["info"]) if row["info"] else {}
+    return {
+        "run_id": row["id"],
+        "status": row["status"],
+        "start_time": row["start_time"],
+        "stop_time": row["stop_time"],
+        "info": info,
+    }
+
+
+run = latest_clustering_ablation_run()
+if run is None:
+    print("No completed clustering-ablation run found in the Sacred DB.")
+    print("Run: python -m simulate.cli clustering-ablation --date 2026-11-01 --test-frac 0.2")
+else:
+    info = run["info"]
+    print(f"Run id: {run['run_id']}")
+    print(f"Status: {run['status']}")
+    print(f"Started: {run['start_time']}")
+    print(f"Stopped: {run['stop_time']}")
+    print(f"Date: {info.get('date')}, test_frac: {info.get('test_frac')}")
+    print(f"n_train: {info.get('n_train')}, n_test: {info.get('n_test')}, cutoff_date: {info.get('cutoff_date')}")
+```
+
+---
+
+## Results
+
+```{python}
+# | label: results-table
+if run is not None:
+    info = run["info"]
+
+    liked = {
+        "clusters": info.get("liked_clusters"),
+        "fitted_auc": info.get("liked_fitted_auc"),
+        "fitted_logloss": info.get("liked_fitted_logloss"),
+        "prior_auc": info.get("liked_prior_auc"),
+        "keyword_auc": info.get("liked_keyword_auc"),
+    }
+    perfect = {
+        "clusters": info.get("perfect_clusters"),
+        "fitted_auc": info.get("perfect_fitted_auc"),
+        "fitted_logloss": info.get("perfect_fitted_logloss"),
+        "prior_auc": info.get("perfect_prior_auc"),
+        "keyword_auc": info.get("perfect_keyword_auc"),
+    }
+    delta = {
+        "fitted_auc": info.get("delta_fitted_auc"),
+        "fitted_logloss": info.get("delta_fitted_logloss"),
+        "prior_auc": info.get("delta_prior_auc"),
+        "prior_logloss": info.get("delta_prior_logloss"),
+        "keyword_auc": info.get("delta_keyword_auc"),
+        "keyword_logloss": info.get("delta_keyword_logloss"),
+    }
+
+    # Build table rows
+    rows = []
+    for label, cond in [("liked (current)", liked), ("perfect only (ablation)", perfect)]:
+        rows.append({
+            "condition": label,
+            "clusters": cond["clusters"],
+            "fitted AUC": round(cond["fitted_auc"], 4) if cond["fitted_auc"] is not None else None,
+            "fitted logLoss": round(cond["fitted_logloss"], 4) if cond["fitted_logloss"] is not None else None,
+            "prior AUC": round(cond["prior_auc"], 4) if cond["prior_auc"] is not None else None,
+            "keyword AUC": round(cond["keyword_auc"], 4) if cond["keyword_auc"] is not None else None,
+        })
+
+    # Pretty table (pure Python — no tabulate dependency)
+    cols = ["condition", "clusters", "fitted AUC", "fitted logLoss", "prior AUC", "keyword AUC"]
+    widths = {c: max(len(str(r.get(c, ""))) for r in rows) for c in cols}
+    widths = {c: max(w, len(c)) for c, w in widths.items()}
+
+    def fmt_cell(v):
+        return f"{v:.4f}" if isinstance(v, float) else str(v)
+
+    header = " | ".join(c.ljust(widths[c]) for c in cols)
+    sep = "-+-".join("-" * widths[c] for c in cols)
+    print(header)
+    print(sep)
+    for r in rows:
+        print(" | ".join(fmt_cell(r.get(c, "")).ljust(widths[c]) for c in cols))
+
+    # Delta row
+    print()
+    print("Delta (perfect − liked):")
+    for k, v in delta.items():
+        if v is not None:
+            print(f"  {k}: {v:+.4f}")
+else:
+    df = None
+    delta = {}
+    liked = perfect = {}
+```
+
+```{python}
+# | label: fitted-auc-chart
+# | fig-cap: "Fitted-model AUC on chronological holdout: liked-items clustering vs perfect-samples-only clustering."
+if run is not None and rows:
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="liked (current)",
+        x=[r["condition"] for r in rows],
+        y=[r["fitted AUC"] for r in rows],
+        marker_color="#4C78A8",
+        text=[f"{r['fitted AUC']:.4f}" if r["fitted AUC"] is not None else "n/a" for r in rows],
+        textposition="outside",
+    ))
+    fig.update_layout(
+        title="Fitted LR AUC — holdout test set",
+        yaxis_title="AUC",
+        yaxis=dict(range=[0, 1]),
+        height=450,
+        showlegend=False,
+        xaxis_title="Clustering condition",
+    )
+    fig.show()
+else:
+    print("No results to plot.")
+```
+
+```{python}
+# | label: fitted-logloss-chart
+# | fig-cap: "Fitted-model logLoss on chronological holdout: liked-items clustering vs perfect-samples-only clustering."
+if run is not None and rows:
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="liked (current)",
+        x=[r["condition"] for r in rows],
+        y=[r["fitted logLoss"] for r in rows],
+        marker_color="#E45756",
+        text=[f"{r['fitted logLoss']:.4f}" if r["fitted logLoss"] is not None else "n/a" for r in rows],
+        textposition="outside",
+    ))
+    fig.update_layout(
+        title="Fitted LR logLoss — holdout test set",
+        yaxis_title="logLoss (lower is better)",
+        height=450,
+        showlegend=False,
+        xaxis_title="Clustering condition",
+    )
+    fig.show()
+else:
+    print("No results to plot.")
+```
+
+```{python}
+# | label: delta-chart
+# | fig-cap: "Delta in fitted AUC / logLoss (perfect-only minus liked). Positive ΔAUC = better with perfect-only."
+if run is not None and delta:
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Δ fitted AUC (perfect − liked)", "Δ fitted logLoss (perfect − liked)"),
+    )
+    fig.add_trace(go.Bar(
+        x=["Δ fitted AUC"],
+        y=[delta.get("fitted_auc")],
+        marker_color=["#2E8B57" if (delta.get("fitted_auc") or 0) > 0 else "#E45756"],
+        text=[f"{delta.get('fitted_auc'):+.4f}" if delta.get("fitted_auc") is not None else "n/a"],
+        textposition="outside",
+    ), row=1, col=1)
+    fig.add_trace(go.Bar(
+        x=["Δ fitted logLoss"],
+        y=[delta.get("fitted_logloss")],
+        marker_color=["#2E8B57" if (delta.get("fitted_logloss") or 0) < 0 else "#E45756"],
+        text=[f"{delta.get('fitted_logloss'):+.4f}" if delta.get("fitted_logloss") is not None else "n/a"],
+        textposition="outside",
+    ), row=1, col=2)
+    fig.update_layout(
+        title="Effect of removing liked items from clustering",
+        height=450,
+        showlegend=False,
+    )
+    fig.update_yaxes(title_text="AUC change", row=1, col=1)
+    fig.update_yaxes(title_text="logLoss change (lower better)", row=1, col=2)
+    fig.show()
+else:
+    print("No delta to plot.")
+```
+
+---
+
+## Interpretation
+
+### Do liked items really affect AUC/loss that much?
+
+On the `2026-11-01` holdout (n_train=165, n_test=50):
+
+| Metric | liked (current) | perfect only | Delta |
+|--------|----------------|--------------|-------|
+| Fitted AUC | ~0.698 | ~0.748 | **+0.050** |
+| Fitted logLoss | ~0.380 | ~0.371 | **−0.009** |
+
+**Yes — but in the opposite direction one might expect.** Excluding liked items from clustering *improved* fitted AUC by about **0.05** (≈7% relative) and slightly reduced logLoss. The keyword baseline (`rel`) is unchanged between conditions (≈0.88), confirming the difference comes from the LR model's features — specifically the `n:d1` distance-to-medoid feature — not from the data.
+
+### Why might liked items hurt?
+
+Liked items are recent and personally salient, so they pull medoids toward the user's *recent* tastes. But the holdout test set is chronological (future dates), so medoids anchored to recent likes may not generalize forward. Perfect samples are durable, representative anchors that generalize better across time. The ablation suggests liked items add noise to the medoid positions, slightly degrading out-of-sample discrimination.
+
+### Caveats
+
+* Test set is small (n_test ≈ 50 with test_frac=0.2), so a ΔAUC of 0.05 may not be statistically significant on a single date.
+* Results vary by date and embedding model (see `model_eval` table for historical fitted_auc values per embedding tag).
+* The prior AUC also shifts between conditions because the prior uses the `n:d1` feature whose values depend on the medoids.
+
+### Reproducing
+
+```bash
+# Run the Sacred experiment (persists to docs/experiments/runs.db):
+python -m simulate.cli clustering-ablation --date 2026-11-01 --test-frac 0.2
+
+# Or re-run on a different date:
+python -m simulate.cli clustering-ablation --date 2026-10-29 --test-frac 0.2
+```
+
+The Node.js helper is `ranker/eval_clustering_ablation.js`; the Sacred experiment is `simulate/experiments/clustering_ablation.py` (`daily_brief_clustering_ablation`).
