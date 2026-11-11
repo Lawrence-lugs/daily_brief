@@ -1,3 +1,4 @@
+
 {
   "feeds": {
     "api": {
@@ -14,7 +15,7 @@
       ]
     },
     "rss": [
-      {"name": "arXiv  Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "arXiv Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
       {"name": "arXiv Emerging Tech", "url": "https://rss.arxiv.org/rss/cs.ET", "weight": 0.85, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
       {"name": "arXiv General Relativity", "url": "https://rss.arxiv.org/rss/gr-qc", "weight": 0.9, "type": "researchlike", "default_subtopic": "gr", "kind": "rss"},
       {"name": "arXiv High Energy Theory", "url": "https://rss.arxiv.org/rss/hep-th", "weight": 0.9, "type": "researchlike", "default_subtopic": "qft", "kind": "rss"},
@@ -34,7 +35,113 @@
       {"name": "Nature Neuroscience", "url": "https://www.nature.com/neuro.rss", "weight": 1.0, "type": "researchlike", "default_subtopic": "neuro", "kind": "rss"},
       {"name": "Nature Electronics", "url": "https://www.nature.com/natelectron.rss", "weight": 0.95, "type": "researchlike", "default_subtopic": "condmat", "kind": "rss"},
       {"name": "Nature Physics", "url": "https://www.nature.com/nphys.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
-      {"name": "Nature Computational Science", "url": "https://www.nature.com/natcomputsci.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null, "kind": "rss"}
+      {"name": "Nature Computational Science", "url": "https://www.nature.com/natcomputsci.rss", "weight": 0.8, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+
+      {
+        "name": "IEEE JSSC — Solid-State Circuits",
+        "url": "https://ieeexplore.ieee.org/rss/TOC4.XML",
+        "weight": 1.0,
+        "type": "researchlike",
+        "default_subtopic": "fab",
+        "kind": "rss"
+      },
+      {
+        "name": "IEEE CASS — TCAS-I",
+        "url": "https://ieeexplore.ieee.org/rss/TOC8919.XML",
+        "weight": 0.95,
+        "type": "researchlike",
+        "default_subtopic": "fab",
+        "kind": "rss"
+      },
+      {
+        "name": "IEEE CASS — JETCAS",
+        "url": "https://ieeexplore.ieee.org/rss/TOC5503868.XML",
+        "weight": 1.0,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+      {
+        "name": "IEEE CASS — TCASAI",
+        "url": "https://ieeexplore.ieee.org/rss/TOC10495160.XML",
+        "weight": 0.95,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+
+      {
+        "name": "ACM TOCS — Computer Systems",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=tocs",
+        "weight": 1.0,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM TACO — Architecture and Code Optimization",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=taco",
+        "weight": 0.95,
+        "type": "researchlike",
+        "default_subtopic": "dse",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM TODAES — Design Automation",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=todaes",
+        "weight": 0.95,
+        "type": "researchlike",
+        "default_subtopic": "dse",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM TECS — Embedded Computing Systems",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=tecs",
+        "weight": 0.85,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM TOS — Transactions on Storage",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=tos",
+        "weight": 0.85,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM TOPC — Parallel Computing",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=topc",
+        "weight": 0.85,
+        "type": "researchlike",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      },
+      {
+        "name": "ACM CSUR — Computing Surveys",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=csur",
+        "weight": 0.9,
+        "type": "researchlike",
+        "default_subtopic": null,
+        "kind": "rss"
+      },
+      {
+        "name": "Communications of the ACM",
+        "url": "https://cacm.acm.org/magazine.rss",
+        "weight": 0.85,
+        "type": "newslike",
+        "default_subtopic": null,
+        "kind": "rss"
+      },
+      {
+        "name": "ACM Queue",
+        "url": "https://queue.acm.org/rss/feeds/latestitems.xml",
+        "weight": 0.9,
+        "type": "commentary",
+        "default_subtopic": "accel",
+        "kind": "rss"
+      }
     ]
   }
 }
