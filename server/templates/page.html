@@ -11,6 +11,18 @@
 <link rel="stylesheet" href="static/app.css">
 <link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
 <link rel="stylesheet" href="static/sidebar.css">
+<link rel="stylesheet" href="static/carousel.css">
+<script>
+// Carousel layout: forced with ?carousel=1, otherwise automatic on very small viewports (tracks live resizes).
+(function () {
+  var d = document.documentElement;
+  var forced = new URLSearchParams(location.search).get('carousel') === '1';
+  var small = matchMedia('(max-width:400px), (max-height:320px)');
+  var sync = function () { d.classList.toggle('cr', forced || small.matches); };
+  sync();
+  small.addEventListener('change', sync);
+})();
+</script>
 <script>
 // Set the sidebar state before first paint so the layout never jumps. Narrow screens always start closed.
 (function () {
@@ -25,6 +37,7 @@
 <script src="static/genmodel.js"></script>
 <script src="static/client.js" defer></script>
 <script src="static/sidebar.js" defer></script>
+<script src="static/carousel.js" defer></script>
 </head>
 <body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200" data-base="{{basePath}}" data-hosted="{{hosted}}">
 <div id="titlebar"></div>
@@ -102,6 +115,8 @@
 <button id="sb-fab" type="button" class="sb-fab" aria-label="Open controls" aria-controls="sidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
 <div id="sb-backdrop" class="sb-backdrop"></div>
 <div id="sb-toast" class="sb-toast" role="alert" hidden></div>
+
+<nav class="cr-nav" id="cr-dots" aria-label="Carousel pages"></nav>
 
 <div class="sb-content">
 <div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">

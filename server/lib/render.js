@@ -66,7 +66,7 @@ const localToday = () => {
 export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }) {
   const tpl = (n) => readFileSync(path.join(templatesDir, n), 'utf8');
 
-  function renderStory(s, lead) {
+  function renderStory(s, lead, cr = '') {
     const tags = raw(s.tags.map((t) => fill(tpl('tag.html'), { tag: t })).join(''));
     const badge = raw(s.kind === 'archive' ? fill(tpl('badge.html'), { label: 'From the archive' }) : '');
     const why = raw(s.why_care ? fill(tpl('why.html'), { why: s.why_care }) : '');
@@ -86,16 +86,32 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     return fill(tpl(lead ? 'lead.html' : 'story.html'), {
       id: s.story_id, headline: s.headline, blurb: s.blurb, url: safeUrl(s.url), source: s.source,
       age: ageLabel(s.age_days), tags, badge, why, raw_note: rawNote, cluster_badge: clusterBadge, alphaxiv, back,
+      cr: raw(cr),
     });
   }
 
-  const renderDesk = (stories) => stories.map((s, i) => renderStory(s, i === 0)).join('');
+  // Carousel order: round-robin across desks, each desk in its stored position order.
+  function carouselRanks(desks) {
+    const ranks = new Map();
+    const lists = Object.values(desks).map((d) => d.stories);
+    const longest = Math.max(0, ...lists.map((l) => l.length));
+    let k = 0;
+    for (let i = 0; i < longest; i++) for (const l of lists) if (i < l.length) ranks.set(l[i].story_id, k++);
+    return ranks;
+  }
+
+  const renderDesk = (stories, ranks, topN) => stories.map((s, i) => {
+    const k = ranks.get(s.story_id);
+    const cr = ` style="order:${k}"${k >= topN ? ' data-cr-out' : ''}`;
+    return renderStory(s, i === 0, cr);
+  }).join('');
 
   /**
-   * @param {{brief:object|null, desks:object|null, briefs:Array, embed:boolean}} o
+   * @param {{brief:object|null, desks:object|null, briefs:Array, embed:boolean, topN?:number}} o
    * brief/desks come from queries.getBrief (null => empty page with a Generate button).
+   * topN: how many stories the carousel (embed) layout shows; the desk layout always shows all.
    */
-  function page({ brief, desks, briefs, embed }) {
+  function page({ brief, desks, briefs, embed, topN = 5 }) {
     const empty = { title: '', deck: '', stories: [] };
     const allDesks = desks ?? {};
     // Desks with no items are not shown and do not occupy a column.
@@ -125,8 +141,9 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
 
     // Render every non-empty desk section generically (Phase 6: N-desk support). Desks with no
     // stories are dropped entirely so they don't show up or occupy a column.
+    const ranks = carouselRanks(nonEmptyDesks);
     const deskSections = Object.entries(nonEmptyDesks).map(([key, d]) => {
-      const storiesHtml = raw(renderDesk(d.stories ?? []));
+      const storiesHtml = raw(renderDesk(d.stories ?? [], ranks, topN));
       return fill(tpl('desk-section.html'), {
         key,
         title: d.title ?? key,

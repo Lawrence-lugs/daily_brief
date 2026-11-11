@@ -1,0 +1,32 @@
+/* Carousel layout: one story per slide, horizontal scroll-snap. Active when <html> has .cr
+   (set by the inline script in page.html: ?carousel=1 or a very small viewport). */
+
+html.cr body { height: 100%; overflow: hidden; }
+html.cr #titlebar, html.cr .sb, html.cr .sb-fab, html.cr .sb-backdrop, html.cr #sb-toast,
+html.cr #gen-panel, html.cr #log-popup, html.cr [data-swap="masthead"], html.cr [data-swap="footer"] { display: none !important; }
+
+html.cr .sb-content { margin-left: 0; padding-top: 0; height: 100%; }
+html.cr .sb-content > div { max-width: none; height: 100%; padding: 0; display: flex; flex-direction: column; }
+
+html.cr [data-desks] { display: flex; flex: 1; min-height: 0; margin-top: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+html.cr [data-desks]::-webkit-scrollbar { display: none; }
+html.cr [data-desks] > section, html.cr [data-desk-stories] { display: contents; }
+html.cr [data-desks] > section > h2, html.cr [data-desks] > section > p { display: none; }
+
+html.cr [data-desks] article.story-card {
+  flex: 0 0 100%; width: 100%; height: 100%; box-sizing: border-box; margin: 0; padding: 1rem 1rem 3.5rem;
+  border-bottom: 0; overflow-y: auto; scroll-snap-align: start;
+}
+html.cr [data-desks] article.story-card[data-cr-out] { display: none !important; }
+
+.cr-nav { display: none; }
+html.cr .cr-nav {
+  display: flex; position: fixed; left: 50%; bottom: .75rem; transform: translateX(-50%); z-index: 40; gap: .5rem;
+}
+.cr-dot {
+  width: .5rem; height: .5rem; margin: 0 .3rem; padding: 0; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--color-stone-400, #a8a29e);
+}
+.cr-dot[aria-current="true"] { background: var(--color-stone-800, #292524); }
+html.dark .cr-dot { background: #475569; }
+html.dark .cr-dot[aria-current="true"] { background: #e2e8f0; }
