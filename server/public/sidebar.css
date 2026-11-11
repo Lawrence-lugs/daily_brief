@@ -116,6 +116,23 @@ html[data-sb="collapsed"] #sb-toggle i { transform: scaleX(-1); }
 
 .sb-fab, .sb-backdrop { display: none; }
 
+/* About block: blurb, GitHub + commit chips, copyright. Hidden on the icon-only rail. */
+.sb-about { display: flex; flex-direction: column; gap: .5rem; padding: .5rem .625rem .25rem; }
+.sb-blurb { margin: 0; font: italic 12.5px/1.45 var(--font-paper, Georgia, serif); color: var(--sb-fg); }
+.sb-blurb b { font-style: normal; font-weight: 600; color: var(--sb-accent); }
+.sb-links { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
+.sb-chip {
+  display: inline-flex; align-items: center; gap: .375rem; padding: .2rem .55rem; border: 1px solid var(--sb-line); border-radius: 999px;
+  background: transparent; color: var(--sb-mute); font: 500 11.5px/1.2 ui-monospace, Consolas, monospace; text-decoration: none; white-space: nowrap;
+}
+a.sb-chip:hover { background: var(--sb-hover); color: var(--sb-fg); }
+.sb-chip--gh { font: 600 12px/1.2 system-ui, sans-serif; color: var(--sb-fg); }
+.sb-chip--gh i { font-size: .95rem; }
+.sb-chip--dirty { border-style: dashed; color: var(--sb-warn); }
+.sb-legal { margin: 0; font-size: 11px; color: var(--sb-mute); }
+.sb-hr { margin: .25rem .25rem .125rem; border: 0; border-top: 1px solid var(--sb-line); }
+html[data-sb="collapsed"] .sb-about { display: none; }
+
 /* Narrow screens and embeds in small panes: off-canvas drawer */
 @media (max-width: 719px) {
   .sb-content { margin-left: 0; padding-top: 3rem; }

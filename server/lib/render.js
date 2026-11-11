@@ -1,7 +1,9 @@
 // JS port of brief.py's render_* functions. Templates are re-read on every request, so editing a
 // template or rebuilding tailwind.css takes effect on reload (this replaces the old --re-render).
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { formatBackside } from './backside.js';
 
 class Raw { constructor(s) { this.s = s; } }
@@ -28,6 +30,25 @@ export function ageLabel(d) {
 }
 
 export const safeUrl = (u) => (/^https?:\/\//.test(u) ? u : '#');
+
+const REPO_URL = 'https://github.com/Lawrence-lugs/daily_brief';
+// Read once at startup. Null when git is unavailable (e.g. packaged Electron build), which hides the chip.
+const GIT_INFO = (() => {
+  try {
+    const cwd = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+    const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).trim();
+    const hash = git('rev-parse', 'HEAD');
+    const remote = git('branch', '-r', '--contains', 'HEAD').length > 0;
+    return { short: hash.slice(0, 7), hash, remote, dirty: git('status', '--porcelain').length > 0 };
+  } catch { return null; }
+})();
+const commitHtml = () => {
+  if (!GIT_INFO) return '';
+  const { short, hash, remote, dirty } = GIT_INFO;
+  if (dirty) return `<span class="sb-chip sb-chip--dirty" title="Local changes on ${short}, not on GitHub">${short} detached</span>`;
+  if (!remote) return `<span class="sb-chip" title="Commit not pushed to GitHub">${short}</span>`;
+  return `<a class="sb-chip" href="${REPO_URL}/commit/${hash}" target="_blank" rel="noopener" title="View commit on GitHub">${short}</a>`;
+};
 
 // "2026-10-26" -> "Monday, October 26, 2026" (parsed as a LOCAL date, never via UTC).
 export function dateLong(dateKey) {
@@ -158,6 +179,8 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       basePath,
       hosted: raw(basePath ? '1' : ''),
       gen_hidden: raw(basePath ? ' style="display:none"' : ''),
+      repo_url: REPO_URL,
+      commit_html: raw(commitHtml()),
     });
   }
 

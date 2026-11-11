@@ -1,6 +1,7 @@
 {
   "name": "daily-brief",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "version": "1.0.0",
   "description": "Daily Brief — standalone Electron app (no preinstalled Python or Node required)",

@@ -9,7 +9,7 @@ const SIDEBAR = read('../public/sidebar.js');
 // Same {{name}} substitution contract as render.js fill(); unknown placeholders fail the test.
 const KNOWN = new Set(['css', 'paper_name', 'date_long', 'boot', 'brief_options', 'status', 'status_class', 'generate_label',
   'edition', 'generated', 'primary_title', 'primary_deck', 'primary_stories', 'science_title', 'science_deck', 'science_stories', 'footer', 'basePath', 'hosted', 'gen_hidden',
-  'desk_grid_style', 'desk_sections']);
+  'desk_grid_style', 'desk_sections', 'repo_url', 'commit_html']);
 const p2 = (n) => String(n).padStart(2, '0');
 const day = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
 const OPTIONS = `<option value="3" selected>${day(0)} 09:10 [lr]</option><option value="2">${day(0)} 07:00 [keyword]</option><option value="1">${day(1)} 18:30</option>`;
