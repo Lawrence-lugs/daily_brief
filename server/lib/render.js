@@ -77,9 +77,13 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
   function page({ brief, desks, briefs, embed }) {
     const empty = { title: '', deck: '', stories: [] };
     const allDesks = desks ?? {};
+    // Desks with no items are not shown and do not occupy a column.
+    const nonEmptyDesks = Object.fromEntries(
+      Object.entries(allDesks).filter(([, d]) => Array.isArray(d.stories) && d.stories.length > 0)
+    );
     const meta = brief?.meta ?? {};
     const storyState = {};
-    for (const d of Object.values(allDesks)) {
+    for (const d of Object.values(nonEmptyDesks)) {
       for (const s of d.stories) storyState[s.story_id] = { liked: !!s.liked, saved: !!s.saved };
     }
     const boot = JSON.stringify({ briefId: brief?.brief_id ?? null, date: brief?.date ?? null, embed, stories: storyState })
@@ -98,9 +102,9 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
         `${meta.n_explore} explore picks (epsilon ${meta.epsilon}). Candidate pool: ${meta.pool} items. Sources: ${meta.sources}.`
       : '';
 
-    // Render every desk section generically (Phase 6: N-desk support). Desks absent from the data
-    // still render as empty sections so the page layout stays stable.
-    const deskSections = Object.entries(allDesks).map(([key, d]) => {
+    // Render every non-empty desk section generically (Phase 6: N-desk support). Desks with no
+    // stories are dropped entirely so they don't show up or occupy a column.
+    const deskSections = Object.entries(nonEmptyDesks).map(([key, d]) => {
       const storiesHtml = raw(renderDesk(d.stories ?? []));
       return fill(tpl('desk-section.html'), {
         key,
@@ -110,7 +114,7 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       });
     }).join('');
 
-    const deskCount = Object.keys(allDesks).length;
+    const deskCount = Object.keys(nonEmptyDesks).length;
     let deskGridStyle = '';
     if (deskCount >= 2) {
       // Decision 5: W2 = min width of 2-column format (current md breakpoint = 768px).
@@ -118,7 +122,11 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       const W2 = 768;
       const nWidth = Math.ceil((deskCount / 2) * W2);
       const rules = [
-        `[data-desks] { display: grid; gap: 2rem; }`,
+        `[data-desks] { display: grid; gap: 1rem; }`,
+        // 1px divider line between desk columns (light/dark theme-aware).
+        // :not(:last-child) means a single-column layout gets no divider.
+        `[data-desks] > section:not(:last-child) { border-right: 1px solid var(--color-stone-300); }`,
+        `html.dark [data-desks] > section:not(:last-child) { border-right-color: var(--color-stone-700); }`,
         `@media (min-width: ${W2}px) { [data-desks] { grid-template-columns: repeat(2, 1fr); } }`,
       ];
       if (deskCount > 2) {

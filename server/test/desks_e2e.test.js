@@ -383,7 +383,7 @@ test('desks e2e: brief.main LR generation yields per-desk picks, no cross-desk l
 // 6. Frontend render e2e (N desk sections + grid style breakpoints)
 // ---------------------------------------------------------------------------
 
-test('desks e2e: render.js page() renders all desk sections with data-swap ids', async () => {
+test('desks e2e: render.js page() renders only non-empty desk sections', async () => {
   const { makeRenderer } = await import('../lib/render.js');
   const renderer = makeRenderer({
     templatesDir: join(ROOT, 'server', 'templates'),
@@ -391,37 +391,57 @@ test('desks e2e: render.js page() renders all desk sections with data-swap ids',
     paperName: 'The Daily Die',
   });
 
+  const story = { story_id: 's1', headline: 'H1', blurb: 'B', url: 'https://example.com/1', source: 'x', tags: [], kind: 'fresh', age_days: 0 };
   const desks = {
-    primary: { title: 'Silicon & Architecture Desk', deck: 'Deck one.', stories: [] },
+    primary: { title: 'Silicon & Architecture Desk', deck: 'Deck one.', stories: [story] },
     science: { title: 'Science Desk', deck: 'Deck two.', stories: [] },
-    misc: { title: 'Misc.', deck: '', stories: [] },
+    misc: { title: 'Misc.', deck: '', stories: [{ ...story, story_id: 's2', headline: 'H2' }] },
   };
 
   const html = renderer.page({ brief: null, desks, briefs: [], embed: false });
 
-  // Each desk renders a section with generic data-swap="desk-{key}".
+  // Non-empty desks render a section with generic data-swap="desk-{key}".
   assert.match(html, /data-swap="desk-primary"/);
-  assert.match(html, /data-swap="desk-science"/);
   assert.match(html, /data-swap="desk-misc"/);
 
-  // Each desk's story container and deck paragraph are keyed generically.
-  assert.match(html, /data-desk-stories="primary"/);
-  assert.match(html, /data-desk-stories="science"/);
-  assert.match(html, /data-desk-stories="misc"/);
-  assert.match(html, /data-desk-deck="primary"/);
-  assert.match(html, /data-desk-deck="science"/);
-  assert.match(html, /data-desk-deck="misc"/);
-
-  // Desk titles rendered.
-  assert.match(html, /Silicon &amp; Architecture Desk/);
-  assert.match(html, /Science Desk/);
-  assert.match(html, /Misc\./);
+  // Empty desk is not rendered at all: no section, no stories container, no deck paragraph.
+  assert.ok(!html.includes('data-swap="desk-science"'), 'empty desk must not render a section');
+  assert.ok(!html.includes('data-desk-stories="science"'), 'empty desk must not render a stories container');
+  assert.ok(!html.includes('data-desk-deck="science"'), 'empty desk must not render a deck paragraph');
 
   // main element carries data-desks (grid hook).
   assert.match(html, /<main[^>]*data-desks/);
 });
 
-test('desks e2e: desk_grid_style emits N-column breakpoints, no horizontal scroll', async () => {
+test('desks e2e: desk_grid_style emits N-column breakpoints from non-empty desks only', async () => {
+  const { makeRenderer } = await import('../lib/render.js');
+  const renderer = makeRenderer({
+    templatesDir: join(ROOT, 'server', 'templates'),
+    cssFile: join(ROOT, 'tailwind.css'),
+    paperName: 'The Daily Die',
+  });
+
+  const story = { story_id: 's1', headline: 'H1', blurb: 'B', url: 'https://example.com/1', source: 'x', tags: [], kind: 'fresh', age_days: 0 };
+  const desks = {
+    primary: { title: 'Primary', deck: '', stories: [story] },
+    science: { title: 'Science', deck: '', stories: [{ ...story, story_id: 's2' }] },
+    misc: { title: 'Misc.', deck: '', stories: [{ ...story, story_id: 's3' }] },
+  };
+
+  const html = renderer.page({ brief: null, desks, briefs: [], embed: false });
+
+  // 3 non-empty desks -> 2 columns at >= 768px, 3 columns at >= ceil(3/2 * 768) = 1152px.
+  assert.match(html, /@media \(min-width: 768px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(2, 1fr\); \} \}/);
+  assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(3, 1fr\); \} \}/);
+
+  // No horizontal scroll: grid (not flex) with gap, no overflow-x rules.
+  assert.ok(!html.includes('overflow-x'), 'desk grid style must not introduce horizontal scroll');
+
+  // Desk count drives the breakpoint math.
+  assert.ok(html.includes('repeat(3, 1fr)'), '3 non-empty desks should produce a 3-column rule at wide breakpoint');
+});
+
+test('desks e2e: desk_grid_style is empty when all desks are empty', async () => {
   const { makeRenderer } = await import('../lib/render.js');
   const renderer = makeRenderer({
     templatesDir: join(ROOT, 'server', 'templates'),
@@ -437,13 +457,7 @@ test('desks e2e: desk_grid_style emits N-column breakpoints, no horizontal scrol
 
   const html = renderer.page({ brief: null, desks, briefs: [], embed: false });
 
-  // 3 desks -> 2 columns at >= 768px, 3 columns at >= ceil(3/2 * 768) = 1152px.
-  assert.match(html, /@media \(min-width: 768px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(2, 1fr\); \} \}/);
-  assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(3, 1fr\); \} \}/);
-
-  // No horizontal scroll: grid (not flex) with gap, no overflow-x rules.
-  assert.ok(!html.includes('overflow-x'), 'desk grid style must not introduce horizontal scroll');
-
-  // Desk count drives the breakpoint math.
-  assert.ok(html.includes('repeat(3, 1fr)'), '3 desks should produce a 3-column rule at wide breakpoint');
+  // No desk sections and no desk grid rules when every desk is empty.
+  assert.ok(!html.includes('data-swap="desk-'), 'no desk sections should render');
+  assert.ok(!html.includes('[data-desks] { display: grid'), 'no desk column rules when no non-empty desks');
 });

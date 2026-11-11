@@ -422,9 +422,13 @@ export async function main(flags = {}) {
   for (const { key: desk, title } of DESKS) {
     prog.deskWorking(desk, true);
     let stories, rejected, deck;
-    if (split) {
-      [stories, rejected, deck] = split[desk];
+    const deskSplit = split ? split[desk] : null;
+    if (deskSplit) {
+      [stories, rejected, deck] = deskSplit;
     } else {
+      // split[desk] is undefined when the LR result (and hence selected/split)
+      // is missing this desk (e.g. LR returned zero candidates for it). Fall
+      // back to raw selection for this desk instead of destructuring undefined.
       [stories, rejected, deck] = applyEditor(selected[desk] ?? [], null, nStories);
     }
     prog.deskEdited(desk, stories, deck);
