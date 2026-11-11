@@ -1,6 +1,6 @@
 # SQLite-Based Stateful Logging
 
-The Daily Brief uses a **single SQLite database** (`daily_brief.db`, path from `config.json` `db_file`) as the
+The Daily Brief uses a **single SQLite database** (`daily_brief.db`, path from `user/defaults/config.json` `db_file`) as the
 source of truth for all state: the candidate pool, generated briefs, stories, feedback, embeddings, author metadata,
 and ranker model cache. Both the Python code (`src/db.py`) and the Node code (`server/lib/queries.js`,
 `ranker/store.js`) open `schema.sql` on connect — every statement is idempotent.
@@ -246,4 +246,4 @@ Electron/Obsidian: user clicks like/save
 | Electron / Obsidian / Web usage | `docs/interfaces.md` |
 | Experiments & simulate functionality | `docs/experiments.md` |
 | Ranker CLI reference | `ranker/README.md` |
-| Full tunable configuration | `config.json` |
+| Full tunable configuration | `user/defaults/config.json` |

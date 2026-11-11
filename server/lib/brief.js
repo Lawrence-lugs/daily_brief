@@ -16,9 +16,10 @@ import { RunLog } from './runlog.js';
 import { Progress } from './progress.js';
 import { log, warn, setLogFile, LOG_FILE } from './util.js';
 import { loadDesksConfig } from './config.js';
+import { loadConfig } from '../../user/config.js';
 import { fetchAll, refreshApiFeeds, setCacheResolver } from './fetch/fetcher.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
-import { defaultDataDir, seedDataDir } from './datadir.js';
+import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
 
 // Ranker (LR engine) imports — called in-process instead of spawning node ranker/cli.js
 import { Store as RankerStore } from '../../ranker/store.js';
@@ -209,8 +210,8 @@ export async function main(flags = {}) {
   seedDataDir(dataDir(), PROJECT_ROOT);
 
   const prog = new Progress(progressFile, null);
-  const cfg = loadJson(join(dataDir(), 'config.json'));
-  const src = loadJson(join(dataDir(), 'sources.json'));
+  const cfg = loadConfig(dataDir(), 'config.json');
+  const src = loadConfig(dataDir(), 'sources.json');
   const { DESKS, subtopicToDesk, warnings: configWarnings } = loadDesksConfig(dataDir());
   for (const w of configWarnings) warn(`[config] ${w}`);
 

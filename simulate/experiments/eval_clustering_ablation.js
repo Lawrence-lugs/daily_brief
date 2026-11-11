@@ -31,7 +31,7 @@ import { NULL_RUN } from '../../ranker/debuglog.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const PROJECT_ROOT = resolve(__dirname, '..', '..');
-const CONFIG_FILE = resolve(PROJECT_ROOT, 'config.json');
+const CONFIG_FILE = resolve(PROJECT_ROOT, 'user/defaults/config.json');
 const DB_FILE = resolve(PROJECT_ROOT, 'daily_brief.db');
 
 function loadConfig() {
@@ -58,7 +58,7 @@ async function runCondition(store, cfg, { useLikedForClustering, testFrac, cutof
   // --- Load perfect samples ---
   let perfectSamples = [];
   try {
-    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8'));
+    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || resolve(PROJECT_ROOT, 'user/defaults/perfect_samples.json'), 'utf8'));
   } catch {
     console.error(`[eval-ablation(${useLikedForClustering})] no perfect_samples.json found`);
   }

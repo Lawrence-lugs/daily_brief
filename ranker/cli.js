@@ -2,7 +2,7 @@
 // stdout is reserved for the JSON of `select`; everything else goes to stderr.
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates, evalModel } from './pipeline.js';
@@ -11,13 +11,23 @@ import { openRun, takeDebugFlag } from './debuglog.js';
 import { selectBrief, mulberry32, value } from './sampler.js';
 import { fromBlob } from './vec.js';
 import { makeBackside, poolCountsByCluster } from './backside.js';
+import { loadConfig, EDITABLE_FILES, getDefaultsDir } from '../user/config.js';
+import { defaultDataDir } from '../user/datadir.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
-const CONFIG_FILE = resolve(__dirname, '..', 'config.json');
 const DB_FILE = resolve(__dirname, '..', 'daily_brief.db');
+const DATA_DIR = defaultDataDir();
 
-function loadConfig() {
-  return JSON.parse(readFileSync(CONFIG_FILE, 'utf8')).ranker || {};
+function loadConfigRanker() {
+  // Read config.ranker from the per-user data dir, falling back to the repo defaults.
+  const cfg = loadConfig(DATA_DIR, 'config.json');
+  const base = cfg ?? {};
+  const ranker = base.ranker || {};
+  // Resolve perfect_samples_file relative to the data dir so pipeline.js can read it directly.
+  if (ranker.perfect_samples_file && !path.isAbsolute(ranker.perfect_samples_file)) {
+    ranker.perfect_samples_file = resolve(DATA_DIR, ranker.perfect_samples_file);
+  }
+  return ranker;
 }
 
 function applyOverrides(cfg, overrides) {
@@ -48,7 +58,7 @@ function applyOverrides(cfg, overrides) {
 }
 
 async function cmdEmbed(args) {
-  const cfg = loadConfig();
+  const cfg = loadConfigRanker();
   const store = new Store(DB_FILE);
   try {
     await ensureEmbeddings(store, cfg, { persist: true });
@@ -58,7 +68,7 @@ async function cmdEmbed(args) {
 }
 
 async function cmdRefit(args) {
-  const cfg = loadConfig();
+  const cfg = loadConfigRanker();
   if (args.force) cfg.force = true;
   const run = openRun({ cmd: 'refit', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
@@ -73,7 +83,7 @@ async function cmdRefit(args) {
 }
 
 async function cmdSelect(args) {
-  let cfg = loadConfig();
+  let cfg = loadConfigRanker();
   if (args.set) cfg = applyOverrides(cfg, args.set);
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
   if (!args.date) {
@@ -135,7 +145,7 @@ async function cmdSelect(args) {
 }
 
 async function cmdSimulate(args) {
-  let cfg = loadConfig();
+  let cfg = loadConfigRanker();
   if (args.set) cfg = applyOverrides(cfg, args.set);
   if (args.runs) cfg.runs = parseInt(args.runs, 10);
   if (args.seed) cfg.seed = parseInt(args.seed, 10);
@@ -158,7 +168,7 @@ async function cmdSimulate(args) {
 }
 
 async function cmdEval(args) {
-  let cfg = loadConfig();
+  let cfg = loadConfigRanker();
   if (args.set) cfg = applyOverrides(cfg, args.set);
   const run = openRun({ cmd: 'eval', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
@@ -181,7 +191,7 @@ async function cmdEval(args) {
 }
 
 async function cmdInspect(args) {
-  const cfg = loadConfig();
+  const cfg = loadConfigRanker();
   const run = openRun({ cmd: 'inspect', config: cfg, flag: args.debug, argv: process.argv.slice(2) });
   const store = new Store(DB_FILE);
   try {
@@ -199,9 +209,10 @@ async function cmdInspect(args) {
     
     function getMedoidTitle(id) {
       if (id.startsWith('ps:')) {
-        // Perfect sample - get from perfect_samples.json
+        // Perfect sample - get from perfect_samples.json in the data dir.
         const psId = id.slice(3);
-        const ps = (JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8')) || [])
+        const psFile = resolve(DATA_DIR, cfg.perfect_samples_file || 'perfect_samples.json');
+        const ps = (JSON.parse(readFileSync(psFile, 'utf8')) || [])
           .find((p) => p.id === psId);
         return ps ? ps.title : id;
       }
@@ -235,7 +246,7 @@ async function cmdInspect(args) {
 }
 
 async function cmdPool(args) {
-  let cfg = loadConfig();
+  let cfg = loadConfigRanker();
   if (args.set) cfg = applyOverrides(cfg, args.set);
   if (!args.date) {
     console.error('pool requires --date D');

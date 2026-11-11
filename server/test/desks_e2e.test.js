@@ -34,7 +34,7 @@ function loadJson(p) {
 
 test('desks e2e: config contract loads real desks/keywords, sources.json clean', async () => {
   const { loadDesksConfig } = await import('../lib/config.js');
-  const { DESKS, subtopicToDesk, warnings } = loadDesksConfig(ROOT);
+  const { DESKS, subtopicToDesk, warnings } = loadDesksConfig(join(ROOT, 'user', 'defaults'));
 
   // 3 desks in declared order, misc included.
   assert.equal(DESKS.length, 3);
@@ -54,9 +54,9 @@ test('desks e2e: config contract loads real desks/keywords, sources.json clean',
   assert.equal(warnings.length, 0);
 
   // sources.json has no desks/keywords; config.json owns them.
-  const src = loadJson('sources.json');
+  const src = loadJson('user/defaults/sources.json');
   assert.ok(!('desks' in src) && !('keywords' in src));
-  const cfg = loadJson('config.json');
+  const cfg = loadJson('user/defaults/config.json');
   assert.ok('desks' in cfg && 'keywords' in cfg && 'misc' in cfg.desks);
   assert.ok(!cfg.ranker.sampling.slots && !cfg.ranker.sampling.desks);
 });
@@ -106,8 +106,8 @@ test('desks e2e: config validation warns on orphan keyword group', async () => {
 test('desks e2e: classify maps keyword matches to desks via subtopicToDesk', async () => {
   const { classify } = await import('../lib/brief.js');
   const { loadDesksConfig } = await import('../lib/config.js');
-  const { DESKS, subtopicToDesk } = loadDesksConfig(ROOT);
-  const cfg = loadJson('config.json');
+  const { DESKS, subtopicToDesk } = loadDesksConfig(join(ROOT, 'user', 'defaults'));
+  const cfg = loadJson('user/defaults/config.json');
 
   // Silicon desk subtopics -> primary desk.
   for (const sub of ['dse', 'accel', 'fab']) {
@@ -172,7 +172,7 @@ test('desks e2e: buildInterests keeps clusters single-desk, skips cross-desk mer
   const { buildInterests } = await import('../../ranker/interests.js');
   const { assertVec, DIM, normalize } = await import('../../ranker/vec.js');
 
-  const samples = loadJson('perfect_samples.json');
+  const samples = loadJson('user/defaults/perfect_samples.json');
   const primary = samples.filter((s) => s.desk === 'primary');
   const science = samples.filter((s) => s.desk === 'science');
   assert.ok(primary.length > 0 && science.length > 0);
@@ -331,7 +331,7 @@ test('desks e2e: selectBrief short desk returns fewer, no backfill from other de
 
 test('desks e2e: brief.main LR generation yields per-desk picks, no cross-desk leakage', async () => {
   const { main } = await import('../lib/brief.js');
-  const { seedDataDir } = await import('../lib/datadir.js');
+  const { seedDataDir } = await import('../../user/datadir.js');
   const { mkdtempSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
 

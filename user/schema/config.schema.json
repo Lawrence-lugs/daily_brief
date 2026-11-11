@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "config.json",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "paper_name": { "type": "string", "title": "Paper name", "description": "Name of the brief publication" },
+    "edition_dir": { "type": "string", "title": "Edition dir" },
+    "db_file": { "type": "string", "title": "DB file", "description": "SQLite database filename" },
+    "debug_dir": { "type": "string", "title": "Debug dir" },
+    "stories_per_desk": { "type": "integer", "minimum": 1, "title": "Stories per desk" },
+    "reserve_per_desk": { "type": "integer", "minimum": 0, "title": "Reserve per desk" },
+    "max_agent_output_items_per_desk": { "type": "integer", "minimum": 1, "title": "Max agent output items per desk" },
+    "reader": { "type": "string", "title": "Reader persona" },
+    "prefer": { "type": "string", "title": "Preferences" },
+    "desks": {
+      "type": "object",
+      "title": "Desks",
+      "description": "Desk key -> desk spec. Each desk has a title, description, and keyword-model-subtopics.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "title": "Title" },
+          "description": { "type": "string", "title": "Description" },
+          "keyword-model-subtopics": {
+            "type": "array",
+            "items": { "type": "string" },
+            "title": "Keyword-model subtopics"
+          }
+        },
+        "required": ["title"]
+      }
+    },
+    "keywords": {
+      "type": "object",
+      "title": "Keywords",
+      "description": "Subtopic keyword group -> list of keyword strings.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "title": "Selection",
+      "properties": {
+        "epsilon": { "type": "number", "minimum": 0, "maximum": 1, "title": "Epsilon" },
+        "a50_days": { "type": "number", "minimum": 0, "title": "A50 days" },
+        "slope": { "type": "number", "title": "Slope" },
+        "age_floor_days": { "type": "number", "minimum": 0, "title": "Age floor days" },
+        "explore_gamma": { "type": "number", "minimum": 0, "maximum": 1, "title": "Explore gamma" },
+        "shown_decay": { "type": "number", "minimum": 0, "maximum": 1, "title": "Shown decay" },
+        "rejected_decay": { "type": "number", "minimum": 0, "maximum": 1, "title": "Rejected decay" },
+        "archive_after_days": { "type": "integer", "minimum": 1, "title": "Archive after days" },
+        "skip_exhausted_subtopics": { "type": "boolean", "title": "Skip exhausted subtopics" }
+      }
+    },
+    "pool": {
+      "type": "object",
+      "title": "Pool",
+      "properties": {
+        "max_age_days": { "type": "integer", "minimum": 1, "title": "Max age days" }
+      }
+    },
+    "fetch": {
+      "type": "object",
+      "title": "Fetch",
+      "properties": {
+        "timeout_s": { "type": "integer", "minimum": 1, "title": "Timeout (s)" },
+        "cache_ttl_hours": { "type": "integer", "minimum": 1, "title": "Cache TTL (hours)" },
+        "arxiv_delay_s": { "type": "number", "minimum": 0, "title": "arXiv delay (s)" },
+        "api_delay_s": { "type": "number", "minimum": 0, "title": "API delay (s)" },
+        "hn_lookback_days": { "type": "integer", "minimum": 1, "title": "HN lookback days" },
+        "user_agent": { "type": "string", "title": "User agent" }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "title": "LLM",
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": { "type": "string" },
+          "title": "Models"
+        },
+        "temperature": { "type": "number", "minimum": 0, "maximum": 2, "title": "Temperature" },
+        "max_tokens": { "type": "integer", "minimum": 1, "title": "Max tokens" },
+        "timeout_s": { "type": "integer", "minimum": 1, "title": "Timeout (s)" },
+        "retries": { "type": "integer", "minimum": 0, "title": "Retries" },
+        "max_requests_per_run": { "type": "integer", "minimum": 1, "title": "Max requests per run" },
+        "min_remaining_daily": { "type": "integer", "minimum": 0, "title": "Min remaining daily" },
+        "effort": { "type": "string", "title": "Effort" }
+      }
+    },
+    "ranker": {
+      "type": "object",
+      "title": "Ranker",
+      "properties": {
+        "engine": { "type": "string", "enum": ["lr", "keyword"], "title": "Engine" },
+        "perfect_samples_file": { "type": "string", "title": "Perfect samples file" },
+        "label": { "type": "string", "title": "Label" },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" },
+          "title": "Features"
+        },
+        "authors": {
+          "type": "object",
+          "properties": {
+            "head": { "type": "integer", "minimum": 0 },
+            "tail": { "type": "integer", "minimum": 0 },
+            "threshold": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "interests": {
+          "type": "object",
+          "properties": {
+            "kappa": { "type": "integer", "minimum": 1 },
+            "maxLikedDays": { "type": "integer", "minimum": 1 },
+            "mode": { "type": "string", "enum": ["constrained", "unconstrained"] },
+            "minClusters": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "crossFit": {
+          "type": "object",
+          "properties": { "folds": { "type": "integer", "minimum": 2 } }
+        },
+        "embedding": {
+          "type": "object",
+          "properties": { "model": { "type": "string" } }
+        },
+        "model": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "maxSweeps": { "type": "integer", "minimum": 1 },
+            "tol": { "type": "number", "minimum": 0 },
+            "numDefault": { "type": "object" },
+            "prior": {
+              "type": "object",
+              "properties": {
+                "default": { "type": "object" },
+                "rules": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                }
+              }
+            },
+            "l2Strength": { "type": "number", "minimum": 0 },
+            "unpenalizedKeys": { "type": "array", "items": { "type": "string" } },
+            "relKey": { "type": "string" }
+          }
+        },
+        "sampling": {
+          "type": "object",
+          "properties": {
+            "epsilon": { "type": "number", "minimum": 0, "maximum": 1 },
+            "halfLifeDays": { "type": "number", "minimum": 0 },
+            "freshness": { "type": "object" },
+            "shown_decay": { "type": "number", "minimum": 0, "maximum": 1 },
+            "explore": { "type": "object" },
+            "dedupe": { "type": "object" }
+          }
+        }
+      }
+    }
+  },
+  "required": []
+}

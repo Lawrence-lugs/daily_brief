@@ -32,11 +32,10 @@ _DEFAULT_SQL_URL = "sqlite:///docs/experiments/runs.db"
 ex.observers.append(SqlObserver(_DEFAULT_SQL_URL))
 
 INPUT_RESOURCES = [
-    "config.json",
-    "sources.json",
-    "perfect_samples.json",
+    "user/defaults/config.json",
+    "user/defaults/sources.json",
+    "user/defaults/perfect_samples.json",
     "perfect-samples-new.json",
-    "state.json",
 ]
 
 
@@ -52,7 +51,7 @@ def _file_sha256(path: str | Path) -> str:
 def cfg():
     date = "2026-10-29"
     db_path = "daily_brief.db"
-    config_path = "config.json"
+    config_path = "user/defaults/config.json"
     engine = "lr"
     seeds = [1, 2, 3, 4, 5]
     features = "epsilon,shown_decay,rejected_decay,skip_exhausted"

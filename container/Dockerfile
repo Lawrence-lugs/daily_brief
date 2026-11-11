@@ -46,9 +46,16 @@ COPY server/ ./server/
 COPY ranker/ ./ranker/
 COPY scripts/ ./scripts/
 COPY src/ ./src/
-COPY schema.sql prompt_system.md sources.json tailwind.css ./
+COPY schema.sql prompt_system.md tailwind.css ./
+# Default config templates (tracked in user/defaults). Seeded into /app/data on first start
+# only (see user/datadir.js -> seedDataDir); user edits in the volume are kept.
+COPY user/defaults/config.json ./user/defaults/config.json
+COPY user/defaults/sources.json ./user/defaults/sources.json
+COPY user/defaults/perfect_samples.json ./user/defaults/perfect_samples.json
+# Backwards-compat: the container's config.json is the runtime config; copy the container
+# override over the default so the container behaves as before.
 COPY container/config.container.json ./config.json
-# Default perfect samples. Seeded into /app/data on first start only (see server/lib/datadir.js); user edits in the volume are kept.
+# Default perfect samples. Seeded into /app/data on first start only; user edits in the volume are kept.
 COPY container/defaults/perfect_samples.json ./perfect_samples.json
 COPY container/scheduler/entrypoint.sh ./scheduler/entrypoint.sh
 

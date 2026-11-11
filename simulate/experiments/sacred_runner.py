@@ -86,11 +86,10 @@ ex.observers.append(SqlObserver(_DEFAULT_SQL_URL))
 # These are snapshotted with every run so the exact inputs that produced an
 # experiment result can be reconstructed later.
 INPUT_RESOURCES = [
-    "config.json",
-    "sources.json",
-    "perfect_samples.json",
+    "user/defaults/config.json",
+    "user/defaults/sources.json",
+    "user/defaults/perfect_samples.json",
     "perfect-samples-new.json",
-    "state.json",
 ]
 
 
@@ -180,7 +179,7 @@ def cfg():
     date = "2026-10-29"
     seeds = [1, 2, 3, 4, 5]
     db_path = "daily_brief.db"
-    config_path = "config.json"
+    config_path = "user/defaults/config.json"
     output_dir = DEFAULT_OUTPUT_DIR
     engines = ["keyword", "lr"]
     lr_model = "both"

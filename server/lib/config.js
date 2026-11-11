@@ -13,7 +13,7 @@
  *   - A subtopic may not be assigned to two desks      -> hard error
  */
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { loadConfig } from '../../user/config.js';
 
 function loadJson(file, def = null) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return def; }
@@ -24,7 +24,7 @@ function loadJson(file, def = null) {
  * @returns {{DESKS:Array<{key:string,title:string}>, subtopicToDesk:Object<string,string>, warnings:string[]}}
  */
 export function loadDesksConfig(dataDir) {
-  const cfg = loadJson(resolve(dataDir, 'config.json'), {});
+  const cfg = loadConfig(dataDir, 'config.json') ?? {};
   const desksRaw = cfg.desks ?? {};
   const keywords = cfg.keywords ?? {};
 

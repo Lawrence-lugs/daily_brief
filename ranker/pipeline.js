@@ -8,6 +8,18 @@ import { encode } from './features.js';
 import { topDistances } from './interests.js';
 import { assertVec } from './vec.js';
 import { codeHashes, NULL_RUN } from './debuglog.js';
+import { resolve } from 'node:path';
+import { defaultDataDir } from '../user/datadir.js';
+
+const DATA_DIR = defaultDataDir();
+
+function resolvePsFile(cfg) {
+  const psFile = cfg.perfect_samples_file || 'perfect_samples.json';
+  return psFile && !pathIsAbsolute(psFile) ? resolve(DATA_DIR, psFile) : psFile;
+}
+function pathIsAbsolute(p) {
+  return p.startsWith('/') || (p.length > 1 && p[1] === ':') || p.startsWith('\\\\');
+}
 
 const ENCODING_VERSION = 1; // bump when encode() schema changes
 
@@ -67,7 +79,7 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
   }
 
   // Perfect samples
-  const psFile = cfg.perfect_samples_file || 'perfect_samples.json';
+  const psFile = resolvePsFile(cfg);
   let perfectSamples = [];
   try {
     const { readFileSync } = await import('node:fs');
@@ -143,7 +155,7 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   let perfectSamples = [];
   try {
     const { readFileSync } = await import('node:fs');
-    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8'));
+    perfectSamples = JSON.parse(readFileSync(resolvePsFile(cfg), 'utf8'));
   } catch {
     console.error('[refit] no perfect_samples.json found');
   }
@@ -436,7 +448,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, cutoffDate = null,
   let perfectSamples = [];
   try {
     const { readFileSync } = await import('node:fs');
-    perfectSamples = JSON.parse(readFileSync(cfg.perfect_samples_file || 'perfect_samples.json', 'utf8'));
+    perfectSamples = JSON.parse(readFileSync(resolvePsFile(cfg), 'utf8'));
   } catch {
     console.error('[eval] no perfect_samples.json found');
   }

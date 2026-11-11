@@ -30,7 +30,7 @@ import selection as sel  # noqa: E402
 
 
 def _load_config() -> dict:
-    return json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "user" / "defaults" / "config.json").read_text(encoding="utf-8"))
 
 
 def _load_selection_cfg() -> dict:

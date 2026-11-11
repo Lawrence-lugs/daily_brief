@@ -32,17 +32,19 @@ daily_brief/
     agglo.js         Ward agglomerative clustering with perfect-sample stop rule
     sampler.js       interest-level round robin + epsilon-greedy + freshness/dedupe
     simulate.js      ephemeral Monte-Carlo preview, --set overrides
-    embedder.js      multi-model embedder (@huggingface/transformers), model from config.json
+    embedder.js      multi-model embedder (@huggingface/transformers), model from user/defaults/config.json
     vec.js           vector helpers (dot, normalize, sqlite blob conversion)
     trainer.js       cross-fitted training set (leak fix), chronological split
     test/ranker.test.js 15 unit tests (node --test)
-  config.json        every tunable (db_file, reader, prefer, desks.*.description, ranker.*, selection.*, llm.*, fetch.*, pool.*)
-  sources.json       arXiv queries, RSS feeds, subtopic keyword lists
+  user/defaults/     tracked default config templates (read-only seeds):
+    config.json      every tunable (db_file, reader, prefer, desks.*.description, ranker.*, selection.*, llm.*, fetch.*, pool.*)
+    sources.json     arXiv queries, RSS feeds, subtopic keyword lists
+    perfect_samples.json  human-curated anchor items (one `desk` per sample)
+  user/schema/       JSON Schema for each config file (jedison editor)
   prompt_system.md   the editor prompt (desks + rules + JSON schema; {{reader}}, {{prefer}}, {{desk_sections}} filled from config)
-  perfect_samples.json human-curated anchor items (one `desk` per sample)
   tailwind.input.css Tailwind entry file   tailwind.css  compiled output (committed)
   build_css.ps1      one-off Tailwind build (scans server/templates + server/public/client.js)
-  daily_brief.db     SQLite database (gitignored; see config.json db_file)
+  daily_brief.db     SQLite database (gitignored; db_file from user/defaults/config.json)
   tests/             unittest suite (test_db.py); test_selection.py (pytest)
   obsidian/daily-brief.md  Obsidian dataviewjs note that embeds the localhost server
   electron/          Electron window (main.cjs) around the same localhost URL
@@ -88,7 +90,7 @@ The LR engine is the default going forward. The keyword engine remains as a fall
 
 ## Database
 
-`daily_brief.db` (path from `config.json` `db_file`) holds:
+`daily_brief.db` (path from `user/defaults/config.json` `db_file`) holds:
 
 - `candidate_pool(item_id PK, url, title, snippet, published, source, source_type, subtopic, desk, rel, first_seen, times_shown, rejected, last_shown)` — the persistent item pool.
 - `briefs(brief_id PK, date, edition, generated_at, model, llm_requests, counted, rejected_ids, desks, meta)` — one row per generated brief. Exactly one brief per date has `counted = 1` (the one currently displayed); regenerating the same day flips the previous one to `counted = 0` and carries forward like/save marks for matching items.

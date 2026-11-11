@@ -155,4 +155,4 @@ This is why like/save marks are the ranker's training signal: they flow from the
 | SQLite-based stateful logging | `docs/sqlite-logging.md` |
 | Experiments & simulate functionality | `docs/experiments.md` |
 | Ranker CLI reference | `ranker/README.md` |
-| Full tunable configuration | `config.json` |
+| Full tunable configuration | `user/defaults/config.json` |

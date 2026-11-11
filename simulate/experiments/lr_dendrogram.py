@@ -45,9 +45,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # simulate/experiments -> project root
-CONFIG_PATH = PROJECT_ROOT / "config.json"
+CONFIG_PATH = PROJECT_ROOT / "user/defaults/config.json"
 DB_PATH = PROJECT_ROOT / "daily_brief.db"
-PERFECT_PATH = PROJECT_ROOT / "perfect_samples.json"
+PERFECT_PATH = PROJECT_ROOT / "user/defaults/perfect_samples.json"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "docs" / "experiments"
 TEMPLATE_DIR = PROJECT_ROOT / "simulate" / "experiments" / "templates"
 

@@ -127,6 +127,51 @@ export class MockServer {
     this.failFeedbackStory = null;
     this._generateFails = false;                // when set, /api/generate starts a failed job
     this._generateFailCode = 1;
+    // Config editor mock state.
+    this.configCalls = [];                      // [{file, method}]
+    this.configSaves = [];                      // [{file, body}]
+    this._configSaveFails = false;              // when set, PUT returns 400
+    this._configSaveFailCode = 400;
+    this._configSaveFailMessage = 'validation failed';
+
+    // Fixture config data served by GET /api/config/:file.
+    this.configData = {
+      'config.json': {
+        paper_name: 'The Daily Die',
+        stories_per_desk: 5,
+        selection: { epsilon: 0.25, archive_after_days: 7 },
+        ranker: { engine: 'lr' },
+      },
+      'sources.json': {
+        feeds: { api: { semanticscholar: [] }, rss: [] },
+      },
+      'perfect_samples.json': [
+        { id: '1', title: 'Sample paper', snippet: 'A sample snippet.', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+      ],
+    };
+
+    // Fixture schemas served by GET /api/config/:file/schema.
+    this.configSchemas = {
+      'config.json': {
+        $schema: 'https://json-schema.org/draft-07/schema#',
+        type: 'object',
+        properties: {
+          paper_name: { type: 'string' },
+          stories_per_desk: { type: 'integer', minimum: 1 },
+          selection: {
+            type: 'object',
+            properties: {
+              epsilon: { type: 'number', minimum: 0, maximum: 1 },
+              archive_after_days: { type: 'integer', minimum: 1 },
+            },
+          },
+          ranker: { type: 'object', properties: { engine: { type: 'string' } } },
+        },
+      },
+      'sources.json': { type: 'object' },
+      'perfect_samples.json': { type: 'array' },
+    };
+
     this.installRoutes();
   }
 
@@ -220,6 +265,48 @@ export class MockServer {
     // ---- shutdown ----
     if (pathname === '/api/shutdown' && method === 'POST') {
       return this.json(route, 200, { ok: true });
+    }
+
+    // ---- settings page ----
+    if (pathname === '/settings' && method === 'GET') {
+      let html = readFileSync(path.join(publicDir, 'settings.html'), 'utf8');
+      html = html.split('{{basePath}}').join('');
+      return route.fulfill({
+        status: 200,
+        body: html,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      });
+    }
+
+    // ---- config editor API (GET + PUT + schema) ----
+    const mCfg = pathname.match(/^\/api\/config\/([^/]+)(\/schema)?$/);
+    if (mCfg && (method === 'GET' || method === 'PUT')) {
+      const fileName = mCfg[1];
+      const isSchema = !!mCfg[2];
+      this.configCalls.push({ file: fileName, method, schema: isSchema });
+
+      if (isSchema && method === 'GET') {
+        return this.json(route, 200, this.configSchemas[fileName] || {});
+      }
+      if (!isSchema && method === 'GET') {
+        return this.json(route, 200, this.configData[fileName] || {});
+      }
+      if (!isSchema && method === 'PUT') {
+        const body = await this.readBody(request);
+        this.configSaves.push({ file: fileName, body });
+        if (this._configSaveFails) {
+          return this.json(route, this._configSaveFailCode, {
+            error: this._configSaveFailMessage,
+            details: [{ path: 'selection.epsilon', message: 'must be <= 1' }],
+          });
+        }
+        const ts = '2026-11-11T00-00-00Z';
+        return this.json(route, 200, {
+          ok: true,
+          backup: `backups/${fileName}.${ts}.json`,
+          note: 'saved; applies on next run',
+        });
+      }
     }
 
     // ---- LLM API stub (openrouter) ----
@@ -358,6 +445,16 @@ export class MockServer {
   }
   allowGenerate() {
     this._generateFails = false;
+  }
+
+  // Make the next config PUT save fail (400). Call with null to restore.
+  setConfigSaveFails(exitCode = 400, message = 'validation failed') {
+    this._configSaveFails = true;
+    this._configSaveFailCode = exitCode;
+    this._configSaveFailMessage = message;
+  }
+  allowConfigSave() {
+    this._configSaveFails = false;
   }
 
   // Seed a job with id=0 that is already running, so the page's attach fetch

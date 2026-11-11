@@ -6,6 +6,9 @@ import { makeRenderer } from './lib/render.js';
 import { JobRunner } from './lib/jobs.js';
 import { buildPreview } from './lib/progress.js';
 import { guard } from './lib/guard.js';
+import { handleConfigRoutes } from '../user/routes.js';
+import { seedDataDir, defaultDataDir } from '../user/datadir.js';
+import { loadConfig } from '../user/config.js';
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -14,7 +17,7 @@ const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; chars
 };
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** @param {{root:string, port:number, dataDir?:string, basePath?:string}} o  root = project dir holding config.json; dataDir = writable per-user dir for the SQLite DB (Electron packaged builds); basePath = URL prefix stripped from requests (defaults to BRIEF_BASE_PATH env, empty = current behaviour) */
+/** @param {{root:string, port:number, dataDir?:string, basePath?:string}} o  root = project dir holding user/defaults/; dataDir = writable per-user dir for the SQLite DB and editable config (Electron packaged builds); basePath = URL prefix stripped from requests (defaults to BRIEF_BASE_PATH env, empty = current behaviour) */
 export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePath }) {
   // Mutable per-user data (DB, config.json, sources.json, perfect_samples.json) lives in
   // dataDir; falls back to root for tests when dataDir is not provided.
@@ -22,7 +25,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
   const basePath = (optBasePath ?? process.env.BRIEF_BASE_PATH ?? '').replace(/\/+$/, '');
   // Public hostnames the hosted deployment is reached on (e.g. behind Traefik). Empty = localhost only.
   const allowedHosts = (process.env.BRIEF_ALLOWED_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
-  const cfg = JSON.parse(readFileSync(path.join(dbDir, 'config.json'), 'utf8'));
+  const cfg = loadConfig(dbDir, 'config.json') ?? {};
   const db = openDb(path.resolve(dbDir, cfg.db_file ?? 'daily_brief.db'), path.join(root, 'schema.sql'));
   const q = makeQueries(db, dbDir);
   const renderer = makeRenderer({
@@ -131,6 +134,9 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
       // Hosted (prefixed) deployments are stateless: no generation, likes/saves, or remote shutdown.
       if (basePath && req.method === 'POST' && /^\/api\/(shutdown|generate|stories\/\d+\/feedback)$/.test(routePath)) return json(res, 404, { error: 'not found' });
 
+      // Config editor API (GET + PUT). Handled before the method split so PUT works too.
+      if (routePath.startsWith('/api/config/')) return handleConfigRoutes(req, res, routePath, dbDir);
+
       if (req.method === 'GET') {
         if (routePath === '/' ) return servePage(res, url, null);
         if ((m = routePath.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]));
@@ -139,6 +145,11 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           let html = readFileSync(path.join(publicDir, 'list.html'), 'utf8');
           if (basePath) html = html.replace('</head>', `<base href="${basePath}/">\n</head>`);
           html = html.replace('<body>', `<body data-base="${basePath}"${basePath ? ' data-hosted="1"' : ''}>`);
+          return send(res, 200, html, 'text/html; charset=utf-8');
+        }
+        if (routePath === '/settings') {
+          let html = readFileSync(path.join(publicDir, 'settings.html'), 'utf8');
+          html = html.split('{{basePath}}').join(basePath);
           return send(res, 200, html, 'text/html; charset=utf-8');
         }
         if (routePath === '/api/stories') return json(res, 200, q.listStories(url.searchParams));

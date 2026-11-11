@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "sources.json",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "feeds": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "query", "subtopic", "weight", "type", "limit", "kind", "fetcher"],
+              "properties": {
+                "name": { "type": "string" },
+                "query": { "type": "string" },
+                "subtopic": { "type": "string" },
+                "weight": { "type": "number", "minimum": 0 },
+                "type": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1 },
+                "kind": { "type": "string" },
+                "fetcher": { "type": "string" }
+              }
+            }
+          }
+        },
+        "rss": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url", "weight", "type", "kind"],
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "weight": { "type": "number", "minimum": 0 },
+              "type": { "type": "string" },
+              "default_subtopic": { "type": ["string", "null"] },
+              "kind": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

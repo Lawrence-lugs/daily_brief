@@ -50,10 +50,10 @@ _DEFAULT_SQL_URL = "sqlite:///" + str(Path(DEFAULT_OUTPUT_DIR) / "runs.db")
 ex.observers.append(SqlObserver(_DEFAULT_SQL_URL))
 
 INPUT_RESOURCES = [
-    "config.json",
-    "perfect_samples.json",
+    "user/defaults/config.json",
+    "user/defaults/sources.json",
+    "user/defaults/perfect_samples.json",
     "perfect-samples-new.json",
-    "state.json",
 ]
 
 
@@ -70,7 +70,7 @@ def cfg():
     date = "2026-10-29"
     test_frac = 0.2
     db_path = "daily_brief.db"
-    config_path = "config.json"
+    config_path = "user/defaults/config.json"
 
     _db_p = Path(db_path)
     db_hash = _file_sha256(_db_p) if _db_p.exists() else ""

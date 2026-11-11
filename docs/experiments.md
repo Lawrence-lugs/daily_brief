@@ -108,7 +108,7 @@ Each Sacred experiment:
   `output_dir`, ...) plus `db_hash`, a SHA-256 of the SQLite database file, so any change to
   DB state produces a distinct config value.
 - **Resources** — all input JSON files are snapshotted as sacred resources:
-  `config.json`, `sources.json`, `perfect_samples.json`, `perfect-samples-new.json`,
+  `user/defaults/config.json`, `user/defaults/sources.json`, `user/defaults/perfect_samples.json`, `perfect-samples-new.json`,
   `state.json` (missing files are skipped gracefully).
 - **Artefacts** — generated comparison JSON/HTML reports are attached to each run.
 - **Runs** — persisted by a `SqlObserver` (SQLAlchemy) in `docs/experiments/runs.db`
@@ -153,7 +153,7 @@ JSON/HTML reports), `experiment`, `host`, and `dependency`.
 | Table | Meaning |
 |-------|---------|
 | `run` | One row per experiment run: `run_id`, `status`, `command`, `config` (JSON incl. `db_hash`), `info`, `stop_time` |
-| `resource` | Input JSON files (`config.json`, `sources.json`, etc.) stored as blobs |
+| `resource` | Input JSON files (`user/defaults/config.json`, `user/defaults/sources.json`, etc.) stored as blobs |
 | `artifact` | Generated comparison JSON/HTML reports stored as blobs |
 
 Sacred's own CLI (`python -m sacred ...`) can also be used to query and compare runs.
@@ -236,5 +236,5 @@ Re-run after the split fix (same data): `[eval] cut=2026-10-31 liked before cut=
 | Electron / Obsidian / Web usage | `docs/interfaces.md` |
 | SQLite-based stateful logging | `docs/sqlite-logging.md` |
 | Ranker CLI reference (full command list) | `ranker/README.md` |
-| Full tunable configuration | `config.json` (`ranker` key) |
+| Full tunable configuration | `user/defaults/config.json` (`ranker` key) |
 | Simulation framework design (planned) | `experiments/SIMULATION_FRAMEWORK.md` |

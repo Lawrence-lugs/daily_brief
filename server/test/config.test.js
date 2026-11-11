@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 test('config loader: DESKS list includes primary, science, misc in declared order', () => {
-  const { DESKS, subtopicToDesk, warnings } = loadDesksConfig('.');
+  const { DESKS, subtopicToDesk, warnings } = loadDesksConfig('user/defaults');
   assert.equal(DESKS.length, 3);
   assert.deepEqual(DESKS, [
     { key: 'primary', title: 'Silicon & Architecture Desk', description: 'Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.' },
@@ -21,13 +21,13 @@ test('config loader: DESKS list includes primary, science, misc in declared orde
 });
 
 test('config loader: sources.json has no desks or keywords', () => {
-  const src = JSON.parse(readFileSync('sources.json', 'utf8'));
+  const src = JSON.parse(readFileSync('user/defaults/sources.json', 'utf8'));
   assert.ok(!('desks' in src), 'sources.json should not contain desks');
   assert.ok(!('keywords' in src), 'sources.json should not contain keywords');
 });
 
 test('config loader: config.json has desks and keywords', () => {
-  const cfg = JSON.parse(readFileSync('config.json', 'utf8'));
+  const cfg = JSON.parse(readFileSync('user/defaults/config.json', 'utf8'));
   assert.ok('desks' in cfg, 'config.json should contain desks');
   assert.ok('keywords' in cfg, 'config.json should contain keywords');
   assert.ok('misc' in cfg.desks, 'config.json desks should include misc');

@@ -4,7 +4,20 @@
 
 ```
 daily_brief/                      # project root
-├── config.json                   # top-level config (ranker section inside)
+├── user/                         # User config (tracked defaults + schemas)
+│   ├── defaults/                 # Tracked default config templates (read-only seeds)
+│   │   ├── config.json
+│   │   ├── sources.json
+│   │   └── perfect_samples.json
+│   ├── schema/                   # JSON Schema for each config file (jedison editor)
+│   │   ├── config.schema.json
+│   │   ├── sources.schema.json
+│   │   └── perfect_samples.schema.json
+│   ├── config.js                 # loadConfig, seedDataDir, listEditableFiles, loadSchema
+│   ├── datadir.js                # defaultDataDir, seedDataDir (moved from server/lib/datadir.js)
+│   ├── validate.js               # lightweight JSON Schema validator
+│   ├── save.js                   # validate -> backup -> atomic write -> invalidate cache
+│   └── routes.js                 # GET/PUT /api/config/:file + /schema
 ├── daily_brief.db                # SQLite DB (candidate_pool, stories, embeddings, model_eval, ranker_state)
 ├── ranker/                       # Node.js ranking engine (ESM)
 │   ├── cli.js                    # CLI: select, refit, eval, inspect, pool, simulate
@@ -18,6 +31,10 @@ daily_brief/                      # project root
 │   └── ...
 ├── simulate/                     # Python simulation framework
 │   ├── cli.py                    # entry point: `python -m simulate.cli <command>`
+│   ├── config/                   # Tracked config copy for simulation tooling
+│   │   ├── config.json
+│   │   ├── sources.json
+│   │   └── perfect_samples.json
 │   └── experiments/
 │       ├── __init__.py           # exports experiment `ex` objects
 │       ├── sacred_runner.py      # keyword vs lr comparison (Sacred)

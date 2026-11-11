@@ -80,7 +80,7 @@ function fatalError(title, err) {
 app.whenReady().then(async () => {
   try {
     const { createApp } = await import('../server/app.js');
-    const { seedDataDir } = await import('../server/lib/datadir.js');
+    const { seedDataDir } = await import('../user/datadir.js');
     seedDataDir(DATA_DIR, ROOT);
     // createApp() reads config.json, opens the SQLite DB, and loads schema.sql.
     // Any of those can throw (missing file, locked DB, bad SQL).

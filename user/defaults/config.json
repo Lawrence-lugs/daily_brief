@@ -1,0 +1,166 @@
+{
+  "paper_name": "The Daily Die",
+  "edition_dir": "05-for-agents/daily-brief",
+  "db_file": "daily_brief.db",
+  "debug_dir": "logs",
+  "stories_per_desk": 5,
+  "reserve_per_desk": 25,
+  "max_agent_output_items_per_desk": 5,
+  "reader": "a computer-architecture and EDA researcher",
+  "prefer": "Primary results, new architectures reported with numbers, tool or artifact releases, surprising negative results, and anything that changes how a hardware designer would work. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it.",
+  "desks": {
+    "primary": {
+      "title": "Silicon & Architecture Desk",
+      "description": "Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.",
+      "keyword-model-subtopics": ["dse", "accel", "fab"]
+    },
+    "science": {
+      "title": "Science Desk",
+      "description": "Physical sciences: general relativity, quantum field theory, condensed matter, neuroscience, and related fundamental research.",
+      "keyword-model-subtopics": ["gr", "qft", "condmat", "neuro"]
+    },
+    "misc": {
+      "title": "Misc.",
+      "keyword-model-subtopics": []
+    }
+  },
+  "keywords": {
+    "dse": ["design space exploration", "design-space exploration", "dse", "timeloop", "accelergy", "maestro", "zigzag", "dosa", "archagent", "dataflow mapping", "mapping space", "mapper", "loop nest", "tiling", "scheduling search", "llm-based design", "llm agent", "agentic", "architecture search", "co-design", "co-optimization", "bayesian optimization", "analytical model", "cost model", "simulator", "astra-sim", "placement", "dreamplace", "eda"],
+    "accel": ["accelerator", "npu", "tpu", "gpu architecture", "in-memory comput", "compute-in-memory", "computing-in-memory", "cim", "imc", "analog in-memory", "crossbar", "systolic", "dataflow", "llm inference", "kv cache", "transformer accelerator", "sparsity", "quantization", "hbm", "near-memory", "processing-in-memory", "pim", "3d stack", "3d-stack", "chiplet", "tensor core", "inference chip", "inference hardware", "memory wall"],
+    "fab": ["semiconductor", "foundry", "tsmc", "samsung foundry", "intel foundry", "intel 18a", "imec", "gaa", "gate-all-around", "nanosheet", "backside power", "euv", "high-na", "lithography", "hybrid bonding", "advanced packaging", "cowos", "hot chips", "hotchips", "isscc", "vlsi symposium", "iedm", "2nm", "3nm", "a14", "n2", "yield", "wafer", "tsv", "glass substrate", "co-packaged optics", "process node"],
+    "gr": ["general relativity", "numerical relativity", "gravitational wave", "gravitational-wave", "black hole", "binary merger", "ligo", "lisa", "einstein equations", "spacetime", "cosmolog", "post-newtonian", "gr simulation", "bssn", "event horizon", "neutron star"],
+    "qft": ["quantum field theory", "qft", "lattice qcd", "lattice gauge", "scattering amplitude", "renormalization", "conformal field theory", "cft", "gauge theory", "yang-mills", "holograph", "ads/cft", "effective field theory", "bootstrap", "anomal", "topological field", "quantum gravity", "string theory", "hep-th"],
+    "condmat": ["condensed matter", "memristor", "magnetic", "ferroelectric", "2d material", "coupled", "coupling",  "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],
+    "neuro": ["neuroscience", "neuron", "cortex", "cortical", "hippocamp", "connectome", "brain", "organoid", "wetware", "biological neural", "synaptic", "plasticity", "cognitive", "computational neuroscience", "spiking", "neural coding", "dendrit", "cerebell", "neuropixels"]
+  },
+  "selection": {
+    "epsilon": 0.25,
+    "a50_days": 7,
+    "slope": 1,
+    "age_floor_days": 0.25,
+    "explore_gamma": 0.3,
+    "shown_decay": 0.05,
+    "rejected_decay": 0.3,
+    "archive_after_days": 7,
+    "skip_exhausted_subtopics": true
+  },
+  "pool": {
+    "max_age_days": 120
+  },
+  "fetch": {
+    "timeout_s": 20,
+    "cache_ttl_hours": 6,
+    "arxiv_delay_s": 3.1,
+    "api_delay_s": 5,
+    "hn_lookback_days": 45,
+    "user_agent": "daily-brief/1.0 (personal Obsidian vault; stdlib urllib)"
+  },
+  "llm": {
+    "models": [
+      "nvidia/nemotron-3.5-super-vl:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "nvidia/nemotron-3.5-lightning:free",
+      "openrouter/free"
+    ],
+    "temperature": 0.3,
+    "max_tokens": 20000,
+    "timeout_s": 150,
+    "retries": 2,
+    "max_requests_per_run": 24,
+    "min_remaining_daily": 3,
+    "effort": "high"
+  },
+  "ranker": {
+    "engine": "lr",
+    "perfect_samples_file": "perfect_samples.json",
+    "label": "liked_or_saved",
+    "features": [
+      "bias",
+      "type",
+      "author",
+      "medoid"
+    ],
+    "authors": {
+      "head": 3,
+      "tail": 2,
+      "threshold": 5
+    },
+    "interests": {
+      "kappa": 5,
+      "maxLikedDays": 1000,
+      "mode": "constrained",
+      "minClusters": 1
+    },
+    "crossFit": {
+      "folds": 5
+    },
+    "embedding": {
+      "model": "leaf-mt"
+    },
+    "model": {
+      "name": "bayes_lr",
+      "maxSweeps": 60,
+      "tol": 0.0001,
+      "numDefault": {
+        "mean": 0.45,
+        "std": 0.15
+      },
+      "prior": {
+        "default": {
+          "prec": 1,
+          "mean": 0
+        },
+        "rules": [
+          {
+            "match": "b",
+            "prec": 0.5,
+            "mean": -2
+          },
+          {
+            "match": "t:",
+            "prec": 2
+          },
+          {
+            "match": "a:",
+            "prec": 3
+          },
+          {
+            "match": "n:d1",
+            "prec": 1,
+            "mean": -0.8
+          },
+          {
+            "match": "n:d2",
+            "prec": 2,
+            "mean": -0.2
+          },
+          {
+            "match": "n:d3",
+            "prec": 2
+          }
+        ]
+      },
+      "l2Strength": 0.01,
+      "unpenalizedKeys": [],
+      "relKey": "rel"
+    },
+    "sampling": {
+      "epsilon": 0.2,
+      "halfLifeDays": 30,
+      "freshness": {
+        "model": "exponential"
+      },
+      "shown_decay": 0.05,
+      "explore": {
+        "gamma": 0.5,
+        "floor": 0.01
+      },
+      "dedupe": {
+        "hardWindowDays": 2,
+        "t0": 7,
+        "scale": 2
+      }
+    }
+  }
+}

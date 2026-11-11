@@ -316,7 +316,7 @@ test('fit: identical weights with and without onSweep; onSweep fires once per sw
 });
 
 const FULL = {
-  ...JSON.parse(readFileSync(new URL('../config.json', import.meta.url), 'utf8')).ranker.sampling,
+  ...JSON.parse(readFileSync(new URL('../user/defaults/config.json', import.meta.url), 'utf8')).ranker.sampling,
   stories_per_desk: 5,
   reserve_per_desk: 25,
 };

@@ -109,16 +109,18 @@ def test_feed_source_type_is_preserved():
 
 
 def test_project_root_assets_resolve_outside_src():
-    """After the src/ move, project-root assets (tailwind.css, config.json,
-    sources.json, prompt_system.md, state.json) must resolve from the project
-    root, not from src/. A regression here breaks every real render/run."""
+    """After the src/ move, project-root assets (tailwind.css, prompt_system.md)
+    must resolve from the project root, not from src/. Config files now live
+    under user/defaults/ (tracked) and are seeded into the per-user data dir
+    at runtime. A regression here breaks every real render/run."""
     from pathlib import Path
     repo_root = Path(__file__).resolve().parent.parent
     assert brief.PROJECT_ROOT == repo_root
     assert (brief.PROJECT_ROOT / "tailwind.css").exists(), "tailwind.css must live at project root"
-    assert (brief.PROJECT_ROOT / "config.json").exists()
-    assert (brief.PROJECT_ROOT / "sources.json").exists()
     assert (brief.PROJECT_ROOT / "prompt_system.md").exists()
+    assert (brief.PROJECT_ROOT / "user" / "defaults" / "config.json").exists()
+    assert (brief.PROJECT_ROOT / "user" / "defaults" / "sources.json").exists()
+    assert (brief.PROJECT_ROOT / "user" / "defaults" / "perfect_samples.json").exists()
     # templates live under src/
     assert (brief.TEMPLATES / "page.html").exists()
     assert (brief.TEMPLATES / "tag.html").exists()

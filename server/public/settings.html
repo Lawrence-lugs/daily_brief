@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Settings — Daily Brief</title>
+<base href="{{basePath}}/">
+<link rel="stylesheet" href="static/app.css">
+<link rel="stylesheet" href="static/tailwind.css">
+<link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
+<style>
+  :root { --jedison-accent: #4f46e5; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  h1 { font-size: 1.25rem; margin: 0; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 8px; }
+  .tab { padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; cursor: pointer; font-size: 0.9rem; }
+  .tab.active { background: var(--jedison-accent); color: #fff; border-color: var(--jedison-accent); }
+  .tab:hover { background: #e2e8f0; }
+  .file-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; background: #ffffff; }
+  .file-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+  .file-name { font-weight: 600; color: #1e293b; }
+  .file-desc { color: #64748b; font-size: 0.85rem; margin-left: auto; }
+  .badge { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; background: #e2e8f0; color: #475569; margin-left: 6px; }
+  .saved { color: #166534; font-size: 0.85rem; margin-top: 8px; }
+  .error { color: #dc2626; font-size: 0.85rem; margin-top: 8px; }
+  .note { color: #64748b; font-size: 0.8rem; margin-top: 6px; }
+  .btn-save { background: var(--jedison-accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+  .btn-save:hover { background: #4338ca; }
+  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .loading { color: #64748b; font-style: italic; }
+  .back { display: inline-block; margin-bottom: 12px; color: var(--jedison-accent); text-decoration: none; font-size: 0.9rem; }
+  .back:hover { text-decoration: underline; }
+  pre.error-json { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; font-size: 0.8rem; overflow: auto; max-height: 200px; }
+  #jedison-root { margin-top: 8px; }
+
+  /* Dark mode overrides for the settings page chrome (mirrors app.css / sidebar.css token approach). */
+  html.dark .tab { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+  html.dark .tab:hover { background: #334155; }
+  html.dark .tab.active { border-color: var(--jedison-accent); }
+  html.dark .file-card { background: #0f172a; border-color: #334155; }
+  html.dark .file-header { border-bottom-color: #334155; }
+  html.dark .file-name { color: #f8fafc; }
+  html.dark .file-desc { color: #94a3b8; }
+  html.dark .badge { background: #334155; color: #cbd5e1; }
+  html.dark .loading { color: #94a3b8; }
+  html.dark pre.error-json { background: #1e1b4b; border-color: #4338ca; color: #f8fafc; }
+</style>
+  <script>
+    // Theme contract shared with client.js / list.js:
+    //   ?theme=dark|light wins, then saved db-theme, else follow the OS.
+    (function () {
+      const KEY = 'db-theme';
+      window.setThemeSettings = (t) => {
+        const c = document.documentElement.classList;
+        c.remove('dark', 'light');
+        c.add(t === 'dark' ? 'dark' : 'light');
+        try { localStorage.setItem(KEY, t); } catch (e) {}
+        const b = document.getElementById('btn-theme');
+        if (b) {
+          b.setAttribute('aria-pressed', String(t === 'dark'));
+          b.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+        }
+      };
+      const q = new URLSearchParams(location.search).get('theme');
+      let t = q === 'dark' || q === 'light' ? q : null;
+      if (!t) {
+        try { const v = localStorage.getItem(KEY); t = (v === 'dark' || v === 'light') ? v : null; } catch (e) {}
+      }
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      window.setThemeSettings(t);
+    })();
+  </script>
+</head>
+<body data-base="{{basePath}}" class="bg-stone-50 text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div class="container">
+  <header>
+    <a href="{{basePath}}/" class="back"><i class="bi bi-arrow-left"></i> Back to brief</a>
+    <h1>Settings</h1>
+    <span class="badge">Config editor</span>
+    <button id="btn-theme" class="btn-theme" aria-pressed="false" title="Switch to dark mode">
+      <span aria-hidden="true" class="theme-icon theme-icon--light"><i class="bi bi-moon"></i></span>
+      <span aria-hidden="true" class="theme-icon theme-icon--dark"><i class="bi bi-sun"></i></span>
+    </button>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="panels"></div>
+
+  <div id="toast" class="saved" style="display:none;"></div>
+</div>
+
+<script src="static/vendor/jedison.umd.js"></script>
+<script>
+const base = document.body.dataset.base || '';
+const FILES = ['config.json', 'sources.json', 'perfect_samples.json'];
+const DESC = {
+  'config.json': 'General brief settings: paper name, desks, keywords, selection, fetch, LLM, ranker.',
+  'sources.json': 'Content sources: Semantic Scholar API queries and RSS feeds, grouped by feed type.',
+  'perfect_samples.json': 'Human-curated anchor items used by the ranker to seed cluster medoids.'
+};
+
+const tabsEl = document.getElementById('tabs');
+const panelsEl = document.getElementById('panels');
+const toast = document.getElementById('toast');
+const jedison = window.Jedison; // UMD global
+const instances = {}; // fileName -> jedison instance
+if (!jedison) {
+  document.getElementById('panels').innerHTML =
+    '<div class="error">Editor library failed to load (static/vendor/jedison.umd.js). Check the server logs.</div>';
+}
+
+function showToast(msg, kind = 'saved') {
+  toast.textContent = msg;
+  toast.className = kind === 'error' ? 'error' : 'saved';
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+async function loadFile(fileName) {
+  const panel = document.createElement('div');
+  panel.className = 'file-card';
+  panel.id = 'panel-' + fileName;
+
+  const header = document.createElement('div');
+  header.className = 'file-header';
+  const name = document.createElement('span');
+  name.className = 'file-name';
+  name.textContent = fileName;
+  const desc = document.createElement('span');
+  desc.className = 'file-desc';
+  desc.textContent = DESC[fileName] || '';
+  header.appendChild(name);
+  header.appendChild(desc);
+  panel.appendChild(header);
+
+  const loading = document.createElement('div');
+  loading.className = 'loading';
+  loading.textContent = 'Loading ' + fileName + '…';
+  panel.appendChild(loading);
+
+  const root = document.createElement('div');
+  root.id = 'jedison-' + fileName;
+  panel.appendChild(root);
+
+  const status = document.createElement('div');
+  status.id = 'status-' + fileName;
+  panel.appendChild(status);
+
+  // Set initial visibility (first tab active, rest hidden) now that the panel
+  // exists. init() runs before loadFile() completes, so this must happen here.
+  panel.style.display = (fileName === FILES[0]) ? 'block' : 'none';
+
+  panelsEl.appendChild(panel);
+
+  try {
+    const [dataResp, schemaResp] = await Promise.all([
+      fetch(base + '/api/config/' + encodeURIComponent(fileName)),
+      fetch(base + '/api/config/' + encodeURIComponent(fileName) + '/schema')
+    ]);
+    let data = null, schema = null;
+    if (dataResp.ok) data = await dataResp.json();
+    if (schemaResp.ok) schema = await schemaResp.json();
+    else if (schemaResp.status === 404) schema = null;
+
+    loading.remove();
+
+    if (!data) {
+      const err = document.createElement('div');
+      err.className = 'error';
+      err.textContent = 'Could not load ' + fileName + '.';
+      status.appendChild(err);
+      return;
+    }
+
+    if (schema) {
+      instances[fileName] = new jedison.Create({
+        container: root,
+        theme: new jedison.Theme(),
+        schema: schema
+      });
+      instances[fileName].setValue(data, false);
+    } else {
+      const pre = document.createElement('pre');
+      pre.className = 'error-json';
+      pre.textContent = JSON.stringify(data, null, 2);
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'No JSON Schema available for this file. Raw JSON shown (edit via PUT API manually).';
+      root.appendChild(note);
+      root.appendChild(pre);
+    }
+
+    // Save button
+    const btn = document.createElement('button');
+    btn.className = 'btn-save';
+    btn.textContent = 'Save ' + fileName;
+    btn.onclick = async () => {
+      if (!instances[fileName]) return;
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const value = instances[fileName].getValue();
+        const resp = await fetch(base + '/api/config/' + encodeURIComponent(fileName), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
+          body: JSON.stringify(value)
+        });
+        const result = await resp.json();
+        if (resp.ok) {
+          showToast(fileName + ' saved. Applies on next brief generation.');
+          btn.textContent = 'Saved';
+          setTimeout(() => { btn.textContent = 'Save ' + fileName; btn.disabled = false; }, 1500);
+        } else {
+          const detail = (result.details || []).slice(0, 3).map((d) => d.path + ': ' + d.message).join('; ');
+          showToast('Save failed: ' + (result.error || 'error') + (detail ? ' — ' + detail : ''), 'error');
+          btn.disabled = false;
+          btn.textContent = 'Save ' + fileName;
+        }
+      } catch (e) {
+        showToast('Save error: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Save ' + fileName;
+      }
+    };
+    panel.appendChild(btn);
+  } catch (e) {
+    loading.remove();
+    const err = document.createElement('div');
+    err.className = 'error';
+    err.textContent = 'Error loading ' + fileName + ': ' + e.message;
+    status.appendChild(err);
+  }
+}
+
+function init() {
+  FILES.forEach((fileName, i) => {
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (i === 0 ? ' active' : '');
+    tab.textContent = fileName;
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.file-card').forEach(c => c.style.display = 'none');
+      document.getElementById('panel-' + fileName).style.display = 'block';
+    };
+    tabsEl.appendChild(tab);
+
+    const panel = document.getElementById('panel-' + fileName);
+    if (panel) panel.style.display = i === 0 ? 'block' : 'none';
+    loadFile(fileName);
+  });
+}
+
+// Theme toggle (button exists by now; the head script set the initial class).
+const themeBtn = document.getElementById('btn-theme');
+if (themeBtn) {
+  themeBtn.onclick = () => window.setThemeSettings(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+}
+
+init();
+</script>
+</body>
+</html>

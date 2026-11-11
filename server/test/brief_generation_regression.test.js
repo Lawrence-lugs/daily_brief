@@ -11,7 +11,7 @@ const TEST_URL = new URL(import.meta.url);
 const PROJECT_ROOT = new URL('../../', TEST_URL); // file:///.../daily_brief/
 const BRIEF_URL = new URL('server/lib/brief.js', PROJECT_ROOT).href;
 const DB_URL = new URL('server/lib/db.js', PROJECT_ROOT).href;
-const DATA_URL = new URL('server/lib/datadir.js', PROJECT_ROOT).href;
+const DATA_URL = new URL('user/datadir.js', PROJECT_ROOT).href;
 
 const PROJECT_ROOT_FS = fileURLToPath(PROJECT_ROOT);
 // Isolated copy of the data dir so repeated runs never touch the real appdata DB.

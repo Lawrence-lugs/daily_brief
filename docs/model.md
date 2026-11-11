@@ -57,7 +57,7 @@ brief per desk (picks + reserves)
 
 ### 3.1 Inputs
 
-- **Perfect samples** (`perfect_samples.json`): human-curated anchor items. Each has `id`, `title`, `snippet`,
+- **Perfect samples** (`user/defaults/perfect_samples.json`): human-curated anchor items. Each has `id`, `title`, `snippet`,
   `type`, and `core` (boolean). Weight `κ` (default 20) in the medoid.
 - **Liked items:** stories with `liked=1 OR saved=1` from the last `maxLikedDays` (default 100). Weight 1.
 
@@ -70,7 +70,7 @@ brief per desk (picks + reserves)
    same cluster**. That height is the largest cut still separating every perfect sample. This is the spec behavior.
 4. **Alternative (`interests.mode = "constrained"`):** Never merge two clusters that each already contain a perfect
    sample, but keep merging everything else. Use this if `stop` yields dozens of shredded singletons (the current
-   default in `config.json`).
+   default in `user/defaults/config.json`).
 
 ### 3.3 Medoid
 
@@ -86,7 +86,7 @@ weighted centroid.
 
 Each cluster carries a `desk` derived from its perfect-sample members (all share one desk, enforced by the
 cross-desk skip rule in §3.2). Liked items carry no desk. Clusters with no perfect-sample members get `desk:
-"misc"` (an explicit desk, defined in `config.json`, so it appears as a column). The `core` flag is retained
+"misc"` (an explicit desk, defined in `user/defaults/config.json`, so it appears as a column). The `core` flag is retained
 (≥1 `core:true` perfect sample in the cluster) but no longer drives desk assignment — desks do.
 
 ---
@@ -221,7 +221,7 @@ For each candidate item:
 | `ranker/store.js` | SQLite wrapper for embeddings/training rows/ranker_state |
 | `ranker/pipeline.js` | `ensureEmbeddings`, `ensureFitted`, `prepareCandidates` |
 | `ranker/cli.js` | CLI: embed / refit / select / simulate / eval / inspect |
-| `config.json` (`ranker` key) | All tunable knobs (priors, epsilon, halfLife, dedupe, `stories_per_desk`, `reserve_per_desk`, …) |
+| `user/defaults/config.json` (`ranker` key) | All tunable knobs (priors, epsilon, halfLife, dedupe, `stories_per_desk`, `reserve_per_desk`, …) |
 
 ---
-**Existing DB rows:** rows already in `candidate_pool` and `stories` keep their old `desk` keys (`primary`/`science`); they are not rewritten. The new `misc` desk is only assigned by the ranker at clustering time to clusters without perfect-sample members. Future crawls write `desk` from `config.json` `desks`.
+**Existing DB rows:** rows already in `candidate_pool` and `stories` keep their old `desk` keys (`primary`/`science`); they are not rewritten. The new `misc` desk is only assigned by the ranker at clustering time to clusters without perfect-sample members. Future crawls write `desk` from `user/defaults/config.json` `desks`.

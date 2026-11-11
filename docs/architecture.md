@@ -207,7 +207,7 @@ Obsidian (obsidian/daily-brief.md)
 4. **Select**: Either the legacy keyword engine (Python) or the LR engine (Node ranker CLI) picks items per desk
    with mode (`greedy`/`explore`/`reserve`).
 5. **Edit**: The LLM (`agent.js`) makes ONE combined call covering all desks — each candidate carries its
-   pre-assigned `desk` plus its desk `description` from `config.json` (or title-only inference for desks
+   pre-assigned `desk` plus its desk `description` from `user/defaults/config.json` (or title-only inference for desks
    without one), the response is split back per desk, and each desk is backfilled to `stories_per_desk`;
    on `--no-llm` or editor failure raw items are shown on all desks.
 6. **Persist**: `db.append_brief()` atomically appends one `briefs` row + `stories` rows. Same-day regeneration
@@ -239,5 +239,5 @@ Obsidian (obsidian/daily-brief.md)
 | Electron / Obsidian / Web usage | `docs/interfaces.md` |
 | SQLite-based stateful logging | `docs/sqlite-logging.md` |
 | Experiments & simulate functionality | `docs/experiments.md` |
-| Full tunable configuration | `config.json` (see `ranker` key) |
+| Full tunable configuration | `user/defaults/config.json` (see `ranker` key) |
 | Database schema | `schema.sql` |

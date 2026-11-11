@@ -46,7 +46,7 @@ def main():
     def add_common(p):
         p.add_argument("--date", default="2026-10-29", help="Date (YYYY-MM-DD)")
         p.add_argument("--db", default="daily_brief.db", help="Database path")
-        p.add_argument("--config", default="config.json", help="Config file")
+        p.add_argument("--config", default=str(PROJECT_ROOT / "simulate" / "config" / "config.json"), help="Config file")
 
     # compare command (= sacred compare_keyword_vs_lr experiment)
     p_compare = subparsers.add_parser("compare", help="Compare engines (Sacred experiment: compare_keyword_vs_lr)")

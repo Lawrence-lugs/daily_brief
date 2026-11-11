@@ -23,7 +23,7 @@ class LREngine(Engine):
     def __init__(self, 
                  cli_path: str = "ranker/cli.js",
                  db_path: str = "daily_brief.db",
-                 config_path: str = "config.json",
+                 config_path: str = "user/defaults/config.json",
                  project_root: str | None = None,
                  model_name: str = "bayes_lr",
                  name: str | None = None):

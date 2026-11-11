@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "perfect_samples.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "title", "snippet", "type", "core", "representative", "desk"],
+    "properties": {
+      "id": { "type": "string", "title": "ID" },
+      "title": { "type": "string", "title": "Title" },
+      "snippet": { "type": "string", "title": "Snippet" },
+      "type": { "type": "string", "enum": ["paperlike", "newslike", "commentary"], "title": "Type" },
+      "core": { "type": "boolean", "title": "Core" },
+      "representative": { "type": "boolean", "title": "Representative" },
+      "desk": { "type": "string", "title": "Desk" }
+    },
+    "additionalProperties": true
+  }
+}
