@@ -374,9 +374,9 @@ export async function main(flags = {}) {
   // --- generate desk template variables from DESKS + config (Phase 5) ---
   const deskKeys = DESKS.map((d) => d.key);
   const deskItemEnum = deskKeys.map((k) => `"${k}"`).join(' | ');
-  const deskSections = DESKS.map(({ key, title }) => {
-    const subs = (cfg.desks?.[key]?.["keyword-model-subtopics"] ?? []).map((s) => `- ${s}`).join('\n');
-    return `${title} (${key}):\n${subs}`;
+  const deskSections = DESKS.map(({ key, title, description }) => {
+    const desc = description ? ` — ${description}` : ' (infer scope from title)';
+    return `${title} (${key}):${desc}`;
   }).join('\n\n');
   const deskDecks = JSON.stringify(
     Object.fromEntries(deskKeys.map((k) => [k, { deck: '', lead_id: '' }])),
@@ -385,10 +385,14 @@ export async function main(flags = {}) {
 
   const system = readFileSync(join(PROJECT_ROOT, 'prompt_system.md'), 'utf8');
   const maxCap = Number(cfg.max_agent_output_items_per_desk ?? nStories);
+  const reader = cfg.reader ?? 'a computer-architecture and EDA researcher';
+  const prefer = cfg.prefer ?? 'Primary results, new architectures reported with numbers, tool or artifact releases, surprising negative results, and anything that changes how a hardware designer would work. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it.';
   let systemFilled = system
     .replace('{{desk_item_enum}}', deskItemEnum)
     .replace('{{desk_sections}}', deskSections)
     .replace('{{desk_decks}}', deskDecks)
+    .replace('{{reader}}', reader)
+    .replace('{{prefer}}', prefer)
     .replace('{{max_agent_output_items_per_desk}}', String(maxCap));
 
   const candsByDesk = {};
@@ -398,7 +402,7 @@ export async function main(flags = {}) {
       : (selected[desk] ?? []);
   }
 
-  const deskSpecs = DESKS.map(({ key, title }) => ({ key, title }));
+  const deskSpecs = DESKS.map(({ key, title, description }) => ({ key, title, description }));
 
   for (const { key: desk, title } of DESKS) {
     prog.deskInit(desk, title, nStories);

@@ -6,13 +6,17 @@
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
   "max_agent_output_items_per_desk": 5,
+  "reader": "a computer-architecture and EDA researcher",
+  "prefer": "Primary results, new architectures reported with numbers, tool or artifact releases, surprising negative results, and anything that changes how a hardware designer would work. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it.",
   "desks": {
     "primary": {
       "title": "Silicon & Architecture Desk",
+      "description": "Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.",
       "keyword-model-subtopics": ["dse", "accel", "fab"]
     },
     "science": {
       "title": "Science Desk",
+      "description": "Physical sciences: general relativity, quantum field theory, condensed matter, neuroscience, and related fundamental research.",
       "keyword-model-subtopics": ["gr", "qft", "condmat", "neuro"]
     },
     "misc": {

@@ -36,9 +36,9 @@ daily_brief/
     vec.js           vector helpers (dot, normalize, sqlite blob conversion)
     trainer.js       cross-fitted training set (leak fix), chronological split
     test/ranker.test.js 15 unit tests (node --test)
-  config.json        every tunable (db_file, ranker.*, selection.*, llm.*, fetch.*, pool.*)
+  config.json        every tunable (db_file, reader, prefer, desks.*.description, ranker.*, selection.*, llm.*, fetch.*, pool.*)
   sources.json       arXiv queries, RSS feeds, subtopic keyword lists
-  prompt_system.md   the editor prompt (desks + rules + JSON schema)
+  prompt_system.md   the editor prompt (desks + rules + JSON schema; {{reader}}, {{prefer}}, {{desk_sections}} filled from config)
   perfect_samples.json human-curated anchor items (one `desk` per sample)
   tailwind.input.css Tailwind entry file   tailwind.css  compiled output (committed)
   build_css.ps1      one-off Tailwind build (scans server/templates + server/public/client.js)

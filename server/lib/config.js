@@ -36,7 +36,8 @@ export function loadDesksConfig(dataDir) {
   // Preserve insertion order of desks as declared in config.json.
   for (const [key, spec] of Object.entries(desksRaw)) {
     const title = (spec && typeof spec === 'object' && spec.title) ? String(spec.title) : key;
-    DESKS.push({ key, title });
+    const description = (spec && typeof spec === 'object' && spec.description) ? String(spec.description) : '';
+    DESKS.push({ key, title, description });
     const subs = (spec && spec["keyword-model-subtopics"]) ? spec["keyword-model-subtopics"]
       : (spec && spec.subtopics) ? spec.subtopics
       : [];
@@ -50,6 +51,12 @@ export function loadDesksConfig(dataDir) {
       if (!(s in keywords)) {
         errors.push(`desk "${key}" references subtopic "${s}" but no keyword group "${s}" exists in config.keywords`);
       }
+    }
+    // Desks other than the catch-all `misc` should carry a description so the
+    // editor LLM knows how to write headlines and blurbs. `misc` may rely on
+    // its title alone.
+    if (!description && key !== 'misc') {
+      warnings.push(`desk "${key}" has no description; the editor will infer scope from its title`);
     }
   }
 

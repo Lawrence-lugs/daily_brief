@@ -220,6 +220,7 @@ export function buildUserMessageMulti(desks, n, candsByDesk, today, keepCap = nu
   for (const d of desks) {
     const deskKey = d.key;
     const deskTitle = d.title;
+    const deskDesc = d.description ? ` — ${d.description}` : '';
     const cands = candsByDesk[deskKey] || [];
     const slim = cands.map(c => ({
       id: c.id, desk: deskKey, kind: c.kind, subtopic: c.subtopic,
@@ -228,9 +229,9 @@ export function buildUserMessageMulti(desks, n, candsByDesk, today, keepCap = nu
       title: String(c.title ?? '').slice(0, 220),
       snippet: String(c.snippet ?? '').slice(0, 600),
     }));
-    sections.push(`DESK: ${deskKey} — ${deskTitle}\n${JSON.stringify(slim, null, 1)}`);
+    sections.push(`DESK: ${deskKey} — ${deskTitle}${deskDesc}\n${JSON.stringify(slim, null, 1)}`);
   }
-  return `Today is ${today}. Desks: ${desks.map(d => `${d.key} (${d.title})`).join(', ')}.\n` +
+  return `Today is ${today}. Desks: ${desks.map(d => `${d.key} (${d.title})${d.description ? `: ${d.description}` : ''}`).join(', ')}.\n` +
     `Keep at least ${cap} items for EACH desk below, best first per desk, and write them up per the schema. ` +
     "Include at least one newslike candidate when one is available on that desk. " +
     "Candidates are listed in the editor's suggested order but you may reorder by importance. " +

@@ -9,9 +9,9 @@ test('config loader: DESKS list includes primary, science, misc in declared orde
   const { DESKS, subtopicToDesk, warnings } = loadDesksConfig('.');
   assert.equal(DESKS.length, 3);
   assert.deepEqual(DESKS, [
-    { key: 'primary', title: 'Silicon & Architecture Desk' },
-    { key: 'science', title: 'Science Desk' },
-    { key: 'misc', title: 'Misc.' },
+    { key: 'primary', title: 'Silicon & Architecture Desk', description: 'Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.' },
+    { key: 'science', title: 'Science Desk', description: 'Physical sciences: general relativity, quantum field theory, condensed matter, neuroscience, and related fundamental research.' },
+    { key: 'misc', title: 'Misc.', description: '' },
   ]);
   assert.deepEqual(subtopicToDesk, {
     dse: 'primary', accel: 'primary', fab: 'primary',
@@ -77,6 +77,36 @@ test('config loader: warning when a keyword group is not assigned to any desk', 
     }));
     const { warnings } = loadDesksConfig(dir);
     assert.ok(warnings.some((w) => w.includes('orphan') && w.includes('not assigned to any desk')));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('config loader: warning when a non-misc desk lacks a description', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'desks-config-test-'));
+  try {
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({
+      stories_per_desk: 5,
+      desks: { primary: { title: 'Primary', 'keyword-model-subtopics': ['dse'] } },
+      keywords: { dse: ['x'] },
+    }));
+    const { warnings } = loadDesksConfig(dir);
+    assert.ok(warnings.some((w) => w.includes('primary') && w.includes('no description')));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('config loader: no warning when misc lacks a description', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'desks-config-test-'));
+  try {
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({
+      stories_per_desk: 5,
+      desks: { misc: { title: 'Misc.', 'keyword-model-subtopics': [] } },
+      keywords: {},
+    }));
+    const { warnings } = loadDesksConfig(dir);
+    assert.ok(!warnings.some((w) => w.includes('misc') && w.includes('no description')));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
