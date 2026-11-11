@@ -27,6 +27,8 @@
       localStorage.setItem(SESSION_KEY, sessionId);
     }
   } catch { sessionId = genSessionId(); }
+  // Mirror into a cookie so the server can render this session's like/save marks on plain page loads.
+  try { document.cookie = `${SESSION_KEY}=${sessionId}; Path=/; Max-Age=31536000; SameSite=Lax`; } catch {}
 
   const post = (url, body, extraHeaders = {}) => fetch(url, {
     method: 'POST',

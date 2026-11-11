@@ -55,6 +55,12 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
     catch { throw Object.assign(new Error('invalid JSON'), { status: 400 }); }
   }
 
+  const SESSION_COOKIE_RE = /(?:^|;\s*)db-session-id=([A-Za-z0-9_-]{8,128})(?:;|$)/;
+  function sessionIdFromCookie(cookieHeader) {
+    const m = SESSION_COOKIE_RE.exec(cookieHeader ?? '');
+    return m ? m[1] : '';
+  }
+
   function servePage(res, url, briefId, sessionId) {
     const id = briefId ?? q.latestBriefId(DATE_RE.test(url.searchParams.get('date') ?? '') ? url.searchParams.get('date') : null)
       ?? q.latestBriefId(null);
@@ -119,9 +125,10 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
       const p = url.pathname;
       let m;
 
-      // Session id: client-generated UUID stored in localStorage, sent as X-Session-Id.
+      // Session id: client-generated UUID stored in localStorage, sent as X-Session-Id (XHR) and
+      // mirrored in the db-session-id cookie so plain page navigations (which can't set headers) get it too.
       // Empty/missing means no session (all like/saved show as false).
-      const sessionId = req.headers['x-session-id'] ?? '';
+      const sessionId = req.headers['x-session-id'] ?? sessionIdFromCookie(req.headers.cookie);
 
       // ---- base-path handling -----------------------------------------------------------
       // When BRIEF_BASE_PATH is set, Traefik forwards the full PathPrefix path. Strip it here.
