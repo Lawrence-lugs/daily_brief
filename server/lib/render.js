@@ -118,21 +118,29 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     let deskGridStyle = '';
     if (deskCount >= 2) {
       // Decision 5: W2 = min width of 2-column format (current md breakpoint = 768px).
-      // N columns at width >= (N/2) * W2; 2 columns at >= W2; 1 column below W2.
-      // Cap at 3 columns so wide pages never have 5 desks fighting for space.
+      // C columns at width >= ceil((C/2) * W2); 1 column below W2. Cap at 3 columns.
+      // Fill the last row: with N desks at C columns, r = N mod C desks sit in the short last row.
+      // Use T = lcm(C, r) tracks; normal desks span T/C and last-row desks span T/r, so every row fills the width.
       const W2 = 768;
       const columns = Math.min(deskCount, 3);
-      const nWidth = Math.ceil((columns / 2) * W2);
-      const rules = [
-        `[data-desks] { display: grid; gap: 1rem; }`,
-        // 1px divider line between desk columns (light/dark theme-aware).
-        // :not(:last-child) means a single-column layout gets no divider.
-        `[data-desks] > section:not(:last-child) { border-right: 1px solid var(--color-stone-300); }`,
-        `html.dark [data-desks] > section:not(:last-child) { border-right-color: var(--color-stone-700); }`,
-        `@media (min-width: ${W2}px) { [data-desks] { grid-template-columns: repeat(2, 1fr); } }`,
-      ];
-      if (deskCount > 2) {
-        rules.push(`@media (min-width: ${nWidth}px) { [data-desks] { grid-template-columns: repeat(${columns}, 1fr); } }`);
+      const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+      // 1px divider line only between desks in the same row (light/dark theme-aware).
+      // A section is the rightmost of its row when its index is a multiple of the column count,
+      // and the last child never gets a divider. Single-column (below W2) gets no divider.
+      const divider = (cols, media) => `@media ${media} {`
+        + ` [data-desks] > section:not(:last-child):not(:nth-child(${cols}n)) { border-right: 1px solid var(--color-stone-300); }`
+        + ` html.dark [data-desks] > section:not(:last-child):not(:nth-child(${cols}n)) { border-right-color: var(--color-stone-700); } }`;
+      const rules = [`[data-desks] { display: grid; gap: 1rem; }`];
+      for (let c = 2; c <= columns; c++) {
+        const min = Math.ceil((c / 2) * W2);
+        const max = c < columns ? Math.ceil(((c + 1) / 2) * W2) - 1 : null;
+        const media = `(min-width: ${min}px)` + (max !== null ? ` and (max-width: ${max}px)` : '');
+        const r = deskCount % c;
+        const tracks = r ? (c * r) / gcd(c, r) : c;
+        rules.push(`@media ${media} { [data-desks] { grid-template-columns: repeat(${tracks}, 1fr); } }`);
+        rules.push(`@media ${media} { [data-desks] > section { grid-column: span ${tracks / c}; } }`);
+        if (r) rules.push(`@media ${media} { [data-desks] > section:nth-last-child(-n+${r}) { grid-column: span ${tracks / r}; } }`);
+        rules.push(divider(c, media));
       }
       deskGridStyle = rules.join('\n');
     }
