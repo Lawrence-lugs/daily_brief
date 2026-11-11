@@ -35,6 +35,12 @@ function loadJson(file, def = null) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return def; }
 }
 
+/** Desk subtopics, reading the canonical `keyword-model-subtopics` key with a fallback
+ *  to the legacy `subtopics` key for backward compatibility. */
+function deskSubtopics(spec) {
+  return spec["keyword-model-subtopics"] ?? spec.subtopics ?? [];
+}
+
 let dataDirOverride = null;
 export function setDataDir(dir) { dataDirOverride = dir; }
 function dataDir() { return dataDirOverride ?? process.env.BRIEF_DATA_DIR ?? defaultDataDir(); }
@@ -207,7 +213,7 @@ export async function main(flags = {}) {
   const src = loadJson(join(dataDir(), 'sources.json'));
   const sub2Desk = {};
   for (const [desk, spec] of Object.entries(src.desks ?? {})) {
-    for (const s of spec.subtopics ?? []) sub2Desk[s] = desk;
+    for (const s of deskSubtopics(spec)) sub2Desk[s] = desk;
   }
 
   let conn;
@@ -320,8 +326,9 @@ export async function main(flags = {}) {
 
   if (!Object.keys(selected).length) {
     for (const [desk, spec] of Object.entries(src.desks ?? {})) {
-      const candsAll = pool.filter(p => spec.subtopics.includes(p.subtopic));
-      const picks = pickDesk(candsAll, spec.subtopics, nStories, scfg, seededRng,
+      const subTopics = deskSubtopics(spec);
+      const candsAll = pool.filter(p => subTopics.includes(p.subtopic));
+      const picks = pickDesk(candsAll, subTopics, nStories, scfg, seededRng,
         { newslike: 1, paperlike: 2 });
       const chosen = picks.map(([i, m]) => ({ ...i, mode: m }));
       const reserve = pickReserves(

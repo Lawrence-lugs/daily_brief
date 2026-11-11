@@ -20,6 +20,13 @@ DEFAULTS = {
 }
 
 
+def _desk_subtopics(desk_config: Dict, desk_name: str) -> List[str]:
+    """Return subtopics for a desk, reading the canonical ``keyword-model-subtopics`` key
+    with a fallback to the legacy ``subtopics`` key for backward compatibility."""
+    spec = desk_config[desk_name]
+    return spec.get("keyword-model-subtopics") or spec.get("subtopics") or []
+
+
 def freshness(age_days: float, cfg: Dict) -> float:
     """Logistic in log-age: f(a) = sigmoid((ln a50 - ln a) / s). f(a50) = 0.5."""
     a = max(age_days, cfg["age_floor_days"])
@@ -144,8 +151,8 @@ class KeywordEngine(Engine):
     def __init__(self, config: Dict | None = None, desk_config: Dict | None = None):
         self.config = {**DEFAULTS, **(config or {})}
         self.desk_config = desk_config or {
-            "primary": {"subtopics": ["dse", "accel", "fab"], "title": "Silicon & Architecture Desk"},
-            "science": {"subtopics": ["gr", "qft", "condmat", "neuro"], "title": "Science Desk"},
+            "primary": {"keyword-model-subtopics": ["dse", "accel", "fab"], "title": "Silicon & Architecture Desk"},
+            "science": {"keyword-model-subtopics": ["gr", "qft", "condmat", "neuro"], "title": "Science Desk"},
         }
     
     @property
@@ -179,12 +186,12 @@ class KeywordEngine(Engine):
         science_min_types = cfg.get("science_min_types", {"newslike": 1})
         
         # Pick primary desk
-        primary_subtopics = self.desk_config["primary"]["subtopics"]
+        primary_subtopics = _desk_subtopics(self.desk_config, "primary")
         primary_picks = pick_desk(pool, primary_subtopics, primary_n, cfg, rng, primary_min_types)
         
         # Pick science desk
         taken_ids = {item["id"] for item, _ in primary_picks}
-        science_subtopics = self.desk_config["science"]["subtopics"]
+        science_subtopics = _desk_subtopics(self.desk_config, "science")
         science_picks = pick_desk(
             [c for c in pool if c["id"] not in taken_ids],
             science_subtopics, science_n, cfg, rng, science_min_types

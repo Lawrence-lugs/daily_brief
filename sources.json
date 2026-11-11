@@ -2,11 +2,11 @@
   "desks": {
     "primary": {
       "title": "Silicon & Architecture Desk",
-      "subtopics": ["dse", "accel", "fab"]
+      "keyword-model-subtopics": ["dse", "accel", "fab"]
     },
     "science": {
       "title": "Science Desk",
-      "subtopics": ["gr", "qft", "condmat", "neuro"]
+      "keyword-model-subtopics": ["gr", "qft", "condmat", "neuro"]
     }
   },
   "keywords": {
