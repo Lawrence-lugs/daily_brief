@@ -1,22 +1,28 @@
-// Ward agglomerative clustering with the "representative-sample" stopping rule, plus weighted medoids.
+// Ward agglomerative clustering with desk-aware merging, plus weighted medoids.
 // Pure functions (no I/O) so they are trivially testable. O(n^3) worst case; fine for n <~ 1500.
 // If n grows past that, replace the min-search with a nearest-neighbour chain (same Lance-Williams update).
 import { dot } from './vec.js';
 
 /**
  * @param {Float32Array[]} X              unit vectors
- * @param {Set<number>}    representative indices of representative perfect samples (must stay separated)
+ * @param {Set<number>}    representative indices of representative perfect samples (legacy blocking input)
  * @param {object} o
  * @param {'stop'|'constrained'} o.mode
- *    'stop'        (spec) stop at the first merge that would put two representative samples in one cluster.
- *                  The cut height is therefore the largest one that still separates all representative samples.
- *    'constrained' never merge two clusters that both contain a representative sample, but keep merging the rest.
- *                  Use this if 'stop' collapses into many singleton clusters (two near-duplicate representative samples).
- * @param {number} o.minClusters      also stop when this many clusters remain (use as fixed-k cut / fallback)
+ *    'stop'        stop at the first merge that would put two representative samples in one cluster
+ *                  (only when deskOf is not given; legacy behaviour).
+ *    'constrained' never merge two clusters that both contain a representative sample
+ *                  (only when deskOf is not given; legacy behaviour).
+ * @param {number} o.minClusters      also stop when this many clusters remain
  * @param {number} o.maxHeight        also stop when the next merge height exceeds this
- * @returns {{clusters:number[][], stopHeight:number|null, heights:number[]}}  clusters = arrays of indices into X
+ * @param {function(number):string|undefined} o.deskOf  optional; returns the desk key of any
+ *    point index that carries a desk (e.g. a perfect sample), or undefined otherwise. When given,
+ *    a merge that would join perfect samples of *different* desks is skipped (not stopped) and
+ *    clustering continues; samples of the same desk may merge. This implements decision 1
+ *    (cross-desk merge = skip, not stop) and guarantees no cluster mixes desks (decision 2).
+ * @returns {{clusters:number[][], stopHeight:number|null, heights:number[], skippedMerges:number}}
+ *   clusters = arrays of indices into X
  */
-export function wardCut(X, representative, { mode = 'stop', minClusters = 1, maxHeight = Infinity } = {}) {
+export function wardCut(X, representative, { mode = 'stop', minClusters = 1, maxHeight = Infinity, deskOf } = {}) {
   const n = X.length;
   const D = new Float64Array(n * n);                       // squared Euclidean, then Lance-Williams (Ward)
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
@@ -26,11 +32,21 @@ export function wardCut(X, representative, { mode = 'stop', minClusters = 1, max
   }
   const size = new Float64Array(n).fill(1);
   const active = new Uint8Array(n).fill(1);
-  const nRep = new Int32Array(n);
+  const nRep = new Int32Array(n).fill(0);
   for (const i of representative) nRep[i] = 1;
+  const hasDesk = typeof deskOf === 'function';
+  // deskSet[c] = Set of desk keys of points (with desk info) in cluster c
+  const deskSet = Array.from({ length: n }, () => new Set());
+  if (hasDesk) {
+    for (let i = 0; i < n; i++) {
+      const d = deskOf(i);
+      if (d) deskSet[i].add(d);
+    }
+  }
   let members = Array.from({ length: n }, (_, i) => [i]);
   let alive = n, stopHeight = null;
   const heights = [];
+  let skippedMerges = 0;
 
   while (alive > Math.max(1, minClusters)) {
     let bi = -1, bj = -1, best = Infinity;
@@ -38,14 +54,40 @@ export function wardCut(X, representative, { mode = 'stop', minClusters = 1, max
       if (!active[i]) continue;
       for (let j = i + 1; j < n; j++) {
         if (!active[j]) continue;
-        if (mode === 'constrained' && nRep[i] && nRep[j]) continue;
+        let skip = false;
+        if (hasDesk) {
+          const d1s = deskSet[i], d2s = deskSet[j];
+          const has1 = d1s.size > 0, has2 = d2s.size > 0;
+          if (has1 && has2) {
+            // Both sides carry desk info (perfect samples with desks): skip cross-desk merges.
+            // Liked items (no desk) never contribute to deskSet, so they merge freely.
+            let conflict = false;
+            for (const d1 of d1s) {
+              for (const d2 of d2s) {
+                if (d1 !== d2) { conflict = true; break; }
+              }
+              if (conflict) break;
+            }
+            if (conflict) skip = true;
+          } else {
+            // At most one side carries desk info: no desk constraint (desk-less points merge
+            // freely). Fall back to legacy representative blocking when neither side has desk info.
+            if (!has1 && !has2 && nRep[i] && nRep[j] && mode === 'constrained') skip = true;
+          }
+          if (skip) { skippedMerges++; continue; }
+        } else {
+          // Legacy behaviour (no deskOf): representative samples block merges.
+          if (nRep[i] && nRep[j] && mode === 'constrained') continue;
+        }
         const d = D[i * n + j];
         if (d < best) { best = d; bi = i; bj = j; }
       }
     }
     if (bi < 0) break;                                      // every remaining pair is forbidden
+    const legacyStop = mode === 'stop' && nRep[bi] && nRep[bj] &&
+      (!hasDesk || (deskSet[bi].size === 0 && deskSet[bj].size === 0));
+    if (legacyStop) { stopHeight = best; break; }           // legacy stop
     if (best > maxHeight) { stopHeight = best; break; }
-    if (mode === 'stop' && nRep[bi] && nRep[bj]) { stopHeight = best; break; }
     const ni = size[bi], nj = size[bj];
     for (let k = 0; k < n; k++) {
       if (!active[k] || k === bi || k === bj) continue;
@@ -54,12 +96,13 @@ export function wardCut(X, representative, { mode = 'stop', minClusters = 1, max
       D[bi * n + k] = D[k * n + bi] = d;
     }
     size[bi] = ni + nj; nRep[bi] += nRep[bj];
+    if (hasDesk) { for (const d of deskSet[bj]) deskSet[bi].add(d); deskSet[bj].clear(); }
     members[bi] = members[bi].concat(members[bj]);
     active[bj] = 0; alive--; heights.push(best);
   }
   const clusters = [];
   for (let i = 0; i < n; i++) if (active[i]) clusters.push(members[i].sort((a, b) => a - b));
-  return { clusters, stopHeight, heights };
+  return { clusters, stopHeight, heights, skippedMerges };
 }
 
 /**

@@ -25,10 +25,10 @@ Read alongside: `docs/model.md` (model details), `ranker/README.md` (CLI referen
 | `candidates` | Number of candidate items scored |
 | `everPicked` | Count of distinct items picked across all runs |
 | `consecutiveJaccard` | Mean Jaccard similarity between consecutive runs (1 = identical brief every day, 0 = disjoint) |
-| `desks.[primary\|science].meanP` | Mean model like-probability of picks |
-| `desks.[primary\|science].meanAgeDays` | Mean age of picked items |
-| `desks.[primary\|science].exploreFrac` | Fraction of picks that were explore-mode |
-| `desks.[primary\|science].distinctClusters` | Mean number of distinct clusters represented across picks |
+| `desks.[*].meanP` | Mean model like-probability of picks (per desk) |
+| `desks.[*].meanAgeDays` | Mean age of picked items (per desk) |
+| `desks.[*].exploreFrac` | Fraction of picks that were explore-mode (per desk) |
+| `desks.[*].distinctClusters` | Mean number of distinct clusters represented across picks (per desk) |
 | `topIncluded[15]` | Most frequently picked items (`id`, `freq`, `p`, `age`, `title`) |
 
 ### Interpretation targets
@@ -36,7 +36,7 @@ Read alongside: `docs/model.md` (model details), `ranker/README.md` (CLI referen
 | Metric | Good range | What it means |
 |--------|-----------|---------------|
 | `consecutiveJaccard` | well below 1 (e.g. < 0.6) | Briefs change day-to-day; not stuck on the same items |
-| `distinctClusters` (primary) | > 1 | Round-robin is hitting multiple core clusters, not one |
+| `distinctClusters` (per desk) | > 1 | Round-robin is hitting multiple clusters, not one |
 | `exploreFrac` | ~ epsilon | Exploration is happening as configured |
 
 ### Example
@@ -193,8 +193,8 @@ python src/brief.py --engine lr --no-llm --date 2026-10-29
 
 Use `simulate` to tune sampling knobs, then `eval` to tune model priors:
 
-1. **`simulate --set ...`** — tune `epsilon`, `halfLifeDays`, `dedupe.*`, `explore.gamma`, `slots.*`.
-   Targets: `consecutiveJaccard` well below 1, `distinctClusters` > 1 for primary.
+1. **`simulate --set ...`** — tune `epsilon`, `halfLifeDays`, `dedupe.*`, `explore.gamma`, `stories_per_desk`.
+   Targets: `consecutiveJaccard` well below 1, `distinctClusters` > 1 per desk.
 2. **`eval --testFrac 0.2`** — tune `model.prior.rules` (prec/mean per feature).
    Target: fitted ≥ prior-only on chronological holdout (≥ ~30 positives).
 3. **A/B over ~2 weeks** — run both engines, compare like/save rates and overlap.

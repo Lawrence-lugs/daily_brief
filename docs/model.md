@@ -82,10 +82,12 @@ p_{\text{mid}} = \arg\min_{p \in C} \|p - c_\alpha\|^2$$
 Because $\sum_i \alpha_i \|p - x_i\|^2 = W\|p - c_\alpha\|^2 + \text{const}$, the code picks the member nearest the
 weighted centroid.
 
-### 3.4 Core flag
+### 3.4 Cluster desk
 
-A cluster is `core` if it contains ≥1 `core:true` perfect sample. Core clusters drive the primary desk (round-robin);
-non-core items go to the science desk.
+Each cluster carries a `desk` derived from its perfect-sample members (all share one desk, enforced by the
+cross-desk skip rule in §3.2). Liked items carry no desk. Clusters with no perfect-sample members get `desk:
+"misc"` (an explicit desk, defined in `config.json`, so it appears as a column). The `core` flag is retained
+(≥1 `core:true` perfect sample in the cluster) but no longer drives desk assignment — desks do.
 
 ---
 
@@ -177,7 +179,7 @@ the label into the features.
 4. Fit the model on the cross-fitted examples.
 5. **Serving uses full interests** (all liked items) — no leakage at serve time because we only score, never re-fit.
 
-`fitKey = SHA1([perfect (id, text_hash, core), sorted likedIds, trainingRows (item_id, y), config sections
+`fitKey = SHA1([perfect (id, text_hash, core, desk), sorted likedIds, trainingRows (item_id, y), config sections
 (interests, features, authors, crossFit, model), ENCODING_VERSION])`. If `fitKey` matches the cached value in
 `ranker_state`, `refit` hydrates interests + model from DB and skips recomputation. Use `--force` to ignore the cache.
 
@@ -196,11 +198,11 @@ For each candidate item:
    $$L = \text{dedupe(days since shown)} = \frac{1}{1 + e^{-(d - t_0)/\text{scale}}}$$
    with $t_0=7$, $\text{scale}=2$. The hard window (`hardWindowDays`, default 2) is applied separately:
    items shown within `hardWindowDays` are **filtered out before scoring** in `selectBrief`, not zeroed by the dedupe function.
-3. **Primary desk:** Round-robin over **core clusters** (random cluster order per day). Each draw: epsilon-greedy on
-   $V$ within that cluster's pool.
-4. **Science desk:** All non-core items as one pool; epsilon-greedy on $V$.
-5. **Backfill:** If a desk is short, pull from leftovers (any cluster).
-6. **Reserves:** Best leftovers by $V$ per desk (editor backfill on rejection; LR engine hides reserves from the LLM).
+3. **Per desk (including `misc`):** Round-robin over that desk's clusters (random cluster order per day). Each draw:
+   epsilon-greedy on $V$ within that cluster's pool. Cap at `stories_per_desk` per desk.
+4. **No cross-desk backfill** (decision 3): a short desk returns fewer picks without error.
+5. **Reserves:** Best leftovers by $V$ per desk (editor backfill on rejection; LR engine hides reserves from the LLM).
+   Cap at `reserve_per_desk`.
 
 `mulberry32` RNG with `--seed` for reproducibility; two runs with the same seed are identical.
 
@@ -219,4 +221,7 @@ For each candidate item:
 | `ranker/store.js` | SQLite wrapper for embeddings/training rows/ranker_state |
 | `ranker/pipeline.js` | `ensureEmbeddings`, `ensureFitted`, `prepareCandidates` |
 | `ranker/cli.js` | CLI: embed / refit / select / simulate / eval / inspect |
-| `config.json` (`ranker` key) | All tunable knobs (priors, epsilon, halfLife, dedupe, slots, …) |
+| `config.json` (`ranker` key) | All tunable knobs (priors, epsilon, halfLife, dedupe, `stories_per_desk`, `reserve_per_desk`, …) |
+
+---
+**Existing DB rows:** rows already in `candidate_pool` and `stories` keep their old `desk` keys (`primary`/`science`); they are not rewritten. The new `misc` desk is only assigned by the ranker at clustering time to clusters without perfect-sample members. Future crawls write `desk` from `config.json` `desks`.

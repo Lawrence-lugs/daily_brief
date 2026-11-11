@@ -16,13 +16,22 @@ export function buildInterests(perfect, liked, cfg) {
   if (!pts.length) throw new Error('no perfect samples and no liked items: cannot build interests');
   const X = pts.map((p) => p.vec), w = pts.map((p) => p.w);
   const repIdx = new Set(); pts.forEach((p, i) => { if (p.perfect && p.representative) repIdx.add(i); });
-  const { clusters, stopHeight } = wardCut(X, repIdx, cfg);
+  // deskOf(i) returns the desk key of a perfect sample, undefined for liked items / no desk.
+  const deskOf = (i) => pts[i].perfect ? (pts[i].desk ?? undefined) : undefined;
+  const { clusters, stopHeight, skippedMerges } = wardCut(X, repIdx, { ...cfg.interests, deskOf });
   return {
     stopHeight,
+    skippedMerges,
     clusters: clusters.map((idx, id) => {
       const m = weightedMedoid(X, w, idx);
+      // Cluster desk derives from its perfect-sample members (liked items carry no desk).
+      // Clusters with no perfect members go to "misc" (decision 2).
+      const perfectMembers = idx.filter((i) => pts[i].perfect);
+      const desk = perfectMembers.length > 0
+        ? (pts[perfectMembers[0]].desk ?? 'misc')
+        : 'misc';
       return {
-        id, medoid: pts[m].id, vec: X[m], size: idx.length,
+        id, medoid: pts[m].id, vec: X[m], size: idx.length, desk,
         core: idx.some((i) => pts[i].perfect && pts[i].core),   // has >=1 core perfect sample
         members: idx.map((i) => pts[i].id),
       };

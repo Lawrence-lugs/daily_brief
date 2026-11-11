@@ -1,36 +1,36 @@
-# Plan: ONE LLM API call for BOTH desks
+# Plan: ONE LLM API call for ALL desks
 
 ## Problem
-`src/brief.py` currently calls the editor LLM once per desk (`primary` / `science`) in a serialized loop:
+`src/brief.py` currently calls the editor LLM once per desk in a serialized loop:
 - `build_user_message(desk_title, n, cands_for_llm, ...)` → per-desk user message
-- `llm.chat(system, user)` → **one OpenRouter call per desk** = 2 calls per run
+- `llm.chat(system, user)` → **one OpenRouter call per desk** = N calls per run (N = number of desks)
 - `apply_editor(selected[desk], result, n)` → per-desk stories
 
-This costs ~2x the LLM e2e latency and 2 `llm_requests` per edition.
+This costs ~Nx the LLM e2e latency and N `llm_requests` per edition.
 
 ## Insight
-Desk membership is known **before** the LLM edit: selection (keyword or LR engine) already assigns each candidate to a desk via `item["desk"]` (subtopic → desk mapping in `sources.json`). So we can send all candidates from both desks in a **single** message, tagged by desk, and split the single response back per desk.
+Desk membership is known **before** the LLM edit: selection (keyword or LR engine) already assigns each candidate to a desk via `item["desk"]` (subtopic → desk mapping in `config.json`). So we can send all candidates from all desks in a **single** message, tagged by desk, and split the single response back per desk.
 
 ## Goal
-Reduce LLM calls from **2 → 1 per run** while keeping:
+Reduce LLM calls from **N → 1 per run** while keeping:
 - output shape `desks_out[desk] = {"title", "stories", "deck"}` unchanged,
 - `db.append_brief`, SQLite schema, Node server (`queries.getBrief`, `render.js`), and the client unchanged,
-- per-desk story count `n`, backfill-on-rejection, lead story, per-desk deck,
-- graceful fallback: if the single call fails, both desks show raw items (same safety as today's per-desk failure).
+- per-desk story count `stories_per_desk`, backfill-on-rejection, lead story, per-desk deck,
+- graceful fallback: if the single call fails, all desks show raw items (same safety as today's per-desk failure).
 
 ## Files to change
 
 ### 1. `prompt_system.md` (the editor prompt)
-- Address both desks by name/key: "Silicon & Architecture Desk (primary)" and "Science Desk (science)".
+- Address all desks by name/key (generated from `config.json` `desks`, includes `misc`).
 - New single JSON schema:
 ```json
 {
   "decks": {
-    "primary": {"deck": "<1 sentence, max 25 words>", "lead_id": "<id>"},
-    "science": {"deck": "<...>", "lead_id": "<id>"}
+    "<desk_key>": {"deck": "<1 sentence, max 25 words>", "lead_id": "<id>"},
+    ...
   },
   "items": [
-    {"id": "<copied exactly>", "desk": "primary|science", "keep": true,
+    {"id": "<copied exactly>", "desk": "<desk_key>", "keep": true,
      "headline": "<max 90 chars>", "blurb": "<2-3 sentences>",
      "why_care": "<max 20 words>", "tags": ["<=3"], "significance": 1..5}
   ]
@@ -57,23 +57,23 @@ Replace the per-desk `llm.chat()` loop with:
 4. `split = apply_editor_multi(selected, result, n)`; if `result is None` (call failed), fall back to `apply_editor(selected[desk], None, n)` per desk (raw items).
 5. `prog.desk_edited(desk, stories, deck)` per desk; emit `run.event("editor", ...)` per desk as before; assemble `desks_out[desk]` exactly as today.
 
-`llm_requests` will now count 1 instead of 2 when LLM is used.
+`llm_requests` will now count 1 instead of N when LLM is used.
 
 ### 4. `tests/test_agent.py` (new)
 Pure-function unit tests, no network:
-- `build_user_message_multi` mentions both desk titles/tags and each candidate carries its desk.
+- `build_user_message_multi` mentions all desk titles/tags and each candidate carries its desk.
 - `apply_editor_multi` splits one combined result into correct per-desk stories, honors `keep:false`, backfills per desk to `n`, applies per-desk lead sorting, returns per-desk decks.
 
 ### 5. `docs/architecture.md`
-Update step 5 "Edit": single combined LLM call covering both desks; desk membership travels with each candidate; response split back per desk.
+Update step 5 "Edit": single combined LLM call covering all desks; desk membership travels with each candidate; response split back per desk.
 
 ## Backwards compatibility / risk
 - `--no-llm`: untouched (raw items per desk).
 - LR engine: reserves still hidden from the LLM, still used for per-desk backfill.
 - Keyword engine: picks + reserves still shown to the LLM (unchanged behavior).
 - Malformed JSON: `extract_json`/`salvage_items` still operate on the whole response; recovered items carry `desk` if present, else resolve by id lookup.
-- If the single call raises `LLMUnavailable`, both desks go raw (acceptable; previously only the failing desk went raw). Per-run cap `max_requests_per_run` unaffected.
+- If the single call raises `LLMUnavailable`, all desks go raw (acceptable; previously only the failing desk went raw). Per-run cap `max_requests_per_run` unaffected.
 
 ## Verification
 - `pytest tests/` must pass.
-- Manual `python src/brief.py --no-llm` and (if a key is available) a full LLM run; confirm both desks get stories and `llm_requests == 1`.
+- Manual `python src/brief.py --no-llm` and (if a key is available) a full LLM run; confirm all desks get stories and `llm_requests == 1`.

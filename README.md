@@ -37,9 +37,9 @@ daily_brief/
     trainer.js       cross-fitted training set (leak fix), chronological split
     test/ranker.test.js 15 unit tests (node --test)
   config.json        every tunable (db_file, ranker.*, selection.*, llm.*, fetch.*, pool.*)
-  sources.json       arXiv queries, RSS feeds, subtopic keyword lists, desk mapping
-  prompt_system.md   the editor prompt (interests + rules + JSON schema)
-  perfect_samples.json human-curated anchor items (core + side interests)
+  sources.json       arXiv queries, RSS feeds, subtopic keyword lists
+  prompt_system.md   the editor prompt (desks + rules + JSON schema)
+  perfect_samples.json human-curated anchor items (one `desk` per sample)
   tailwind.input.css Tailwind entry file   tailwind.css  compiled output (committed)
   build_css.ps1      one-off Tailwind build (scans server/templates + server/public/client.js)
   daily_brief.db     SQLite database (gitignored; see config.json db_file)
@@ -82,7 +82,7 @@ Two selection engines are available via `config.ranker.engine` or `--engine` fla
 | Engine | Description | Config key |
 |---|---|---|
 | `keyword` (legacy) | Per-desk epsilon-greedy on keyword `rel` scores, hard type quotas | `selection.*` |
-| `lr` (new) | Bayesian logistic regression on embeddings + author + medoid features; Ward-clustering interests; round-robin core clusters + side desk | `ranker.*` |
+| `lr` (new) | Bayesian logistic regression on embeddings + author + medoid features; Ward-clustering interests; per-desk round-robin over clusters + reserves | `ranker.*` |
 
 The LR engine is the default going forward. The keyword engine remains as a fallback and for A/B comparison.
 

@@ -15,6 +15,7 @@ import { LLM, LLMUnavailable, buildUserMessageMulti, applyEditorMulti, applyEdit
 import { RunLog } from './runlog.js';
 import { Progress } from './progress.js';
 import { log, warn, setLogFile, LOG_FILE } from './util.js';
+import { loadDesksConfig } from './config.js';
 import { fetchAll, refreshApiFeeds, setCacheResolver } from './fetch/fetcher.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
 import { defaultDataDir, seedDataDir } from './datadir.js';
@@ -33,12 +34,6 @@ setCacheResolver(() => CACHE);
 
 function loadJson(file, def = null) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return def; }
-}
-
-/** Desk subtopics, reading the canonical `keyword-model-subtopics` key with a fallback
- *  to the legacy `subtopics` key for backward compatibility. */
-function deskSubtopics(spec) {
-  return spec["keyword-model-subtopics"] ?? spec.subtopics ?? [];
 }
 
 let dataDirOverride = null;
@@ -129,7 +124,12 @@ export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
     const candidates = prepareCandidates(store, rankerCfg, fitted, dateKey, nowSelect, run);
 
     const rng = mulberry32(seed ?? Date.now());
-    const out = rankerSelectBrief(candidates, rankerCfg.sampling ?? {}, rng);
+    const samplingCfg = {
+      ...(rankerCfg.sampling ?? {}),
+      stories_per_desk: cfg.stories_per_desk ?? 5,
+      reserve_per_desk: cfg.reserve_per_desk ?? 25,
+    };
+    const out = rankerSelectBrief(candidates, samplingCfg, rng);
 
     const embRows = new Map((store.getAllEmbeddings() ?? []).map(e => [e.item_id, e]));
     const vecOf = (id) => {
@@ -211,10 +211,8 @@ export async function main(flags = {}) {
   const prog = new Progress(progressFile, null);
   const cfg = loadJson(join(dataDir(), 'config.json'));
   const src = loadJson(join(dataDir(), 'sources.json'));
-  const sub2Desk = {};
-  for (const [desk, spec] of Object.entries(src.desks ?? {})) {
-    for (const s of deskSubtopics(spec)) sub2Desk[s] = desk;
-  }
+  const { DESKS, subtopicToDesk, warnings: configWarnings } = loadDesksConfig(dataDir());
+  for (const w of configWarnings) warn(`[config] ${w}`);
 
   let conn;
   try {
@@ -232,7 +230,7 @@ export async function main(flags = {}) {
       const items = await refreshApiFeeds(cfg, src);
       const classified = [];
       for (const it of items) {
-        const c = classify(it, src.keywords ?? {}, sub2Desk);
+        const c = classify(it, cfg.keywords ?? {}, subtopicToDesk);
         if (c) classified.push(c);
       }
       const now = new Date();
@@ -261,7 +259,7 @@ export async function main(flags = {}) {
     const seen = {};
     const dropped = new Set();
     for (const it of raw) {
-      const c = classify(it, src.keywords ?? {}, sub2Desk);
+      const c = classify(it, cfg.keywords ?? {}, subtopicToDesk);
       if (!c) { dropped.add(it.id); continue; }
       if (!seen[c.id] || c.rel > seen[c.id].rel) seen[c.id] = c;
     }
@@ -325,8 +323,9 @@ export async function main(flags = {}) {
   }
 
   if (!Object.keys(selected).length) {
-    for (const [desk, spec] of Object.entries(src.desks ?? {})) {
-      const subTopics = deskSubtopics(spec);
+    for (const { key: desk, title } of DESKS) {
+      const spec = cfg.desks?.[desk] ?? {};
+      const subTopics = spec["keyword-model-subtopics"] ?? spec.subtopics ?? [];
       const candsAll = pool.filter(p => subTopics.includes(p.subtopic));
       const picks = pickDesk(candsAll, subTopics, nStories, scfg, seededRng,
         { newslike: 1, paperlike: 2 });
@@ -371,21 +370,38 @@ export async function main(flags = {}) {
   setDebugLog(join(debugDir, 'agent_responses.jsonl'));
 
   const todayS = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // --- generate desk template variables from DESKS + config (Phase 5) ---
+  const deskKeys = DESKS.map((d) => d.key);
+  const deskItemEnum = deskKeys.map((k) => `"${k}"`).join(' | ');
+  const deskSections = DESKS.map(({ key, title }) => {
+    const subs = (cfg.desks?.[key]?.["keyword-model-subtopics"] ?? []).map((s) => `- ${s}`).join('\n');
+    return `${title} (${key}):\n${subs}`;
+  }).join('\n\n');
+  const deskDecks = JSON.stringify(
+    Object.fromEntries(deskKeys.map((k) => [k, { deck: '', lead_id: '' }])),
+    null, 2,
+  );
+
   const system = readFileSync(join(PROJECT_ROOT, 'prompt_system.md'), 'utf8');
   const maxCap = Number(cfg.max_agent_output_items_per_desk ?? nStories);
-  const systemFilled = system.replace('{{max_agent_output_items_per_desk}}', String(maxCap));
+  let systemFilled = system
+    .replace('{{desk_item_enum}}', deskItemEnum)
+    .replace('{{desk_sections}}', deskSections)
+    .replace('{{desk_decks}}', deskDecks)
+    .replace('{{max_agent_output_items_per_desk}}', String(maxCap));
 
   const candsByDesk = {};
-  for (const [desk, spec] of Object.entries(src.desks ?? {})) {
+  for (const { key: desk } of DESKS) {
     candsByDesk[desk] = eng === 'lr'
       ? (selected[desk] ?? []).filter(c => c.mode !== 'reserve')
       : (selected[desk] ?? []);
   }
 
-  const deskSpecs = Object.entries(src.desks ?? {}).map(([key, spec]) => ({ key, title: spec.title }));
+  const deskSpecs = DESKS.map(({ key, title }) => ({ key, title }));
 
-  for (const [desk, spec] of Object.entries(src.desks ?? {})) {
-    prog.deskInit(desk, spec.title, nStories);
+  for (const { key: desk, title } of DESKS) {
+    prog.deskInit(desk, title, nStories);
     if (eng === 'lr') prog.deskRaw(desk, candsByDesk[desk] ?? []);
   }
   prog.phase('editing');
@@ -403,7 +419,7 @@ export async function main(flags = {}) {
   const split = result ? applyEditorMulti(selected, result, nStories) : null;
   const desksOut = {};
   const allRejected = [];
-  for (const [desk, spec] of Object.entries(src.desks ?? {})) {
+  for (const { key: desk, title } of DESKS) {
     prog.deskWorking(desk, true);
     let stories, rejected, deck;
     if (split) {
@@ -418,7 +434,7 @@ export async function main(flags = {}) {
       output: stories.map(s => ({ ...itemView(s, now), summarized: s.summarized })),
       rejected, reserves_used: stories.filter(s => s.mode === 'reserve').map(s => s.id), deck,
     });
-    desksOut[desk] = { title: spec.title, stories, deck: deck || 'Unedited candidates, ranked by relevance and freshness.' };
+    desksOut[desk] = { title, stories, deck: deck || 'Unedited candidates, ranked by relevance and freshness.' };
     allRejected.push(...rejected);
   }
 

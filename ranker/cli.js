@@ -95,7 +95,12 @@ async function cmdSelect(args) {
     const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run);
     const rng = mulberry32(seed);
     const trace = run.want('trace') ? (kind, data) => run.event(kind, data, 'trace') : undefined;
-    const out = selectBrief(candidates, cfg.sampling, rng, trace);
+    const samplingCfg = {
+      ...cfg.sampling,
+      stories_per_desk: cfg.stories_per_desk ?? 5,
+      reserve_per_desk: cfg.reserve_per_desk ?? 25,
+    };
+    const out = selectBrief(candidates, samplingCfg, rng, trace);
     // Snapshot of the card backside, frozen now (interests get refitted later; see ranker/backside.js).
     const embRows = new Map((store.getAllEmbeddings() || []).map((e) => [e.item_id, e]));
     const vecOf = (id) => {

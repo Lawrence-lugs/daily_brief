@@ -77,7 +77,7 @@ Key design principles:
 | `selection.py` | Legacy keyword engine: epsilon-greedy + soft staleness per desk. |
 | `db.py` | SQLite layer: `connect`, `upsert_pool`, `append_brief`, `load_pool`, `same_day_counts`, etc. |
 | `agent.py` | LLM chat loop, JSON salvage, editor (`build_user_message_multi`, `apply_editor_multi` |
-|            | for one combined call covering both desks; legacy `build_user_message`/`apply_editor` kept). |
+|            | for one combined call covering all desks; legacy `build_user_message`/`apply_editor` kept). |
 | `util.py` | Shared logging/warnings state (`log`, `warn`). |
 | `fetch/` | Fetching subsystem (`fetcher.py`, `semanticscholar.py`, `hn.py`, …). |
 | `migrate_to_sqlite.py` | One-off migration from `state.json` + edition dirs. |
@@ -132,7 +132,7 @@ python src/brief.py
   │           → prepareCandidates                       encode features, model.p
   │           → selectBrief                             round-robin core clusters + epsilon-greedy
   ├─► apply_editor()              LLM edits/summaries (OpenRouter) or raw items (--no-llm).
-  │                                 ONE combined call covers both desks; each candidate carries its
+  │                                 ONE combined call covers all desks; each candidate carries its
   │                                 pre-assigned desk and the response is split back per desk.
   └─► db.append_brief()           single atomic append: briefs + stories; carry forward likes
 ```
@@ -206,9 +206,9 @@ Obsidian (obsidian/daily-brief.md)
 3. **Upsert**: `db.upsert_pool()` writes `candidate_pool` rows and `item_meta` (authors survive pool pruning).
 4. **Select**: Either the legacy keyword engine (Python) or the LR engine (Node ranker CLI) picks items per desk
    with mode (`greedy`/`explore`/`reserve`).
-5. **Edit**: The LLM (`agent.py`) makes ONE combined call covering both desks — each candidate carries its
-   pre-assigned `desk`, the response is split back per desk, and each desk is backfilled to `n` stories;
-   on `--no-llm` or editor failure raw items are shown on both desks.
+5. **Edit**: The LLM (`agent.py`) makes ONE combined call covering all desks — each candidate carries its
+   pre-assigned `desk`, the response is split back per desk, and each desk is backfilled to `stories_per_desk`;
+   on `--no-llm` or editor failure raw items are shown on all desks.
 6. **Persist**: `db.append_brief()` atomically appends one `briefs` row + `stories` rows. Same-day regeneration
    supersedes (`counted=0` on the old row) and carries forward like/save marks.
 7. **Serve**: The Node server reads `briefs`/`stories` and renders HTML. Feedback (`/api/stories/<id>/feedback`)

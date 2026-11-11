@@ -60,17 +60,21 @@ export function draw(pool, cfg, rng) {
 
 /**
  * @param cfg {epsilon, halfLifeDays, dedupe:{hardWindowDays,t0,scale}, explore:{gamma,floor},
- *             slots:{primary,science,reserve}, desks:{core:'primary', side:'science'}}
+ *             stories_per_desk:number, reserve_per_desk:number}
  * @param trace optional (kind, data) => void. Only observes: the picks are the same with or without it.
- * @returns {Object<string, Array>} desk -> picks (mode greedy|explore|reserve), reserves last
+ * @returns {Object<string, Array>} desk -> picks (mode greedy|explore|reserve), reserves last.
+ *   Each desk's picks come only from that desk's clusters (no cross-desk backfill).
+ *   A short desk returns fewer picks without error.
  */
 export function selectBrief(cands, cfg, rng, trace) {
-  const D = cfg.desks;
   const draws = [];
   if (trace) { const base = rng; rng = () => { const v = base(); draws.push(v); return v; }; }
   const kept = cands.filter((c) => c.days_since_shown == null || c.days_since_shown >= cfg.dedupe.hardWindowDays);
   trace?.('filter', { candidates: cands.length, hardWindowRemoved: cands.length - kept.length, live: kept.length, hardWindowDays: cfg.dedupe.hardWindowDays });
   const live = kept.map((c) => ({ ...c, V: value(c, cfg) }));
+  const nPerDesk = cfg.stories_per_desk ?? 5;
+  const kReserve = cfg.reserve_per_desk ?? 25;
+
   const pickOne = (pool, desk, stage) => {
     const before = draws.length;
     const snapshot = trace ? [...pool].sort((a, b) => b.V - a.V).slice(0, 3).map((c) => ({ id: c.id, V: c.V })) : null;
@@ -81,41 +85,42 @@ export function selectBrief(cands, cfg, rng, trace) {
     return { ...c, mode, desk };
   };
 
-  // --- main research desk: round-robin over core clusters (random cluster order for the day)
-  const byCluster = new Map();
-  for (const c of live) if (c.core) { if (!byCluster.has(c.cluster)) byCluster.set(c.cluster, []); byCluster.get(c.cluster).push(c); }
-  const order = shuffle([...byCluster.keys()], rng);
-  trace?.('clusters', { order, sizes: order.map((k) => byCluster.get(k).length) });
-  const primary = [];
-  while (primary.length < cfg.slots.primary && order.some((k) => byCluster.get(k).length)) {
-    for (const k of order) {
-      if (primary.length >= cfg.slots.primary) break;
-      const pool = byCluster.get(k);
-      if (pool.length) primary.push(pickOne(pool, D.core, 'primary'));
-    }
+  // Group live candidates by desk (each desk is sampled independently).
+  const byDesk = new Map();
+  for (const c of live) {
+    const desk = c.desk ?? 'misc';
+    if (!byDesk.has(desk)) byDesk.set(desk, []);
+    byDesk.get(desk).push(c);
   }
-  // --- side desk: all non-core items as one pool
-  const sidePool = live.filter((c) => !c.core);
-  const science = [];
-  while (science.length < cfg.slots.science && sidePool.length) science.push(pickOne(sidePool, D.side, 'science'));
 
-  // --- never leave a hole: backfill a short desk from whatever is left
-  const used = new Set([...primary, ...science].map((c) => c.id));
-  const rest = live.filter((c) => !used.has(c.id));
-  for (const [list, n, desk] of [[primary, cfg.slots.primary, D.core], [science, cfg.slots.science, D.side]]) {
-    if (list.length < n) trace?.('backfill', { desk, short: n - list.length, available: rest.length });
-    while (list.length < n && rest.length) list.push(pickOne(rest, desk, 'backfill'));
+  const result = {};
+  for (const [desk, pool] of byDesk) {
+    // Round-robin over clusters within this desk (random cluster order for the day).
+    const byCluster = new Map();
+    for (const c of pool) {
+      if (!byCluster.has(c.cluster)) byCluster.set(c.cluster, []);
+      byCluster.get(c.cluster).push(c);
+    }
+    const order = shuffle([...byCluster.keys()], rng);
+    trace?.('clusters', { desk, order, sizes: order.map((k) => byCluster.get(k).length) });
+
+    const picks = [];
+    while (picks.length < nPerDesk && order.some((k) => byCluster.get(k).length)) {
+      for (const k of order) {
+        if (picks.length >= nPerDesk) break;
+        const clusterPool = byCluster.get(k);
+        if (clusterPool.length) picks.push(pickOne(clusterPool, desk, desk));
+      }
+    }
+
+    // Reserves (editor backfill when the LLM rejects an item): best leftovers by V, per desk.
+    const used = new Set(picks.map((c) => c.id));
+    const leftovers = pool.filter((c) => !used.has(c.id));
+    const reserves = leftovers.sort((a, b) => b.V - a.V).slice(0, kReserve).map((c) => ({ ...c, mode: 'reserve', desk }));
+
+    result[desk] = [...picks, ...reserves];
+    trace?.('reserves', { desk, ids: reserves.map((c) => ({ id: c.id, V: c.V })) });
   }
-  // --- reserves (editor backfill when the LLM rejects an item): best leftovers by V, per desk
-  const usedAll = new Set([...primary, ...science].map((c) => c.id));
-  const reserve = (pool, desk) => pool.filter((c) => !usedAll.has(c.id)).sort((a, b) => b.V - a.V)
-    .slice(0, cfg.slots.reserve).map((c) => ({ ...c, mode: 'reserve', desk }));
-  const coreLeft = [...byCluster.values()].flat();
-  const out = {
-    [D.core]: [...primary, ...reserve(coreLeft, D.core)],
-    [D.side]: [...science, ...reserve(sidePool, D.side)],
-  };
-  for (const [desk, items] of Object.entries(out)) trace?.('reserves', { desk, ids: items.filter((c) => c.mode === 'reserve').map((c) => ({ id: c.id, V: c.V })) });
-  return out;
+  return result;
 }
 

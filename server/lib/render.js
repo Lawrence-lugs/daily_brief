@@ -76,11 +76,10 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
    */
   function page({ brief, desks, briefs, embed }) {
     const empty = { title: '', deck: '', stories: [] };
-    const primary = desks?.primary ?? empty;
-    const science = desks?.science ?? empty;
+    const allDesks = desks ?? {};
     const meta = brief?.meta ?? {};
     const storyState = {};
-    for (const d of Object.values(desks ?? {})) {
+    for (const d of Object.values(allDesks)) {
       for (const s of d.stories) storyState[s.story_id] = { liked: !!s.liked, saved: !!s.saved };
     }
     const boot = JSON.stringify({ briefId: brief?.brief_id ?? null, date: brief?.date ?? null, embed, stories: storyState })
@@ -98,14 +97,44 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       ? `Edited by ${meta.model} (${meta.engine ?? 'keyword'}). ${meta.n_fresh} recent, ${meta.n_archive} from the archive. ` +
         `${meta.n_explore} explore picks (epsilon ${meta.epsilon}). Candidate pool: ${meta.pool} items. Sources: ${meta.sources}.`
       : '';
+
+    // Render every desk section generically (Phase 6: N-desk support). Desks absent from the data
+    // still render as empty sections so the page layout stays stable.
+    const deskSections = Object.entries(allDesks).map(([key, d]) => {
+      const storiesHtml = raw(renderDesk(d.stories ?? []));
+      return fill(tpl('desk-section.html'), {
+        key,
+        title: d.title ?? key,
+        deck: raw(d.deck ?? ''),
+        stories: storiesHtml,
+      });
+    }).join('');
+
+    const deskCount = Object.keys(allDesks).length;
+    let deskGridStyle = '';
+    if (deskCount >= 2) {
+      // Decision 5: W2 = min width of 2-column format (current md breakpoint = 768px).
+      // N columns at width >= (N/2) * W2; 2 columns at >= W2; 1 column below W2.
+      const W2 = 768;
+      const nWidth = Math.ceil((deskCount / 2) * W2);
+      const rules = [
+        `[data-desks] { display: grid; gap: 2rem; }`,
+        `@media (min-width: ${W2}px) { [data-desks] { grid-template-columns: repeat(2, 1fr); } }`,
+      ];
+      if (deskCount > 2) {
+        rules.push(`@media (min-width: ${nWidth}px) { [data-desks] { grid-template-columns: repeat(${deskCount}, 1fr); } }`);
+      }
+      deskGridStyle = rules.join('\n');
+    }
+
     return fill(tpl('page.html'), {
       css: raw(readFileSync(cssFile, 'utf8')),
+      desk_grid_style: raw(deskGridStyle),
+      desk_sections: raw(deskSections),
       paper_name: paperName,
       date_long: brief ? dateLong(brief.date) : dateLong(localToday()),
       edition: brief ? `No. ${brief.edition}` : '',
       generated: brief ? new Date(brief.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
-      primary_title: primary.title, primary_deck: primary.deck, primary_stories: raw(renderDesk(primary.stories)),
-      science_title: science.title, science_deck: science.deck, science_stories: raw(renderDesk(science.stories)),
       footer, boot: raw(boot), status, status_class: stale ? 'stale' : '',
       brief_options: raw(options), generate_label: brief ? 'Regenerate' : 'Generate brief',
       basePath,

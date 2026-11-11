@@ -108,6 +108,56 @@ test('all perfect samples non-representative => no blocking', () => {
   assert.equal(clusters.length, 1);
 });
 
+test('wardCut desk-aware: cross-desk representative merge is skipped (not stopped)', () => {
+  const X = [...A, ...B];                     // two tight blobs
+  const representative = new Set([0, 6]);     // one rep in A, one rep in B
+  const deskOf = (i) => i < 6 ? 'primary' : 'science';
+  const { clusters, skippedMerges } = wardCut(X, representative, { mode: 'stop', deskOf });
+  // Representatives are in different desks and blobs are far apart -> they never merge.
+  // Each blob stays its own cluster (2 clusters), cross-desk merge skipped.
+  assert.equal(clusters.length, 2);
+  assert.ok(skippedMerges > 0, 'cross-desk merge should be counted as skipped');
+  const cl0 = clusters.find((c) => c.includes(0));
+  const cl6 = clusters.find((c) => c.includes(6));
+  assert.notEqual(cl0, cl6);
+});
+
+test('wardCut desk-aware: same-desk representative merge is allowed', () => {
+  const X = [...A, ...B];                     // two tight blobs
+  const representative = new Set([0, 6]);     // one rep in A, one rep in B
+  const deskOf = () => 'primary';             // both reps same desk
+  const { clusters, skippedMerges } = wardCut(X, representative, { mode: 'stop', deskOf, minClusters: 1 });
+  // Same desk -> reps may merge -> all of A and B merge into 1 cluster
+  assert.equal(clusters.length, 1);
+  assert.equal(skippedMerges, 0, 'no cross-desk conflict when all desks match');
+});
+
+test('buildInterests: cluster desk derives from perfect members, liked-only clusters are misc', () => {
+  const perfect = [
+    { id: 'ps:p1', vec: A[0], core: true, representative: true, desk: 'primary' },
+    { id: 'ps:p2', vec: B[0], core: false, representative: true, desk: 'science' },
+  ];
+  // Liked items near blob A (no desk) -> join the primary cluster; a liked item far away -> misc
+  const liked = [
+    { id: 'l1', vec: A[1] },                  // near primary perfect sample
+    { id: 'l2', vec: C[0] },                  // far from both perfect samples -> own cluster, no perfect members
+  ];
+  const it = buildInterests(perfect, liked, { kappa: 20, mode: 'stop', minClusters: 1 });
+  const desks = new Set(it.clusters.map((c) => c.desk));
+  assert.ok(desks.has('primary'), 'primary desk cluster exists');
+  assert.ok(desks.has('science'), 'science desk cluster exists');
+  // No cluster mixes desks: every cluster's desk is a single value
+  for (const c of it.clusters) {
+    const memberDesks = new Set(c.members.map((id) => {
+      const p = perfect.find((x) => x.id === id);
+      return p ? p.desk : null;
+    }).filter((d) => d !== null));
+    if (memberDesks.size > 0) assert.equal(memberDesks.size, 1, `cluster ${c.id} mixes desks`);
+  }
+  // Skipped merges counted
+  assert.ok(typeof it.skippedMerges === 'number' && it.skippedMerges >= 0);
+});
+
 test('constrained mode: multiple representatives in same cluster block merge with other rep cluster', () => {
   // Two reps in A, one in B -> A and B must stay separate
   const X = [...A, ...B, ...C];
@@ -193,29 +243,36 @@ test('auc sanity', () => {
 
 const CFG = { epsilon: 0.25, halfLifeDays: 7, freshness: { model: 'logistic', steepness: 1 },
   dedupe: { hardWindowDays: 2, t0: 7, scale: 2 }, explore: { gamma: 0.5, floor: 0.01 },
-  slots: { primary: 5, science: 5, reserve: 2 }, desks: { core: 'primary', side: 'science' } };
-const mk = (n, core, base) => Array.from({ length: n }, (_, i) => ({ id: `${core ? 'c' : 's'}${i}`, p: 0.2 + 0.05 * (i % 8), age_days: i, days_since_shown: null, cluster: base + (i % 3), core }));
+  stories_per_desk: 5, reserve_per_desk: 2 };
+const mk = (n, core, base) => Array.from({ length: n }, (_, i) => ({ id: `${core ? 'c' : 's'}${i}`, p: 0.2 + 0.05 * (i % 8), age_days: i, days_since_shown: null, cluster: base + (i % 3), core, desk: core ? 'primary' : 'science' }));
 
-test('selectBrief: slots, no dupes, core only in primary, round-robin spreads clusters', () => {
+test('selectBrief: per-desk cap, no dupes, round-robin spreads clusters within desk', () => {
   const cands = [...mk(30, true, 0), ...mk(30, false, 10)];
   const before = JSON.stringify(cands);
   const out = selectBrief(cands, { ...CFG, epsilon: 0 }, mulberry32(1));
   assert.equal(JSON.stringify(cands), before);                       // input untouched
   const pri = out.primary.filter((c) => c.mode !== 'reserve');
-  assert.equal(pri.length, 5);
+  assert.equal(pri.length, 5);                                       // stories_per_desk = 5
   assert.ok(pri.every((c) => c.core));
   assert.equal(new Set(pri.map((c) => c.cluster)).size, 3);          // 3 core clusters all represented
+  const sci = out.science.filter((c) => c.mode !== 'reserve');
+  assert.equal(sci.length, 5);
+  assert.ok(sci.every((c) => !c.core));
   const ids = Object.values(out).flat().map((c) => c.id);
-  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(new Set(ids).size, ids.length);                       // no dupes across desks
+  assert.equal(out.primary.filter((c) => c.mode === 'reserve').length, 2);   // reserve_per_desk = 2
   assert.equal(out.science.filter((c) => c.mode === 'reserve').length, 2);
 });
 
-test('selectBrief: hard dedupe window and backfill when a desk is short', () => {
+test('selectBrief: no cross-desk backfill, short desk returns fewer', () => {
   const cands = [...mk(2, true, 0), ...mk(20, false, 10)];
   cands[0].days_since_shown = 0.5;                                    // inside hard window -> removed
   const out = selectBrief(cands, { ...CFG, epsilon: 0 }, mulberry32(1));
   assert.ok(!Object.values(out).flat().some((c) => c.id === cands[0].id));
-  assert.equal(out.primary.filter((c) => c.mode !== 'reserve').length, 5);   // backfilled from side items
+  // Primary desk has only 1 eligible candidate -> returns 1, no backfill from science
+  assert.equal(out.primary.filter((c) => c.mode !== 'reserve').length, 1);
+  // Science desk still gets its full cap
+  assert.equal(out.science.filter((c) => c.mode !== 'reserve').length, 5);
 });
 
 test('epsilon=1 explores and still returns a valid brief', () => {
@@ -258,7 +315,11 @@ test('fit: identical weights with and without onSweep; onSweep fires once per sw
   assert.equal(seen.length, m2.diag.sweeps);
 });
 
-const FULL = JSON.parse(readFileSync(new URL('../config.json', import.meta.url), 'utf8')).ranker.sampling;
+const FULL = {
+  ...JSON.parse(readFileSync(new URL('../config.json', import.meta.url), 'utf8')).ranker.sampling,
+  stories_per_desk: 5,
+  reserve_per_desk: 25,
+};
 
 test('selectBrief: same output with and without trace; trace reports draws', () => {
   const cands = [...mk(30, true, 0), ...mk(30, false, 10)];

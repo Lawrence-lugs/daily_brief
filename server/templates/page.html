@@ -7,6 +7,7 @@
 <title>{{paper_name}} - {{date_long}}</title>
 <base href="{{basePath}}/">
 <style>{{css}}</style>
+<style>{{desk_grid_style}}</style>
 <link rel="stylesheet" href="static/app.css">
 <link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
 <link rel="stylesheet" href="static/sidebar.css">
@@ -113,17 +114,8 @@
     <div class="mt-3 border-y-4 border-double border-stone-800 py-1.5 text-sm italic text-stone-600 dark:border-slate-400 dark:text-slate-300">{{date_long}}</div>
 </header>
 
-  <main class="mt-6 grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-0 md:divide-x md:divide-stone-400 dark:md:divide-slate-700">
-    <section data-swap="desk-primary" class="md:pr-6">
-      <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{primary_title}}</h2>
-      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400" data-desk-deck="primary">{{primary_deck}}</p>
-      <div data-desk-stories="primary">{{primary_stories}}</div>
-    </section>
-    <section data-swap="desk-science" class="md:pl-6">
-      <h2 class="border-b-2 border-stone-800 pb-1 text-xs font-bold uppercase tracking-[0.25em] text-amber-700 dark:border-slate-400 dark:text-amber-400">{{science_title}}</h2>
-      <p class="mt-2 text-sm italic text-stone-600 dark:text-slate-400" data-desk-deck="science">{{science_deck}}</p>
-      <div data-desk-stories="science">{{science_stories}}</div>
-    </section>
+  <main class="mt-6 gap-8" data-desks>
+    {{desk_sections}}
   </main>
 
   <footer class="mt-10 border-t-4 border-double border-stone-800 pt-3 text-center text-[11px] leading-relaxed text-stone-500 dark:border-slate-400 dark:text-slate-400" data-swap="footer">

@@ -6,6 +6,29 @@
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
   "max_agent_output_items_per_desk": 5,
+  "desks": {
+    "primary": {
+      "title": "Silicon & Architecture Desk",
+      "keyword-model-subtopics": ["dse", "accel", "fab"]
+    },
+    "science": {
+      "title": "Science Desk",
+      "keyword-model-subtopics": ["gr", "qft", "condmat", "neuro"]
+    },
+    "misc": {
+      "title": "Misc.",
+      "keyword-model-subtopics": []
+    }
+  },
+  "keywords": {
+    "dse": ["design space exploration", "design-space exploration", "dse", "timeloop", "accelergy", "maestro", "zigzag", "dosa", "archagent", "dataflow mapping", "mapping space", "mapper", "loop nest", "tiling", "scheduling search", "llm-based design", "llm agent", "agentic", "architecture search", "co-design", "co-optimization", "bayesian optimization", "analytical model", "cost model", "simulator", "astra-sim", "placement", "dreamplace", "eda"],
+    "accel": ["accelerator", "npu", "tpu", "gpu architecture", "in-memory comput", "compute-in-memory", "computing-in-memory", "cim", "imc", "analog in-memory", "crossbar", "systolic", "dataflow", "llm inference", "kv cache", "transformer accelerator", "sparsity", "quantization", "hbm", "near-memory", "processing-in-memory", "pim", "3d stack", "3d-stack", "chiplet", "tensor core", "inference chip", "inference hardware", "memory wall"],
+    "fab": ["semiconductor", "foundry", "tsmc", "samsung foundry", "intel foundry", "intel 18a", "imec", "gaa", "gate-all-around", "nanosheet", "backside power", "euv", "high-na", "lithography", "hybrid bonding", "advanced packaging", "cowos", "hot chips", "hotchips", "isscc", "vlsi symposium", "iedm", "2nm", "3nm", "a14", "n2", "yield", "wafer", "tsv", "glass substrate", "co-packaged optics", "process node"],
+    "gr": ["general relativity", "numerical relativity", "gravitational wave", "gravitational-wave", "black hole", "binary merger", "ligo", "lisa", "einstein equations", "spacetime", "cosmolog", "post-newtonian", "gr simulation", "bssn", "event horizon", "neutron star"],
+    "qft": ["quantum field theory", "qft", "lattice qcd", "lattice gauge", "scattering amplitude", "renormalization", "conformal field theory", "cft", "gauge theory", "yang-mills", "holograph", "ads/cft", "effective field theory", "bootstrap", "anomal", "topological field", "quantum gravity", "string theory", "hep-th"],
+    "condmat": ["condensed matter", "memristor", "magnetic", "ferroelectric", "2d material", "coupled", "coupling",  "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],
+    "neuro": ["neuroscience", "neuron", "cortex", "cortical", "hippocamp", "connectome", "brain", "organoid", "wetware", "biological neural", "synaptic", "plasticity", "cognitive", "computational neuroscience", "spiking", "neural coding", "dendrit", "cerebell", "neuropixels"]
+  },
   "selection": {
     "epsilon": 0.25,
     "a50_days": 7,
@@ -124,10 +147,6 @@
       "freshness": {
         "model": "exponential"
       },
-      "desks": {
-        "core": "primary",
-        "side": "science"
-      },
       "shown_decay": 0.05,
       "explore": {
         "gamma": 0.5,
@@ -137,11 +156,6 @@
         "hardWindowDays": 2,
         "t0": 7,
         "scale": 2
-      },
-      "slots": {
-        "primary": 5,
-        "science": 5,
-        "reserve": 25
       }
     }
   }

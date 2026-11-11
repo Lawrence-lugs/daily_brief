@@ -103,7 +103,7 @@ export async function ensureEmbeddings(store, cfg, { persist = true } = {}) {
  */
 function buildInputsHash(perfectSamples, likedIds, trainingRows, cfg) {
   const payload = [
-    perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core, ps.representative]).sort(),
+    perfectSamples.map((ps) => [ps.id, textHash(textOf(ps.title, ps.snippet)), ps.core, ps.representative, ps.desk]).sort(),
     likedIds.slice().sort(),
     trainingRows.map((r) => [r.item_id, r.y, r.source_type, (r.authors || []).join(',')]).sort(),
     cfg.interests,
@@ -168,7 +168,7 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
       if (ps.representative === undefined) {
         console.error(`[refit] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
       }
-      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative });
+      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative, desk: ps.desk });
     } else {
       console.error(`[refit] WARNING: perfect sample ${id} has no embedding`);
     }
@@ -223,13 +223,16 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
   const coreClusters = interests.clusters.filter((c) => c.core).length;
   const sideClusters = interests.clusters.filter((c) => !c.core).length;
   const sizeHist = {};
+  const deskHist = {};
   for (const c of interests.clusters) {
     sizeHist[c.size] = (sizeHist[c.size] || 0) + 1;
+    deskHist[c.desk] = (deskHist[c.desk] || 0) + 1;
   }
   const positives = examples.filter((e) => e.y === 1).length;
   console.error(
     `[refit] perfect=${perfectWithVecs.length} liked=${likedWithVecs.length} ` +
     `clusters=${interests.clusters.length} (core=${coreClusters} side=${sideClusters}) ` +
+    `desks=${JSON.stringify(deskHist)} skippedMerges=${interests.skippedMerges ?? 0} ` +
     `stopHeight=${interests.stopHeight?.toFixed(4) ?? 'N/A'} ` +
     `sizes=${JSON.stringify(sizeHist)} ` +
     `examples=${examples.length} positives=${positives}`
@@ -410,6 +413,7 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
       days_since_shown: daysSinceShown,
       times_shown: item.times_shown ?? 0,
       cluster: cid,
+      desk: interests.clusters[cid]?.desk ?? 'misc',
       core,
     });
   }
@@ -458,7 +462,7 @@ export async function evalModel(store, cfg, { testFrac = 0.2, cutoffDate = null,
       if (ps.representative === undefined) {
         console.error(`[eval] WARNING: perfect sample ${id} missing 'representative' field, defaulting to true`);
       }
-      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative });
+      perfectWithVecs.push({ id, vec: assertVec(emb.vec, dim, id), core: ps.core, representative, desk: ps.desk });
     }
   }
 
