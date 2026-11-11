@@ -565,6 +565,15 @@ const toast = document.getElementById('toast');
 const jedison = window.Jedison;
 const instances = Object.create(null);
 
+// Jedison's base theme ignores the isActive flag for nav panes, so every section
+// stays visible in the right column. Hide the inactive ones here.
+const SettingsTheme = jedison ? class extends jedison.Theme {
+  setTabPaneAttributes(element, isActive, id) {
+    super.setTabPaneAttributes(element, isActive, id);
+    element.hidden = !isActive;
+  }
+} : null;
+
 if (!jedison) {
   const error = document.createElement('div');
   error.className = 'error';
@@ -600,9 +609,9 @@ function isComplexSchema(schema) {
 
 function withGridSpan(schema) {
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return;
-  if (schema.grid === undefined) {
+  if (schema['x-grid'] === undefined) {
     const fullWidth = isComplexSchema(schema);
-    schema.grid = {
+    schema['x-grid'] = {
       columnsXs: 12,
       columnsSm: fullWidth ? 12 : 6,
       columnsMd: fullWidth ? 12 : 6,
@@ -627,17 +636,20 @@ function decorateSchema(input, isRoot = false) {
   // High-level objects become navigation. Dynamic-key maps also get their own
   // navigator, so keyword/feed/desk maps don't become another endless column.
   // Mixed/simple objects become responsive grids. Explicit schema formats win.
-  if (!schema.format) {
+  // NOTE: Jedison reads layout hints via pe(schema, key) => schema['x-'+key],
+  // so they must be written as x-prefixed keys (x-format, x-grid,
+  // x-navMinWidth, x-navMaxWidth) or they are silently ignored.
+  if (!schema['x-format']) {
     if ((isRoot && properties.length > 1) || dynamicOnly || allChildrenComplex) {
-      schema.format = 'nav-vertical';
-      schema.navMinWidth = schema.navMinWidth || '12rem';
-      schema.navMaxWidth = schema.navMaxWidth || '17rem';
+      schema['x-format'] = 'nav-vertical';
+      schema['x-navMinWidth'] = schema['x-navMinWidth'] || '12rem';
+      schema['x-navMaxWidth'] = schema['x-navMaxWidth'] || '17rem';
     } else if (properties.length > 1) {
-      schema.format = 'grid';
+      schema['x-format'] = 'grid';
     }
   }
 
-  const useGrid = schema.format === 'grid';
+  const useGrid = schema['x-format'] === 'grid';
   for (const [, child] of properties) {
     if (useGrid) withGridSpan(child);
     decorateSchema(child, false);
@@ -836,7 +848,7 @@ async function loadFile(fileName, index) {
       const displaySchema = decorateSchema(cloneJson(schema), true);
       instances[fileName] = new jedison.Create({
         container: ui.root,
-        theme: new jedison.Theme(),
+        theme: new SettingsTheme(),
         schema: displaySchema
       });
       instances[fileName].setValue(data, false);
@@ -875,6 +887,21 @@ if (themeButton) {
     window.setThemeSettings(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
   });
 }
+
+// Jedison nav links use href="#tab-pane-...". With <base href="/"> (basePath
+// empty) those hash links resolve against the site root, so clicking a side
+// button navigates away from /settings. Cancel the default navigation here.
+// Jedison's <li> click handler only records the active tab; it does not
+// re-render, so emit a root change to make the nav editor refresh.
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('.jedi-nav-link');
+  if (!link) return;
+  e.preventDefault();
+  for (const instance of Object.values(instances)) {
+    const container = instance.root?.ui?.control?.container;
+    if (container && container.contains(link)) instance.root.emit('change');
+  }
+});
 
 init();
 </script>

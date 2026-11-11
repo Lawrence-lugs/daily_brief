@@ -42,6 +42,9 @@ test('settings page: jedison bundle loads and all three editors render', async (
   for (const f of FILES) {
     await expect(page.locator(`[id="jedison-${f}"]`)).not.toBeEmpty();
   }
+  // Grid layout: at least one grid row must render (Jedison reads x-format).
+  const rowCount = await page.locator('.settings-editor .jedi-row').count();
+  expect(rowCount).toBeGreaterThanOrEqual(1);
   expect(errors).toEqual([]);
 });
 
