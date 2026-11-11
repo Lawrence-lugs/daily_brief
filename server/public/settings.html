@@ -771,7 +771,7 @@ function createPanel(fileName, index) {
   actions.append(hint, save);
 
   panel.append(header, loading, content, status, actions);
-  return { panel, loading, root, name, desc, save };
+  return { panel, loading, root, name, desc, status, save };
 }
 
 async function loadFile(fileName, index) {
@@ -826,7 +826,7 @@ async function loadFile(fileName, index) {
       const error = document.createElement('div');
       error.className = 'error';
       error.textContent = 'Could not load ' + fileName + '.';
-      ui.panel.querySelector('#status-' + CSS.escape(fileName)).append(error);
+      ui.status.append(error);
       return;
     }
 
@@ -860,7 +860,7 @@ async function loadFile(fileName, index) {
     const message = document.createElement('div');
     message.className = 'error';
     message.textContent = 'Error loading ' + fileName + ': ' + error.message;
-    ui.panel.querySelector('#status-' + CSS.escape(fileName)).append(message);
+    ui.status.append(message);
   }
 }
 
