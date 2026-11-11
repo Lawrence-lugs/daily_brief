@@ -96,20 +96,39 @@ app.whenReady().then(async () => {
     } else {
       const { handler } = createApp({ root: ROOT, dataDir: DATA_DIR, port: PORT });
       server = http.createServer(handler);
-      server.listen(PORT, '127.0.0.1', () => {
-        ownsServer = true;
-        log(`daily-brief listening on http://127.0.0.1:${PORT}`);
-      });
-      server.on('error', (e) => {
-        if (e.code === 'EADDRINUSE') {
-          // A server appeared between the check and listen; reuse it.
-          try { server.close(); } catch {}
-          server = null;
-          log(`port ${PORT} now in use by another server; reusing it`);
-        } else {
-          log(`cannot listen on ${PORT}: ${e.message}`);
-          fatalError('Daily Brief — could not start server', e);
-        }
+      // Bind the port before opening any window. If something other than
+      // daily-brief (e.g. VS Code) is already on PORT, fail loudly with a
+      // dialog instead of loading a blank/white page from the foreign server.
+      await new Promise((resolve, reject) => {
+        server.once('listening', () => {
+          ownsServer = true;
+          log(`daily-brief listening on http://127.0.0.1:${PORT}`);
+          resolve();
+        });
+        server.once('error', (e) => {
+          if (e.code !== 'EADDRINUSE') {
+            log(`cannot listen on ${PORT}: ${e.message}`);
+            return reject(e);
+          }
+          // Port is held by another process. Reuse it only if it's actually
+          // daily-brief (a second instance that started mid-race); otherwise
+          // abort *before* opening a window so we never show a white page.
+          (async () => {
+            try { server.close(); } catch {}
+            if (await alreadyRunning()) {
+              server = null;
+              log(`port ${PORT} now in use by another daily-brief server; reusing it`);
+              resolve();
+            } else {
+              reject(new Error(
+                `Port ${PORT} is already in use by another application (not daily-brief).\n` +
+                `Close that application, or run with a different port, e.g.:\n` +
+                `  BRIEF_PORT=4874 npm run app`
+              ));
+            }
+          })();
+        });
+        server.listen(PORT, '127.0.0.1');
       });
     }
 

@@ -119,8 +119,10 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     if (deskCount >= 2) {
       // Decision 5: W2 = min width of 2-column format (current md breakpoint = 768px).
       // N columns at width >= (N/2) * W2; 2 columns at >= W2; 1 column below W2.
+      // Cap at 3 columns so wide pages never have 5 desks fighting for space.
       const W2 = 768;
-      const nWidth = Math.ceil((deskCount / 2) * W2);
+      const columns = Math.min(deskCount, 3);
+      const nWidth = Math.ceil((columns / 2) * W2);
       const rules = [
         `[data-desks] { display: grid; gap: 1rem; }`,
         // 1px divider line between desk columns (light/dark theme-aware).
@@ -130,7 +132,7 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
         `@media (min-width: ${W2}px) { [data-desks] { grid-template-columns: repeat(2, 1fr); } }`,
       ];
       if (deskCount > 2) {
-        rules.push(`@media (min-width: ${nWidth}px) { [data-desks] { grid-template-columns: repeat(${deskCount}, 1fr); } }`);
+        rules.push(`@media (min-width: ${nWidth}px) { [data-desks] { grid-template-columns: repeat(${columns}, 1fr); } }`);
       }
       deskGridStyle = rules.join('\n');
     }

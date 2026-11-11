@@ -62,8 +62,9 @@ Key design principles:
 - **CLI stdout = JSON, stderr = logs.** The ranker CLI writes JSON to stdout so Python can `json.loads()` it;
   diagnostics/warnings go to stderr.
 - **LR engine is the default going forward.** The keyword engine remains as a fallback and for A/B comparison.
-- **Same-day regeneration supersedes.** Regenerating on the same day flips the previous brief's `counted` to `0`
-  and carries like/save marks forward by `item_id`.
+- **Same-day regeneration supersedes.** Regenerating on the same day flips the previous brief's `counted` to `0`.
+  Like/save marks live in the `likes`/`saves` tables (keyed by `session_id` + stable `item_id`), so they survive
+  regeneration automatically — nothing is carried forward row-by-row.
 
 ---
 
@@ -134,7 +135,7 @@ python src/brief.py
   ├─► apply_editor()              LLM edits/summaries (OpenRouter) or raw items (--no-llm).
   │                                 ONE combined call covers all desks; each candidate carries its
   │                                 pre-assigned desk and the response is split back per desk.
-  └─► db.append_brief()           single atomic append: briefs + stories; carry forward likes
+  └─► db.append_brief()           single atomic append: briefs + stories
 ```
 
 ### Path B: Ranker CLI (standalone)

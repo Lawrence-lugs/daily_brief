@@ -49,11 +49,11 @@ test.describe('brief page — like / save', () => {
 
     await expect(like).toHaveAttribute('aria-pressed', 'false');
     await like.click({ force: true });
-    await waitFor(() => mock.stories[1].liked === true);
+    await waitFor(() => mock.liked('1') === true);
     await expect(like).toHaveAttribute('aria-pressed', 'true');
 
     await like.click({ force: true });
-    await waitFor(() => mock.stories[1].liked === false);
+    await waitFor(() => mock.liked('1') === false);
     await expect(like).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -64,7 +64,7 @@ test.describe('brief page — like / save', () => {
     const save = page.locator('[data-story-id="1"][data-action="save"]').first();
 
     await save.click({ force: true });
-    await waitFor(() => mock.stories[1].saved === true);
+    await waitFor(() => mock.saved('1') === true);
     await expect(save).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -76,7 +76,7 @@ test.describe('brief page — like / save', () => {
     const like = page.locator('[data-story-id="1"][data-action="like"]').first();
 
     await like.click({ force: true });
-    await waitFor(() => mock.stories[1].liked === false);
+    await waitFor(() => mock.liked('1') === false);
     await expect(like).toHaveAttribute('aria-pressed', 'false');
   });
 });
@@ -435,13 +435,13 @@ test.describe('archive page', () => {
     const like = page.locator('[data-action="like"][data-story-id="1"]').first();
     await expect(like).toHaveAttribute('aria-pressed', 'false');
     await like.click({ force: true });
-    await waitFor(() => mock.stories[1].liked === false); // reverted (feedback fails)
+    await waitFor(() => mock.liked('1') === false); // reverted (feedback fails)
     await expect(like).toHaveAttribute('aria-pressed', 'false');
 
     // Now allow writes and confirm success persists.
     mock.failFeedbackFor(null);
     await like.click({ force: true });
-    await waitFor(() => mock.stories[1].liked === true);
+    await waitFor(() => mock.liked('1') === true);
     await expect(like).toHaveAttribute('aria-pressed', 'true');
   });
 

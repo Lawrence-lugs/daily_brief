@@ -81,21 +81,50 @@ the day's own stories don't look "already seen".
 | `age_days` | REAL NOT NULL DEFAULT 0 | feature snapshot |
 | `rel` | REAL NOT NULL DEFAULT 0 | feature snapshot |
 | `times_shown_before` | INTEGER NOT NULL DEFAULT 0 | feature snapshot |
-| `liked` | INTEGER NOT NULL DEFAULT 0 | |
-| `saved` | INTEGER NOT NULL DEFAULT 0 | |
-| `liked_at` | TEXT | |
-| `saved_at` | TEXT | |
+| `cluster` | TEXT | LR engine: cluster id |
+| `core` | INTEGER NOT NULL DEFAULT 0 | LR engine: core cluster flag |
+| `score_p` | REAL | LR engine: model probability at pick time |
+| `score_v` | REAL | LR engine: V = p * freshness * dedupe * repeat penalty |
+| `cos_dist` | REAL | 1 - cos(story, medoid of its cluster), at pick time |
+| `cluster_size` | INTEGER | interest points in the cluster at pick time |
+| `cluster_pool` | INTEGER | candidates assigned to the cluster at pick time |
+| `medoid_id` | TEXT | item_id (or ps:<id>) of the cluster medoid at pick time |
 
 Indexes: `idx_stories_brief(brief_id, desk, position)`, `idx_stories_item(item_id)`.
+
+### `likes` — like feedback, one row per (session_id, item_id)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `session_id` | TEXT NOT NULL | client-generated UUID (localStorage) |
+| `item_id` | TEXT NOT NULL | stable item id (not story_id; survives regeneration) |
+| `liked_at` | TEXT NOT NULL | UTC ISO-8601 |
+
+PK: (session_id, item_id). Indexes: `idx_likes_item(item_id)`, `idx_likes_session(session_id)`.
+
+### `saves` — save feedback, one row per (session_id, item_id)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `session_id` | TEXT NOT NULL | client-generated UUID (localStorage) |
+| `item_id` | TEXT NOT NULL | stable item id |
+| `saved_at` | TEXT NOT NULL | UTC ISO-8601 |
+
+PK: (session_id, item_id). Indexes: `idx_saves_item(item_id)`, `idx_saves_session(session_id)`.
+
+Likes/saves are NOT stored on `stories` rows. They survive brief regeneration and apply across the whole
+instance (shared taste profile). Training labels derive from `likes` ∪ `saves` (any session): an item is
+positive if it appears in either table.
 
 ### `training_examples` — view (one row per date+item, last occurrence wins)
 
 | Columns | From |
 |---------|------|
-| `story_id`, `brief_id`, `date`, `generated_at`, `item_id`, `desk`, `position`, `subtopic`, `source`, `source_type`, `kind`, `mode`, `significance`, `summarized`, `age_days`, `rel`, `times_shown_before`, `headline`, `url`, `liked`, `saved` | `stories` + `briefs` |
+| `story_id`, `brief_id`, `date`, `generated_at`, `item_id`, `desk`, `position`, `subtopic`, `source`, `source_type`, `kind`, `mode`, `significance`, `summarized`, `age_days`, `rel`, `times_shown_before`, `headline`, `url` | `stories` + `briefs` |
+| `liked`, `saved` | derived from `likes` ∪ `saves` tables (any session) |
 
-Takes the `MAX(story_id)` per `(date, item_id)` so regeneration copies feedback forward and the last row has the
-final state. Exported as JSONL at `/api/export/training.jsonl`.
+Takes the `MAX(story_id)` per `(date, item_id)`. `liked` = 1 if item appears in `likes`; `saved` = 1 if in `saves`.
+Exported as JSONL at `/api/export/training.jsonl`.
 
 ### Ranker tables (new)
 
@@ -155,9 +184,9 @@ One row per `node ranker/cli.js eval` run. Written by `store.logModelEval`; keep
 | Component | Language | Writes | Reads |
 |-----------|----------|--------|-------|
 | `src/db.py` | Python | `candidate_pool`, `item_meta`, `briefs`, `stories` | all tables |
-| `server/lib/queries.js` | Node | `stories` (feedback via `setFeedback`) | all tables (reads `briefs` for listing) |
-| `ranker/store.js` | Node | `embeddings`, `ranker_state` | `embeddings`, `item_meta`, `ranker_state` |
-| `ranker/pipeline.js` | Node | (reads via store) | `embeddings`, `item_meta`, `ranker_state`, `candidate_pool`, `stories` |
+| `server/lib/queries.js` | Node | `stories`, `likes`, `saves` (feedback via `setFeedback`) | all tables (reads `briefs` for listing) |
+| `ranker/store.js` | Node | `embeddings`, `ranker_state` | `embeddings`, `item_meta`, `ranker_state`, `likes`, `saves` |
+| `ranker/pipeline.js` | Node | (reads via store) | `embeddings`, `item_meta`, `ranker_state`, `candidate_pool`, `stories`, `likes`, `saves` |
 
 ### Concurrency
 
@@ -207,9 +236,11 @@ node ranker/cli.js select
 
 ```
 Electron/Obsidian: user clicks like/save
+    → client.js generates/stores session_id in localStorage, sends X-Session-Id header
     → client.js POST /api/stories/<id>/feedback { action: "like"|"save", value: boolean }
-    → server/app.js → queries.setFeedback()  (stories.liked / saved)
-    → Next ranker refit reads likedIds → Ward medoids + training labels
+    → server/app.js reads X-Session-Id header → queries.setFeedback(itemId, sessionId, action, value)
+    → INSERT OR IGNORE / DELETE into likes or saves table (keyed by session_id + item_id)
+    → Next ranker refit: store.getLikedIds() reads likes ∪ saves → Ward medoids + training labels
 ```
 
 ---
@@ -220,7 +251,7 @@ Electron/Obsidian: user clicks like/save
 |-------|---------------|-----------------|
 | Candidate pool items | `candidate_pool` | Upserted each fetch; pruned by `pool.max_age_days` |
 | Briefs & stories | `briefs`, `stories` | Append-only; same-day regen supersedes (`counted=0`) |
-| Like/save feedback | `stories.liked` / `stories.saved` | Via `/api/stories/<id>/feedback`; flows into ranker training |
+| Like/save feedback | `likes` / `saves` tables (session_id, item_id) | Via `/api/stories/<id>/feedback` with X-Session-Id; flows into ranker training (likes ∪ saves) |
 | Training examples | `training_examples` view | Exported as JSONL for `eval` / external analysis |
 | Embeddings | `embeddings` | Cached by `text_hash`; `ps:<id>` perfect samples never pruned |
 | Author metadata | `item_meta` | Survives pool pruning (retrain on old stories) |

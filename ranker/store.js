@@ -18,12 +18,14 @@ const SQL = {
       FROM stories s LEFT JOIN embeddings e ON e.item_id=s.item_id
      WHERE e.item_id IS NULL AND NOT EXISTS (SELECT 1 FROM candidate_pool p WHERE p.item_id=s.item_id)
      GROUP BY s.item_id`,
-  likedIds: `SELECT DISTINCT s.item_id FROM stories s JOIN briefs b ON b.brief_id=s.brief_id
-              WHERE (s.liked=1 OR s.saved=1) AND b.date >= ?`,
-  likedWithDates: `SELECT s.item_id, SUBSTR(MIN(COALESCE(CASE WHEN s.liked=1 THEN s.liked_at END,
-                     CASE WHEN s.saved=1 THEN s.saved_at END, b.date)), 1, 10) AS liked_date
-              FROM stories s JOIN briefs b ON b.brief_id=s.brief_id
-              WHERE (s.liked=1 OR s.saved=1) AND b.date >= ? GROUP BY s.item_id`,
+  likedIds: `SELECT DISTINCT item_id FROM likes WHERE liked_at >= ?
+              UNION
+              SELECT DISTINCT item_id FROM saves WHERE saved_at >= ?`,
+  likedWithDates: `SELECT item_id, SUBSTR(MIN(liked_date), 1, 10) AS liked_date FROM (
+                      SELECT item_id, liked_at AS liked_date FROM likes WHERE liked_at >= ?
+                      UNION ALL
+                      SELECT item_id, saved_at AS liked_date FROM saves WHERE saved_at >= ?
+                   ) GROUP BY item_id`,
   lastShown: `SELECT s.item_id, MAX(b.generated_at) AS last FROM stories s JOIN briefs b ON b.brief_id=s.brief_id
                WHERE b.date < ? GROUP BY s.item_id`,
   trainingRows: `
@@ -88,12 +90,12 @@ export class Store {
 
   // Get liked item IDs within maxLikedDays
   getLikedIds(cutoffDate) {
-    return this.stmts.likedIds.all(cutoffDate).map((r) => r.item_id);
+    return this.stmts.likedIds.all(cutoffDate, cutoffDate).map((r) => r.item_id);
   }
 
   // Liked OR saved items within cutoff, with the date they were first liked (YYYY-MM-DD)
   getLikedWithDates(cutoffDate) {
-    return this.stmts.likedWithDates.all(cutoffDate).map((r) => ({ item_id: r.item_id, liked_date: r.liked_date }));
+    return this.stmts.likedWithDates.all(cutoffDate, cutoffDate).map((r) => ({ item_id: r.item_id, liked_date: r.liked_date }));
   }
 
   // Get last shown date for each item (before dateKey)

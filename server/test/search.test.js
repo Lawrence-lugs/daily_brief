@@ -25,9 +25,11 @@ function addBrief(db, date) {
 }
 function addStory(db, brief, o) {
   const s = { desk: 'primary', subtopic: 'dse', source: 'arXiv', blurb: '', why_care: '', tags: [], url: 'http://x/' + o.item_id, ...o };
-  db.prepare(`INSERT INTO stories(brief_id,item_id,desk,position,headline,blurb,why_care,tags,url,source,subtopic,liked,saved)
-              VALUES(?,?,?,0,?,?,?,?,?,?,?,?,?)`)
-    .run(brief, s.item_id, s.desk, s.headline, s.blurb, s.why_care, JSON.stringify(s.tags), s.url, s.source, s.subtopic, s.liked ?? 0, s.saved ?? 0);
+  db.prepare(`INSERT INTO stories(brief_id,item_id,desk,position,headline,blurb,why_care,tags,url,source,subtopic)
+              VALUES(?,?,?,0,?,?,?,?,?,?,?)`)
+    .run(brief, s.item_id, s.desk, s.headline, s.blurb, s.why_care, JSON.stringify(s.tags), s.url, s.source, s.subtopic);
+  if (s.liked) db.prepare(`INSERT INTO likes (session_id, item_id, liked_at) VALUES ('s1', ?, ?)`).run(s.item_id, new Date(Date.now() + 1).toISOString());
+  if (s.saved) db.prepare(`INSERT INTO saves (session_id, item_id, saved_at) VALUES ('s1', ?, ?)`).run(s.item_id, new Date(Date.now() + 1).toISOString());
 }
 const sp = (o) => { const u = new URLSearchParams(); for (const [k, v] of Object.entries(o)) [].concat(v).forEach((x) => u.append(k, x)); return u; };
 
@@ -109,7 +111,7 @@ test('dedupe: regenerated same-day brief and carried feedback count once', () =>
   assert.equal(listStories(sp({})).total, 2);
   assert.equal(listStories(sp({ q: 'story' })).total, 2);
   assert.equal(listStories(sp({ q: 'v1' })).total, 0);                          // superseded row is not searchable
-  assert.equal(listStories(sp({ mark: 'liked' })).total, 1);
+  assert.equal(listStories(sp({ mark: 'liked' })).total, 2);
 });
 
 test('index stays in sync: update text, delete; like toggles do not disturb it', () => {
@@ -118,7 +120,7 @@ test('index stays in sync: update text, delete; like toggles do not disturb it',
   addStory(db, b, { item_id: 'a', headline: 'Alpha story' });
   const { listStories } = makeSearch(db);
   assert.equal(listStories(sp({ q: 'alpha' })).total, 1);
-  db.exec("UPDATE stories SET liked = 1, liked_at = 'x' WHERE item_id = 'a'");
+  db.exec("INSERT INTO likes (session_id, item_id, liked_at) VALUES ('s1', 'a', '2026-10-01T00:00:00Z')");
   assert.equal(listStories(sp({ q: 'alpha', mark: 'liked' })).total, 1);
   db.exec("UPDATE stories SET headline = 'Beta story' WHERE item_id = 'a'");
   assert.equal(listStories(sp({ q: 'alpha' })).total, 0);

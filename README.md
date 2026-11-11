@@ -93,9 +93,11 @@ The LR engine is the default going forward. The keyword engine remains as a fall
 `daily_brief.db` (path from `user/defaults/config.json` `db_file`) holds:
 
 - `candidate_pool(item_id PK, url, title, snippet, published, source, source_type, subtopic, desk, rel, first_seen, times_shown, rejected, last_shown)` — the persistent item pool.
-- `briefs(brief_id PK, date, edition, generated_at, model, llm_requests, counted, rejected_ids, desks, meta)` — one row per generated brief. Exactly one brief per date has `counted = 1` (the one currently displayed); regenerating the same day flips the previous one to `counted = 0` and carries forward like/save marks for matching items.
-- `stories(story_id PK, brief_id, item_id, desk, position, headline, blurb, why_care, tags, significance, summarized, url, source, source_type, subtopic, kind, mode, age_days, rel, times_shown_before, liked, saved, liked_at, saved_at)` — the stories in each brief.
-- `training_examples(...)` — one row per date+item with features snapshotted at pick time (subtopic, source, source_type, kind, mode, position, age_days, rel, times_shown_before, significance) plus `liked`/`saved` feedback. Exported as JSONL at `/api/export/training.jsonl`.
+- `briefs(brief_id PK, date, edition, generated_at, model, llm_requests, counted, rejected_ids, desks, meta)` — one row per generated brief. Exactly one brief per date has `counted = 1` (the one currently displayed); regenerating the same day flips the previous one to `counted = 0`.
+- `stories(story_id PK, brief_id, item_id, desk, position, headline, blurb, why_care, tags, significance, summarized, url, source, source_type, subtopic, kind, mode, age_days, rel, times_shown_before)` — the stories in each brief. Like/save state is NOT stored here.
+- `likes(session_id, item_id, liked_at; PK session_id+item_id)` — like feedback. Keyed by client session_id (localStorage UUID) and stable item_id. Survives brief regeneration.
+- `saves(session_id, item_id, saved_at; PK session_id+item_id)` — save feedback. Same shape as likes.
+- `training_examples(...)` — one row per date+item with features snapshotted at pick time plus `liked`/`saved` labels derived from `likes` ∪ `saves`. Exported as JSONL at `/api/export/training.jsonl`.
 - **New tables for LR ranker:**
   - `embeddings(item_id PK, model, text_hash, dim, vec BLOB)` — L2-normalised 384-d Float32 vectors (bge-micro-v2). Pool/story items + perfect samples (`ps:<id>`). Never pruned with the pool.
   - `item_meta(item_id PK, authors JSON)` — author lists survive pool pruning (needed to retrain on old stories).

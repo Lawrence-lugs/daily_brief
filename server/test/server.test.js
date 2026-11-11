@@ -80,9 +80,9 @@ test('guard: bad host, missing header, bad origin', async () => {
 });
 test('feedback persists and shows up in page + training export', async () => {
   let r = await call('POST', '/api/stories/1/feedback', { headers: W, body: JSON.stringify({ action: 'like', value: true }) });
-  assert.equal(r.status, 200); assert.deepEqual(JSON.parse(r.body), { story_id: 1, liked: 1, saved: 0 });
+  assert.equal(r.status, 200); assert.deepEqual(JSON.parse(r.body), { item_id: 'aaa', liked: 1, saved: 0 });
   r = await call('POST', '/api/stories/1/feedback', { headers: W, body: JSON.stringify({ action: 'save', value: true }) });
-  assert.deepEqual(JSON.parse(r.body), { story_id: 1, liked: 1, saved: 1 });
+  assert.deepEqual(JSON.parse(r.body), { item_id: 'aaa', liked: 1, saved: 1 });
   assert.ok((await call('GET', '/')).body.includes('"1":{"liked":true,"saved":true}'));
   const lines = (await call('GET', '/api/export/training.jsonl')).body.trim().split('\n').map(JSON.parse);
   assert.equal(lines.length, 3); assert.equal(lines[0].y_like, 1); assert.equal(lines[1].y_like, 0);
@@ -151,11 +151,13 @@ test('prefix: shutdown endpoint is not exposed when hosted', async () => {
   assert.equal(r.status, 404);
 });
 
-test('hosted: no generate, likes/saves or shutdown; generate UI hidden', async () => {
-  for (const p of ['/dailydie/api/generate', '/dailydie/api/stories/1/feedback', '/dailydie/api/shutdown']) {
+test('hosted: no generate or shutdown; generate UI hidden; likes/saves enabled', async () => {
+  for (const p of ['/dailydie/api/generate', '/dailydie/api/shutdown']) {
     const r = await call2('POST', p, { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"action":"like","value":true}' });
     assert.equal(r.status, 404, p);
   }
+  const fb = await call2('POST', '/dailydie/api/stories/1/feedback', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json', 'X-Session-Id': 's1' }, body: '{"action":"like","value":true}' });
+  assert.ok(!fb.body.includes('"not found"'), 'feedback reaches the handler, not the hosted guard');
   const page = await call2('GET', '/dailydie/');
   assert.ok(page.body.includes('data-hosted="1"'));
   assert.ok(page.body.includes('style="display:none"'));

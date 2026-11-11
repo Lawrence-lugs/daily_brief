@@ -10,13 +10,27 @@
   const stories = boot.stories;          // mutated in place after an in-place swap
   const $ = (id) => document.getElementById(id);
   const base = document.body.dataset.base || '';
-  const hosted = document.body.dataset.hosted === '1';   // hosted site is stateless: no likes/saves
   const u = (p) => base + p;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[c]));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const post = (url, body) => fetch(url, {
+
+  // ---- session id: client-generated UUID stored in localStorage, sent as X-Session-Id header
+  const SESSION_KEY = 'db-session-id';
+  function genSessionId() {
+    return crypto.randomUUID();
+  }
+  let sessionId = null;
+  try {
+    sessionId = localStorage.getItem(SESSION_KEY);
+    if (!sessionId) {
+      sessionId = genSessionId();
+      localStorage.setItem(SESSION_KEY, sessionId);
+    }
+  } catch { sessionId = genSessionId(); }
+
+  const post = (url, body, extraHeaders = {}) => fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' }, // required by server guard
+    headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1', 'X-Session-Id': sessionId, ...extraHeaders },
     body: JSON.stringify(body ?? {}),
   });
 
@@ -55,7 +69,6 @@
     });
   }
   async function toggle(btn) {
-    if (hosted) return;
     const id = btn.dataset.storyId, action = btn.dataset.action;
     const key = action === 'save' ? 'saved' : 'liked';
     const s = stories[id] || (stories[id] = { liked: false, saved: false });
@@ -223,7 +236,7 @@
   /** Fetch the finished page and swap every [data-swap] region in place. Falls back to a reload. */
   async function swapToLatest() {
     try {
-      const r = await fetch(u('/' + location.search), { cache: 'no-store' });
+      const r = await fetch(u('/' + location.search), { cache: 'no-store', headers: { 'X-Session-Id': sessionId } });
       if (!r.ok) throw new Error(String(r.status));
       const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
       const regions = [...document.querySelectorAll('[data-swap]')];

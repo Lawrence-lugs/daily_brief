@@ -55,10 +55,10 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
     catch { throw Object.assign(new Error('invalid JSON'), { status: 400 }); }
   }
 
-  function servePage(res, url, briefId) {
+  function servePage(res, url, briefId, sessionId) {
     const id = briefId ?? q.latestBriefId(DATE_RE.test(url.searchParams.get('date') ?? '') ? url.searchParams.get('date') : null)
       ?? q.latestBriefId(null);
-    const data = id ? q.getBrief(id) : null;
+    const data = id ? q.getBrief(id, sessionId) : null;
     if (id && !data) return json(res, 404, { error: 'no such brief' });
 
     // Medoid titles come from the per-story snapshot (medoid_id, taken at generation time).
@@ -119,6 +119,10 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
       const p = url.pathname;
       let m;
 
+      // Session id: client-generated UUID stored in localStorage, sent as X-Session-Id.
+      // Empty/missing means no session (all like/saved show as false).
+      const sessionId = req.headers['x-session-id'] ?? '';
+
       // ---- base-path handling -----------------------------------------------------------
       // When BRIEF_BASE_PATH is set, Traefik forwards the full PathPrefix path. Strip it here.
       // A bare base path (/dailydie) redirects to /dailydie/. Anything outside the prefix 404s.
@@ -131,15 +135,15 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
         if (!p.startsWith(basePath + '/')) return json(res, 404, { error: 'not found' });
       }
       const routePath = basePath ? p.slice(basePath.length) : p;
-      // Hosted (prefixed) deployments are stateless: no generation, likes/saves, or remote shutdown.
-      if (basePath && req.method === 'POST' && /^\/api\/(shutdown|generate|stories\/\d+\/feedback)$/.test(routePath)) return json(res, 404, { error: 'not found' });
+      // Hosted (prefixed) deployments are stateless: no generation or remote shutdown. Likes/saves are per-session (X-Session-Id), so they stay enabled.
+      if (basePath && req.method === 'POST' && /^\/api\/(shutdown|generate)$/.test(routePath)) return json(res, 404, { error: 'not found' });
 
       // Config editor API (GET + PUT). Handled before the method split so PUT works too.
       if (routePath.startsWith('/api/config/')) return handleConfigRoutes(req, res, routePath, dbDir);
 
       if (req.method === 'GET') {
-        if (routePath === '/' ) return servePage(res, url, null);
-        if ((m = routePath.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]));
+        if (routePath === '/' ) return servePage(res, url, null, sessionId);
+        if ((m = routePath.match(/^\/brief\/(\d+)$/))) return servePage(res, url, Number(m[1]), sessionId);
         if (routePath === '/api/health') return json(res, 200, { ok: true, name: 'daily-brief' });
         if (routePath === '/archive') {
           let html = readFileSync(path.join(publicDir, 'list.html'), 'utf8');
@@ -156,7 +160,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
         if (routePath === '/api/stories/facets') return json(res, 200, q.facets());
         if (routePath === '/api/briefs') return json(res, 200, q.listBriefs(Math.min(Number(url.searchParams.get('limit')) || 30, 200)));
         if ((m = routePath.match(/^\/api\/briefs\/(\d+)$/))) {
-          const d = q.getBrief(Number(m[1]));
+          const d = q.getBrief(Number(m[1]), sessionId);
           return d ? json(res, 200, d) : json(res, 404, { error: 'no such brief' });
         }
         if (routePath === '/api/job') {
@@ -176,7 +180,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           if (!['like', 'save'].includes(body.action) || typeof body.value !== 'boolean') {
             return json(res, 400, { error: 'expected {action:"like"|"save", value:boolean}' });
           }
-          const r = q.setFeedback(Number(m[1]), body.action, body.value);
+          const r = q.setFeedback(Number(m[1]), sessionId, body.action, body.value);
           return r ? json(res, 200, r) : json(res, 404, { error: 'no such story' });
         }
         if (routePath === '/api/generate') {

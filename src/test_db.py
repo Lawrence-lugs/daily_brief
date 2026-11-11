@@ -51,15 +51,17 @@ class T(unittest.TestCase):
         shown, _ = db.same_day_counts(self.c, "2026-10-26")
         self.assertEqual(shown["a"], 1)
 
-    def test_feedback_carried_to_regenerated_brief_and_unlike_respected(self):
+    def test_feedback_stored_in_likes_table(self):
         db.upsert_pool(self.c, [item("a"), item("b")], NOW)
         b1 = self.append(["a", "b"])
-        self.c.execute("UPDATE stories SET liked=1, liked_at='t' WHERE brief_id=? AND item_id='a'", (b1,))
-        b2 = self.append(["a"])
-        self.assertEqual(self.c.execute("SELECT liked FROM stories WHERE brief_id=?", (b2,)).fetchone()[0], 1)
-        self.c.execute("UPDATE stories SET liked=0, liked_at=NULL WHERE brief_id=?", (b2,))   # user un-likes in brief 2
-        b3 = self.append(["a"])
-        self.assertEqual(self.c.execute("SELECT liked FROM stories WHERE brief_id=?", (b3,)).fetchone()[0], 0)
+        self.c.execute("INSERT INTO likes (session_id, item_id, liked_at) VALUES (?, ?, ?)",
+                       ('s1', 'a', '2026-10-26T12:00:00Z'))
+        # Like survives regeneration (likes table is separate from stories/briefs)
+        self.append(["a"])
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM likes WHERE item_id='a'").fetchone()[0], 1)
+        # Unlike removes it
+        self.c.execute("DELETE FROM likes WHERE session_id='s1' AND item_id='a'")
+        self.assertEqual(self.c.execute("SELECT COUNT(*) FROM likes WHERE item_id='a'").fetchone()[0], 0)
 
     def test_training_view_one_row_per_date_item(self):
         db.upsert_pool(self.c, [item("a")], NOW)

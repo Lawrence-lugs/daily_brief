@@ -57,12 +57,17 @@ function seedTestData(store) {
   store.db.prepare(`INSERT INTO briefs (date, edition, generated_at, model, desks, meta) VALUES (?, ?, ?, ?, ?, ?)`)
     .run('2026-10-28', 1, '2026-10-28T10:00:00.000Z', 'm', '{}', '{}');
   // One story per item (training_examples view picks MAX story_id per date,item_id)
-  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind, liked, saved, liked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(1, 'a', 'primary', 0, 'Headline A', 'Blurb A', 'https://x/a', 'Test', 'sub', 'newslike', 1, '[]', 'fresh', 1, 0, '2026-10-28T10:00:00.000Z');
-  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind, liked, saved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(1, 'b', 'primary', 1, 'Headline B', 'Blurb B', 'https://x/b', 'Test', 'sub', 'newslike', 2, '[]', 'fresh', 0, 0);
-  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind, liked, saved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(1, 'c', 'primary', 2, 'Headline C', 'Blurb C', 'https://x/c', 'Test', 'sub', 'paperlike', 3, '[]', 'fresh', 0, 1);
+  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(1, 'a', 'primary', 0, 'Headline A', 'Blurb A', 'https://x/a', 'Test', 'sub', 'newslike', 1, '[]', 'fresh');
+  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(1, 'b', 'primary', 1, 'Headline B', 'Blurb B', 'https://x/b', 'Test', 'sub', 'newslike', 2, '[]', 'fresh');
+  store.db.prepare(`INSERT INTO stories (brief_id, item_id, desk, position, headline, blurb, url, source, subtopic, source_type, age_days, tags, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(1, 'c', 'primary', 2, 'Headline C', 'Blurb C', 'https://x/c', 'Test', 'sub', 'paperlike', 3, '[]', 'fresh');
+  // a is liked by session s1, c is saved by session s2
+  store.db.prepare(`INSERT INTO likes (session_id, item_id, liked_at) VALUES (?, ?, ?)`)
+    .run('s1', 'a', '2026-10-28T10:00:00.000Z');
+  store.db.prepare(`INSERT INTO saves (session_id, item_id, saved_at) VALUES (?, ?, ?)`)
+    .run('s2', 'c', '2026-10-28T10:00:00.000Z');
 }
 
 test('store: getMissingEmbeddings returns pool items without embeddings', () => {

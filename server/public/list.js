@@ -4,7 +4,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const base = document.body.dataset.base || '';
-  const hosted = document.body.dataset.hosted === '1';
   const sp0 = new URLSearchParams(location.search);
   const embed = sp0.get('embed') === '1';
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -106,7 +105,6 @@
 
   // ---- like / save (same endpoint + guard header as client.js; optimistic with revert)
   async function toggle(btn) {
-    if (hosted) return;
     const on = btn.getAttribute('aria-pressed') !== 'true';
     btn.setAttribute('aria-pressed', String(on));
     try {

@@ -95,15 +95,15 @@ export function loadLikedIds(conn, cutoffDate = null) {
   let rows;
   if (cutoffDate) {
     rows = conn.prepare(`
-      SELECT DISTINCT s.item_id
-      FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
-      WHERE (s.liked = 1 OR s.saved = 1) AND b.date >= ?
-    `).all(cutoffDate);
+      SELECT DISTINCT item_id FROM likes WHERE liked_at >= ?
+      UNION
+      SELECT DISTINCT item_id FROM saves WHERE saved_at >= ?
+    `).all(cutoffDate, cutoffDate);
   } else {
     rows = conn.prepare(`
-      SELECT DISTINCT s.item_id
-      FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
-      WHERE s.liked = 1 OR s.saved = 1
+      SELECT DISTINCT item_id FROM likes
+      UNION
+      SELECT DISTINCT item_id FROM saves
     `).all();
   }
   return new Set(rows.map(r => r.item_id));
@@ -191,23 +191,6 @@ function supersedeLocked(conn, dateKey) {
   conn.prepare('UPDATE briefs SET counted = 0 WHERE date = ? AND counted = 1').run(dateKey);
 }
 
-const _CARRY = `
-UPDATE stories SET
-  liked    = COALESCE((SELECT s2.liked    FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
-                       WHERE b2.date = :date AND s2.brief_id < :bid AND s2.item_id = stories.item_id
-                       ORDER BY s2.brief_id DESC LIMIT 1), 0),
-  saved    = COALESCE((SELECT s2.saved    FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
-                       WHERE b2.date = :date AND s2.brief_id < :bid AND s2.item_id = stories.item_id
-                       ORDER BY s2.brief_id DESC LIMIT 1), 0),
-  liked_at = (SELECT s2.liked_at FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
-              WHERE b2.date = :date AND s2.brief_id < :bid AND s2.item_id = stories.item_id
-              ORDER BY s2.brief_id DESC LIMIT 1),
-  saved_at = (SELECT s2.saved_at FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
-              WHERE b2.date = :date AND s2.brief_id < :bid AND s2.item_id = stories.item_id
-              ORDER BY s2.brief_id DESC LIMIT 1)
-WHERE brief_id = :bid
-`;
-
 const _STORY_COLS = [
   'brief_id', 'item_id', 'desk', 'position', 'headline', 'blurb', 'why_care', 'tags',
   'significance', 'summarized', 'url', 'source', 'source_type', 'subtopic', 'kind', 'mode',
@@ -253,7 +236,6 @@ export function insertBrief(conn, { dateKey, generatedAt, model, llmRequests, re
         .run(...storyRow(bid, desk, pos, s));
     }
   }
-  conn.prepare(_CARRY).run({ date: dateKey, bid });
   return bid;
 }
 

@@ -116,20 +116,27 @@ once via `build_css.ps1` into `tailwind.css`, committed).
 User clicks like in Electron or Obsidian iframe
         │
         ▼
+client.js generates/stores session_id in localStorage, sends X-Session-Id header
+        │
+        ▼
 client.js POST /api/stories/<id>/feedback  { action: "like"|"save", value: boolean }
         │
         ▼
-server/app.js  →  queries.setFeedback()  →  stories.liked / stories.saved
+server/app.js reads X-Session-Id → queries.setFeedback(itemId, sessionId, action, value)
         │
         ▼
-Next ranker run reads liked/saved via store.likedIds (SQL)
+INSERT OR IGNORE / DELETE into likes or saves table (PK: session_id + item_id)
         │
         ▼
-Liked items feed Ward medoid construction + training labels (ranker_state)
+Next ranker run reads likes ∪ saves via store.getLikedIds() (SQL)
+        │
+        ▼
+Liked/saved items feed Ward medoid construction + training labels (ranker_state)
 ```
 
-This is why like/save marks are the ranker's training signal: they flow from the UI into `stories`, then into
-`interests.js` (medoids) and `trainer.js` (labels).
+This is why like/save marks are the ranker's training signal: they flow from the UI into `likes`/`saves`, then into
+`interests.js` (medoids) and `trainer.js` (labels). Marks are keyed by `session_id` + stable `item_id`, so they
+survive brief regeneration and apply across the whole instance (shared taste profile).
 
 ---
 

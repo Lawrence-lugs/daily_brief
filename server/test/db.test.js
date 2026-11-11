@@ -29,14 +29,15 @@ function addStoryRow(db, briefId, o = {}) {
   const id = o.item_id ?? 'item-' + Math.random().toString(36).slice(2);
   db.prepare(`INSERT INTO stories(brief_id,item_id,desk,position,headline,blurb,why_care,tags,
     significance,summarized,url,source,source_type,subtopic,kind,mode,age_days,rel,
-    times_shown_before,cluster,core,score_p,score_v,cos_dist,cluster_size,cluster_pool,medoid_id,
-    liked,saved)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    times_shown_before,cluster,core,score_p,score_v,cos_dist,cluster_size,cluster_pool,medoid_id)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(briefId, id, o.desk ?? 'primary', o.position ?? 0, o.headline ?? 'Headline', o.blurb ?? '', '',
       '[]', o.significance ?? 3, o.summarized ?? 1, o.url ?? 'http://x/' + id, o.source ?? 'arXiv',
       o.source_type ?? 'commentary', o.subtopic ?? 'dse', o.kind ?? 'fresh', o.mode ?? 'greedy',
       o.age_days ?? 0, o.rel ?? 0.5, o.times_shown ?? 0, o.cluster ?? null, o.core ?? 0,
-      null, null, null, null, null, null, o.liked ?? 0, o.saved ?? 0);
+      null, null, null, null, null, null);
+  if (o.liked) db.prepare(`INSERT INTO likes (session_id, item_id, liked_at) VALUES ('s1', ?, ?)`).run(id, new Date().toISOString());
+  if (o.saved) db.prepare(`INSERT INTO saves (session_id, item_id, saved_at) VALUES ('s1', ?, ?)`).run(id, new Date().toISOString());
   return id;
 }
 
@@ -56,8 +57,8 @@ test('tx: commits on success, rolls back on error', () => {
   const db = freshDb();
   addBriefRow(db, '2026-01-01');
   assert.throws(() => tx(db, () => {
-    db.prepare('INSERT INTO stories(brief_id,item_id,desk,position,headline,blurb,url,source,subtopic,kind,mode,age_days,rel,times_shown_before,cluster,core,liked,saved) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(99999, 'x', 'primary', 0, 'h', 'b', 'http://x', 's', 'dse', 'fresh', 'greedy', 0, 0.5, 0, null, 0, 0, 0);
+    db.prepare('INSERT INTO stories(brief_id,item_id,desk,position,headline,blurb,url,source,subtopic,kind,mode,age_days,rel,times_shown_before,cluster,core) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(99999, 'x', 'primary', 0, 'h', 'b', 'http://x', 's', 'dse', 'fresh', 'greedy', 0, 0.5, 0, null, 0, 0);
   }));
   assert.equal(db.prepare('SELECT COUNT(*) AS c FROM stories').get().c, 0);
 });

@@ -441,6 +441,31 @@ test('desks e2e: desk_grid_style emits N-column breakpoints from non-empty desks
   assert.ok(html.includes('repeat(3, 1fr)'), '3 non-empty desks should produce a 3-column rule at wide breakpoint');
 });
 
+test('desks e2e: desk grid caps at 3 columns regardless of desk count', async () => {
+  const { makeRenderer } = await import('../lib/render.js');
+  const renderer = makeRenderer({
+    templatesDir: join(ROOT, 'server', 'templates'),
+    cssFile: join(ROOT, 'tailwind.css'),
+    paperName: 'The Daily Die',
+  });
+
+  const story = { story_id: 's1', headline: 'H1', blurb: 'B', url: 'https://example.com/1', source: 'x', tags: [], kind: 'fresh', age_days: 0 };
+  const desks = {
+    primary: { title: 'Primary', deck: '', stories: [story] },
+    science: { title: 'Science', deck: '', stories: [{ ...story, story_id: 's2' }] },
+    misc: { title: 'Misc.', deck: '', stories: [{ ...story, story_id: 's3' }] },
+    arts: { title: 'Arts', deck: '', stories: [{ ...story, story_id: 's4' }] },
+    world: { title: 'World', deck: '', stories: [{ ...story, story_id: 's5' }] },
+  };
+
+  const html = renderer.page({ brief: null, desks, briefs: [], embed: false });
+
+  // 5 desks but max 3 columns: never a 5-column rule; 3 columns at 1152px.
+  assert.ok(!html.includes('repeat(5, 1fr)'), '5 desks must not produce a 5-column rule');
+  assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(3, 1fr\); \} \}/);
+  assert.ok(!html.includes('overflow-x'), 'desk grid style must not introduce horizontal scroll');
+});
+
 test('desks e2e: desk_grid_style is empty when all desks are empty', async () => {
   const { makeRenderer } = await import('../lib/render.js');
   const renderer = makeRenderer({

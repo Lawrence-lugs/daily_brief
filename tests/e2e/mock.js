@@ -104,10 +104,6 @@ const PAGE_HTML = renderer.page({ brief: BRIEF, desks: DESKS, briefs: BRIEFS, em
 const SWAPPED_HTML = renderer.page({ brief: SWAPPED_BRIEF, desks: SWAPPED_DESKS, briefs: BRIEFS, embed: false });
 const LIST_HTML = readFileSync(path.join(publicDir, 'list.html'), 'utf8');
 
-// Initial fake-DB state (reads + writes happen against this map).
-const INITIAL_STATE = {};
-for (const s of [...PRIMARY, ...SCIENCE]) INITIAL_STATE[s.story_id] = { liked: s.liked, saved: s.saved };
-
 // ---------------------------------------------------------------------------
 // Mock server
 // ---------------------------------------------------------------------------
@@ -115,14 +111,16 @@ for (const s of [...PRIMARY, ...SCIENCE]) INITIAL_STATE[s.story_id] = { liked: s
 export class MockServer {
   constructor(page) {
     this.page = page;
-    this.stories = { ...INITIAL_STATE };        // fake DB: story_id -> { liked, saved }
-    this.generateCalls = [];                    // [{engine, body}]
-    this.storyCalls = [];                       // [{params}] for /api/stories
+    this.likes = new Map();      // key: `${sessionId}:${storyId}` -> true
+    this.saves = new Map();      // key: `${sessionId}:${storyId}` -> true
+    this.lastSessionId = '';     // session id from the last request
+    this.generateCalls = [];     // [{engine, body}]
+    this.storyCalls = [];        // [{params}] for /api/stories
     this.jobId = 0;
-    this.jobSteps = [];                         // ordered responses for current job
+    this.jobSteps = [];          // ordered responses for current job
     this.jobIdx = 0;
     this.jobLog = '';
-    this.jobPolls = [];                         // [{id, since, pseq}] for attach/watch assertions
+    this.jobPolls = [];          // [{id, since, pseq}] for attach/watch assertions
     this._nextPageIsSwapped = false;
     this.failFeedbackStory = null;
     this._generateFails = false;                // when set, /api/generate starts a failed job
@@ -232,8 +230,9 @@ export class MockServer {
 
     // ---- stories (archive list + search + filters + paging) ----
     if (pathname === '/api/stories' && method === 'GET') {
+      this.lastSessionId = request.headers()['x-session-id'] ?? '';
       this.storyCalls.push(Object.fromEntries(sp));
-      return this.json(route, 200, this.listStories(sp));
+      return this.json(route, 200, this.listStories(sp, this.lastSessionId));
     }
     if (pathname === '/api/stories/facets' && method === 'GET') {
       return this.json(route, 200, {
@@ -247,7 +246,8 @@ export class MockServer {
     // ---- feedback (like / save) - fake DB write ----
     const mFb = pathname.match(/^\/api\/stories\/(\d+)\/feedback$/);
     if (mFb && method === 'POST') {
-      return this.handleFeedback(route, Number(mFb[1]), await this.readBody(request));
+      this.lastSessionId = request.headers()['x-session-id'] ?? '';
+      return this.handleFeedback(route, Number(mFb[1]), await this.readBody(request), this.lastSessionId);
     }
 
     // ---- generate ----
@@ -356,7 +356,7 @@ export class MockServer {
   // Fake DB: story list with filters, search, paging (mirrors queries.js shape)
   // ------------------------------------------------------------------
 
-  listStories(sp) {
+  listStories(sp, sessionId) {
     const q = (sp.get('q') ?? '').toLowerCase();
     const mark = sp.get('mark');
     const desk = sp.get('desk');
@@ -366,9 +366,9 @@ export class MockServer {
 
     const rows = [...PRIMARY, ...SCIENCE].filter((r) => {
       if (q && !(r.headline + ' ' + r.blurb + ' ' + r.source + ' ' + r.subtopic).toLowerCase().includes(q)) return false;
-      if (mark === 'liked' && !this.stories[r.story_id]?.liked) return false;
-      if (mark === 'saved' && !this.stories[r.story_id]?.saved) return false;
-      if (mark === 'any' && !(this.stories[r.story_id]?.liked || this.stories[r.story_id]?.saved)) return false;
+      if (mark === 'liked' && !this.isLiked(sessionId, r.story_id)) return false;
+      if (mark === 'saved' && !this.isSaved(sessionId, r.story_id)) return false;
+      if (mark === 'any' && !(this.isLiked(sessionId, r.story_id) || this.isSaved(sessionId, r.story_id))) return false;
       if (desk && r.desk !== desk) return false;
       if (subtopic && r.subtopic !== subtopic) return false;
       if (source && r.source !== source) return false;
@@ -386,8 +386,8 @@ export class MockServer {
         ...r,
         story_id: r.story_id,
         date: '2026-11-10',
-        liked: !!this.stories[r.story_id]?.liked,
-        saved: !!this.stories[r.story_id]?.saved,
+        liked: this.isLiked(sessionId, r.story_id),
+        saved: this.isSaved(sessionId, r.story_id),
         tags: [...r.tags],
         h_headline: null,
         h_blurb: null,
@@ -395,19 +395,31 @@ export class MockServer {
     };
   }
 
+  isLiked(sessionId, storyId) { return this.likes.get(`${sessionId}:${storyId}`) === true; }
+  isSaved(sessionId, storyId) { return this.saves.get(`${sessionId}:${storyId}`) === true; }
+  // Convenience: use the session id from the last request
+  liked(storyId) { return this.isLiked(this.lastSessionId, storyId); }
+  saved(storyId) { return this.isSaved(this.lastSessionId, storyId); }
+
   // ------------------------------------------------------------------
   // Fake DB: feedback (like / save) read + write
   // ------------------------------------------------------------------
 
-  async handleFeedback(route, storyId, body) {
-    const s = this.stories[storyId];
-    if (!s) return this.json(route, 404, { error: 'no such story' });
+  async handleFeedback(route, storyId, body, sessionId) {
+    const key = `${sessionId}:${storyId}`;
     if (!['like', 'save'].includes(body.action) || typeof body.value !== 'boolean') {
       return this.json(route, 400, { error: 'expected {action:"like"|"save", value:boolean}' });
     }
-    const key = body.action === 'save' ? 'saved' : 'liked';
-    s[key] = body.value;
-    return this.json(route, 200, { story_id: storyId, liked: s.liked, saved: s.saved });
+    if (body.action === 'save') {
+      if (body.value) this.saves.set(key, true); else this.saves.delete(key);
+    } else {
+      if (body.value) this.likes.set(key, true); else this.likes.delete(key);
+    }
+    return this.json(route, 200, {
+      story_id: storyId,
+      liked: this.likes.get(key) === true,
+      saved: this.saves.get(key) === true,
+    });
   }
 
   // ------------------------------------------------------------------
@@ -565,18 +577,24 @@ export class MockServer {
     this.failFeedbackStory = storyId;
   }
 
-  async handleFeedback(route, storyId, body) {
+  async handleFeedback(route, storyId, body, sessionId) {
     if (storyId === this.failFeedbackStory) {
       return this.json(route, 500, { error: 'db down' });
     }
-    const s = this.stories[storyId];
-    if (!s) return this.json(route, 404, { error: 'no such story' });
+    const key = `${sessionId}:${storyId}`;
     if (!['like', 'save'].includes(body.action) || typeof body.value !== 'boolean') {
       return this.json(route, 400, { error: 'expected {action:"like"|"save", value:boolean}' });
     }
-    const key = body.action === 'save' ? 'saved' : 'liked';
-    s[key] = body.value;
-    return this.json(route, 200, { story_id: storyId, liked: s.liked, saved: s.saved });
+    if (body.action === 'save') {
+      if (body.value) this.saves.set(key, true); else this.saves.delete(key);
+    } else {
+      if (body.value) this.likes.set(key, true); else this.likes.delete(key);
+    }
+    return this.json(route, 200, {
+      story_id: storyId,
+      liked: this.likes.get(key) === true,
+      saved: this.saves.get(key) === true,
+    });
   }
 
   // Once called, all subsequent '/' requests serve the swapped page (simulates swapToLatest's fetch).

@@ -58,7 +58,7 @@ export function ensureFtsBuilt(db) {
 const DEDUPE = `s.story_id = (SELECT MAX(s2.story_id) FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
                               WHERE b2.date = b.date AND s2.item_id = s.item_id)`;
 
-const MARKS = { liked: 's.liked = 1', saved: 's.saved = 1', any: '(s.liked = 1 OR s.saved = 1)' };
+const MARKS = { liked: 'EXISTS(SELECT 1 FROM likes l WHERE l.item_id = s.item_id)', saved: 'EXISTS(SELECT 1 FROM saves sv WHERE sv.item_id = s.item_id)', any: '(EXISTS(SELECT 1 FROM likes l WHERE l.item_id = s.item_id) OR EXISTS(SELECT 1 FROM saves sv WHERE sv.item_id = s.item_id))' };
 // bm25 weights follow the FTS column order: headline, blurb, why_care, tags, source, subtopic
 const SORTS = {
   date_desc: 'b.date DESC, s.story_id DESC',
@@ -108,7 +108,9 @@ export function makeSearch(db) {
       const total = Number(prep(`SELECT COUNT(*) AS n FROM ${from} WHERE ${W}`).get(...params).n);
       const rows = prep(
         `SELECT s.story_id, s.brief_id, b.date, s.desk, s.subtopic, s.source, s.url, s.headline, s.blurb,
-                s.why_care, s.tags, s.liked, s.saved,
+                s.why_care, s.tags,
+                EXISTS(SELECT 1 FROM likes l WHERE l.item_id = s.item_id) AS liked,
+                EXISTS(SELECT 1 FROM saves sv WHERE sv.item_id = s.item_id) AS saved,
                 ${match ? 'highlight(stories_fts, 0, char(1), char(2))' : 'NULL'} AS h_headline,
                 ${match ? 'highlight(stories_fts, 1, char(1), char(2))' : 'NULL'} AS h_blurb
            FROM ${from} WHERE ${W} ORDER BY ${SORTS[sort]} LIMIT ? OFFSET ?`,

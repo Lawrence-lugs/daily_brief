@@ -27,7 +27,7 @@ export function openDb(file, schemaFile) {
   return db;
 }
 
-const FEEDBACK = { like: ['liked', 'liked_at'], save: ['saved', 'saved_at'] };
+const SESSION_ID_RE = /^[A-Za-z0-9_-]{8,128}$/;
 
 function loadPerfectSamples(root) {
   const psFile = resolve(root, 'perfect_samples.json');
@@ -43,9 +43,15 @@ export function makeQueries(db, root = '.') {
     latestAny: db.prepare('SELECT brief_id FROM briefs ORDER BY brief_id DESC LIMIT 1'),
     latestOnDate: db.prepare('SELECT brief_id FROM briefs WHERE date = ? ORDER BY brief_id DESC LIMIT 1'),
     brief: db.prepare('SELECT * FROM briefs WHERE brief_id = ?'),
-    stories: db.prepare('SELECT * FROM stories WHERE brief_id = ? ORDER BY desk, position'),
+    // Stories for a brief, with like/save state for the given session_id (passed at query time).
+    stories: db.prepare(`
+      SELECT s.*,
+             EXISTS(SELECT 1 FROM likes l WHERE l.item_id = s.item_id AND l.session_id = ?) AS liked,
+             EXISTS(SELECT 1 FROM saves sv WHERE sv.item_id = s.item_id AND sv.session_id = ?) AS saved
+      FROM stories s WHERE s.brief_id = ? ORDER BY s.desk, s.position
+    `),
     list: db.prepare('SELECT brief_id, date, generated_at, model, meta FROM briefs WHERE brief_id IN (SELECT MAX(brief_id) FROM briefs GROUP BY date) ORDER BY brief_id DESC LIMIT ?'),
-    story: db.prepare('SELECT story_id, liked, saved FROM stories WHERE story_id = ?'),
+    story: db.prepare('SELECT story_id, item_id FROM stories WHERE story_id = ?'),
     training: db.prepare('SELECT * FROM training_examples ORDER BY story_id'),
     // Ranker state
     getRankerState: db.prepare('SELECT value FROM ranker_state WHERE key = ?'),
@@ -91,13 +97,18 @@ export function makeQueries(db, root = '.') {
     },
 
     /** Brief with desks[desk] = {title, deck, stories:[...]} (stories ordered by position). */
-    getBrief(briefId) {
+    getBrief(briefId, sessionId = '') {
+      if (sessionId !== '' && !SESSION_ID_RE.test(sessionId)) {
+        throw new Error(`invalid session_id: ${sessionId}`);
+      }
       const b = S.brief.get(briefId);
       if (!b) return null;
       const desksMeta = JSON.parse(b.desks);
       const desks = {};
       for (const k of Object.keys(desksMeta)) desks[k] = { ...desksMeta[k], stories: [] };
-      for (const r of S.stories.all(briefId)) {
+      // stories() takes (session_id, session_id, brief_id)
+      const sid = sessionId ?? '';
+      for (const r of S.stories.all(sid, sid, briefId)) {
         const d = (desks[r.desk] ??= { title: r.desk, deck: '', stories: [] });
         d.stories.push({ ...r, tags: JSON.parse(r.tags), summarized: !!r.summarized });
       }
@@ -111,14 +122,37 @@ export function makeQueries(db, root = '.') {
       });
     },
 
-    /** Set one flag; value is boolean. Returns {story_id, liked, saved} or null if no such story. */
-    setFeedback(storyId, action, value) {
-      const cols = FEEDBACK[action]; // whitelist => safe to interpolate column names
-      if (!cols) throw new Error(`bad action ${action}`);
+    /** Toggle like/save for an item (resolved from story_id) under a session.
+     *  Returns {item_id, liked, saved} or null if no such story. */
+    setFeedback(storyId, sessionId, action, value) {
+      if (sessionId !== '' && !SESSION_ID_RE.test(sessionId)) throw new Error(`invalid session_id: ${sessionId}`);
+      const storyRow = S.story.get(storyId);
+      if (!storyRow) return null;
+      const itemId = storyRow.item_id;
       const now = value ? new Date().toISOString() : null;
-      const r = db.prepare(`UPDATE stories SET ${cols[0]} = ?, ${cols[1]} = ? WHERE story_id = ?`)
-        .run(value ? 1 : 0, now, storyId);
-      return Number(r.changes) ? { ...S.story.get(storyId) } : null;
+      if (action === 'like') {
+        if (value) {
+          db.prepare('INSERT OR IGNORE INTO likes (session_id, item_id, liked_at) VALUES (?, ?, ?)')
+            .run(sessionId, itemId, now);
+        } else {
+          db.prepare('DELETE FROM likes WHERE session_id = ? AND item_id = ?').run(sessionId, itemId);
+        }
+      } else if (action === 'save') {
+        if (value) {
+          db.prepare('INSERT OR IGNORE INTO saves (session_id, item_id, saved_at) VALUES (?, ?, ?)')
+            .run(sessionId, itemId, now);
+        } else {
+          db.prepare('DELETE FROM saves WHERE session_id = ? AND item_id = ?').run(sessionId, itemId);
+        }
+      } else {
+        throw new Error(`bad action ${action}`);
+      }
+      // Return current like/saved state for this item in this session
+      const liked = db.prepare('SELECT 1 FROM likes WHERE session_id = ? AND item_id = ?')
+        .get(sessionId, itemId) ? 1 : 0;
+      const saved = db.prepare('SELECT 1 FROM saves WHERE session_id = ? AND item_id = ?')
+        .get(sessionId, itemId) ? 1 : 0;
+      return { item_id: itemId, liked, saved };
     },
 
     trainingRows() {

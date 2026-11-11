@@ -68,14 +68,31 @@ CREATE TABLE IF NOT EXISTS stories (
   cos_dist     REAL,                          -- 1 - cos(story, medoid of its cluster), at pick time
   cluster_size INTEGER,                       -- interest points in the cluster at pick time
   cluster_pool INTEGER,                       -- candidates assigned to the cluster at pick time
-  medoid_id    TEXT,                          -- item_id (or ps:<id>) of the cluster medoid at pick time
-  liked        INTEGER NOT NULL DEFAULT 0,
-  saved        INTEGER NOT NULL DEFAULT 0,
-  liked_at     TEXT,
-  saved_at     TEXT
+  medoid_id    TEXT                          -- item_id (or ps:<id>) of the cluster medoid at pick time
 );
 CREATE INDEX IF NOT EXISTS idx_stories_brief ON stories(brief_id, desk, position);
 CREATE INDEX IF NOT EXISTS idx_stories_item  ON stories(item_id);
+
+-- Likes / saves: one row per (session_id, item_id). Likes are NOT tied to a brief or story row,
+-- so they survive brief regeneration and apply across the whole instance (shared taste profile).
+-- A single story row can appear in multiple briefs; likes attach to the stable item_id.
+CREATE TABLE IF NOT EXISTS likes (
+  session_id  TEXT NOT NULL,
+  item_id     TEXT NOT NULL,
+  liked_at    TEXT NOT NULL,                 -- UTC ISO-8601
+  PRIMARY KEY (session_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_likes_item ON likes(item_id);
+CREATE INDEX IF NOT EXISTS idx_likes_session ON likes(session_id);
+
+CREATE TABLE IF NOT EXISTS saves (
+  session_id  TEXT NOT NULL,
+  item_id     TEXT NOT NULL,
+  saved_at    TEXT NOT NULL,                 -- UTC ISO-8601
+  PRIMARY KEY (session_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_saves_item ON saves(item_id);
+CREATE INDEX IF NOT EXISTS idx_saves_session ON saves(session_id);
 
 -- 4. Full-text search over stories (external-content FTS5, kept in sync by triggers).
 --    Column ORDER matters: search.js bm25()/highlight() refer to columns by position.
@@ -106,10 +123,14 @@ END;
 
 -- Recommender input: one row per (date, item), taking the LAST occurrence
 -- (regeneration copies feedback forward, so the last row has the final state).
+-- liked/saved labels are derived from the likes/saves tables (any session), not from stories.
+DROP VIEW IF EXISTS training_examples;
 CREATE VIEW IF NOT EXISTS training_examples AS
 SELECT s.story_id, s.brief_id, b.date, b.generated_at, s.item_id, s.desk, s.position,
        s.subtopic, s.source, s.source_type, s.kind, s.mode, s.significance, s.summarized,
-       s.age_days, s.rel, s.times_shown_before, s.headline, s.url, s.liked, s.saved
+       s.age_days, s.rel, s.times_shown_before, s.headline, s.url,
+       CASE WHEN EXISTS(SELECT 1 FROM likes l WHERE l.item_id = s.item_id) THEN 1 ELSE 0 END AS liked,
+       CASE WHEN EXISTS(SELECT 1 FROM saves sv WHERE sv.item_id = s.item_id) THEN 1 ELSE 0 END AS saved
 FROM stories s JOIN briefs b ON b.brief_id = s.brief_id
 WHERE s.story_id = (
   SELECT MAX(s2.story_id) FROM stories s2 JOIN briefs b2 ON b2.brief_id = s2.brief_id
@@ -147,4 +168,4 @@ CREATE TABLE IF NOT EXISTS model_eval (
   results TEXT NOT NULL              -- full JSON of the eval result
 );
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
