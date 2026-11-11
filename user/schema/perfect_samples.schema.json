@@ -10,9 +10,9 @@
       "title": { "type": "string", "title": "Title" },
       "snippet": { "type": "string", "title": "Snippet" },
       "type": { "type": "string", "enum": ["paperlike", "newslike", "commentary"], "title": "Type" },
-      "core": { "type": "boolean", "title": "Core" },
-      "representative": { "type": "boolean", "title": "Representative" },
-      "desk": { "type": "string", "title": "Desk" }
+      "core": { "type": "boolean", "title": "Core", "description": "VESTIGIAL / metadata only. Records whether this perfect sample anchors a 'core' cluster. Historically drove desk assignment; it no longer drives desk assignment, merge blocking, model features, or sampling. Desks and representative handles those now. Do not add behavior that depends on core." },
+      "representative": { "type": "boolean", "title": "Representative", "description": "ACTIVE. Controls Ward-clustering merge blocking (ranker/agglo.js wardCut). Representative perfect samples block merges with each other (two representatives cannot share a cluster under stop/constrained modes, or the legacy deskless fallback). This enforces 'representative samples cannot be merged'." },
+      "desk": { "type": "string", "title": "Desk", "description": "ACTIVE. Prevents desks from merging. Cross-desk merges are skipped (clustering continues); same-desk merges are allowed. Clusters never mix desks." }
     },
     "additionalProperties": true
   }

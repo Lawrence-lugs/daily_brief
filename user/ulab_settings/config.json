@@ -1,0 +1,188 @@
+{
+  "paper_name": "The MicroLab Brief",
+  "edition_dir": "05-for-agents/daily-brief",
+  "db_file": "daily_brief.db",
+  "debug_dir": "logs",
+  "stories_per_desk": 5,
+  "reserve_per_desk": 25,
+  "max_agent_output_items_per_desk": 5,
+  "reader": "A microlab researcher working across microelectronics, MEMS sensors, analog/mixed-signal circuits, machine-learning hardware, RF/wireless, and bio-sensing.",
+  "prefer": "Primary results, new sensor and circuit designs reported with measured numbers, hardware releases, tool or artifact open-sourcing, surprising negative results, and anything that changes how a microlab designer would build or measure. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it.",
+  "desks": {
+    "mems_sensors": {
+      "title": "MEMS & Sensors Desk",
+      "description": "MEMS pressure, thermopile, piezoelectric and VCSEL/photonic sensors; surface acoustic wave sensors; sensor interface and characterization.",
+      "keyword-model-subtopics": ["mems", "vcsel", "saw", "piezo", "thermopile"]
+    },
+    "analog_mixed_signal": {
+      "title": "Analog & Mixed-Signal Circuits Desk",
+      "description": "Operational transconductance amplifiers, instrumentation amplifiers (LNIA/CCIA/CFIA), SAR and charge amplifiers, Gm-C filters, and readout interface circuits.",
+      "keyword-model-subtopics": ["ota", "adc", "amp", "filter"]
+    },
+    "ml_hardware": {
+      "title": "Machine Learning Hardware Desk",
+      "description": "In-memory computing, CNN and edge accelerators, MAC architectures, TinyML/TinyEngine, hyperdimensional computing, sparse and associative memory architectures.",
+      "keyword-model-subtopics": ["hdc", "imc", "cnn", "tinyml", "mac"]
+    },
+    "rf_wireless": {
+      "title": "RF & Wireless Desk",
+      "description": "RF energy harvesting, matching networks and rectifiers, IR-UWB transmitter front ends, delay mismatch and power conversion.",
+      "keyword-model-subtopics": ["rf", "uwb"]
+    },
+    "microfluidics_bio": {
+      "title": "Microfluidics & Bio-sensing Desk",
+      "description": "Electrochemical and microfluidic sensors for water quality, EEG analog front-ends, and biomedical instrumentation.",
+      "keyword-model-subtopics": ["microfluidic", "eeg"]
+    }
+  },
+  "keywords": {
+    "mems": ["MEMS", "microelectromechanical", "pressure sensor", "diaphragm", "capacitive", "sensor array", "COMSOL", "finite element", "pillar", "dielectric", "movable plate", "variable-area"],
+    "vcsel": ["VCSEL", "vertical cavity", "surface emitting laser", "HCG", "high contrast grating", "photonic", "optical transceiver", "PAM-4", "tunable", "Raman", "photoluminescence", "MEMS-tunable"],
+    "saw": ["surface acoustic wave", "SAW", "Rayleigh", "transducer", "SPUDT", "AZO", "aluminum-doped zinc oxide", "temperature sensor", "fundamental mode", "higher-order mode"],
+    "piezo": ["piezoelectric", "piezoresistive", "charge amplifier", "MEMS sensor", "mechanical stress", "MEMS-based piezoelectric"],
+    "thermopile": ["thermopile", "thermoelectric", "LNIA", "instrumentation amplifier", "infrared", "IR sensing", "biomedical", "chopper-stabilized"],
+    "ota": ["OTA", "operational transconductance", "folded-cascode", "Nauta", "Gm-C", "chopper", "chopper-stabilized", "linearity", "IIP3", "THD", "back-gate", "UTBB", "FDSOI", "GM-C ladder"],
+    "adc": ["ADC", "SAR", "successive approximation", "charge amplifier", "ENOB", "FoM", "conv-step", "adaptive resolution", "capacitive DAC", "CDAC", "set-and-down", "monotonic"],
+    "amp": ["instrumentation amplifier", "LNIA", "CCIA", "CFIA", "low-noise", "input-referred noise", "CMRR", "input impedance", "chopper", "gain", "capacitively-coupled"],
+    "filter": ["Gm-C", "Butterworth", "low-pass filter", "LPF", "high-pass", "active filter", "ladder", "Nauta", "chopping ripple"],
+    "hdc": ["hyperdimensional computing", "HDC", "hypervector", "sparse", "associative memory", "TST-MRAM", "redundancy pruning", "ISOLET", "language classification", "speech recognition", "brain-like", "encoding", "EEG", "toggle spin torque"],
+    "imc": ["in-memory computing", "IMC", "multiply-accumulate", "MAC", "bitcell", "charge redistribution", "QR", "8T SRAM", "energy efficiency", "TOPS/W", "GOPS", "CAM", "Boolean", "arithmetic", "peripheral block", "self-matching", "complementary-reference"],
+    "cnn": ["CNN accelerator", "convolutional neural network", "edge inference", "systolic array", "FIFO", "design space exploration", "precision-scalable", "MISO-FIFO", "depthwise", "pointwise", "GOPS/mm2", "GOPS/W", "memory bus width"],
+    "tinyml": ["TinyML", "TinyEngine", "RISC-V", "vector extension", "federated learning", "MLPerfTiny", "edge AI", "human activity recognition", "HAR", "SVM", "MobileNet", "quantization", "server-side momentum"],
+    "mac": ["multiply-accumulate", "MAC", "energy-quality", "bitwidth", "throughput", "energy per operation", "throughput per area", "sum-together", "sum-apart", "Bit Fusion", "precision scaling"],
+    "rf": ["RF energy harvesting", "energy harvester", "matching network", "rectifier", "MPPT", "5.8GHz", "passive", "batteryless", "sensitivity", "rectenna", "cross-coupled", "differential-drive", "conversion efficiency", "voltage regulation", "cascade", "impedance"],
+    "uwb": ["IR-UWB", "ultra-wideband", "edge-combiner", "delay mismatch", "transmitter front end", "routing", "picosecond", "GHz", "variance", "propagation delay", "pulse width"],
+    "microfluidic": ["microfluidic", "electrochemical", "capillary", "cadmium", "lead", "copper", "drinking water", "heavy metal", "sensor", "electrode", "microchannel", "capillary-driven"],
+    "eeg": ["EEG", "electroencephalogram", "analog front-end", "AFE", "wearable", "non-contact", "biomedical", "instrumentation amplifier", "low-pass filter", "chopping", "gigaohm", "impedance", "capacitive impedance boosting"]
+  },
+  "selection": {
+    "epsilon": 0.25,
+    "a50_days": 7,
+    "slope": 1,
+    "age_floor_days": 0.25,
+    "explore_gamma": 0.3,
+    "shown_decay": 0.05,
+    "rejected_decay": 0.3,
+    "archive_after_days": 7,
+    "skip_exhausted_subtopics": true
+  },
+  "pool": {
+    "max_age_days": 120
+  },
+  "fetch": {
+    "timeout_s": 20,
+    "cache_ttl_hours": 6,
+    "arxiv_delay_s": 3.1,
+    "api_delay_s": 5,
+    "hn_lookback_days": 45,
+    "user_agent": "daily-brief/1.0 (microlab community brief; stdlib urllib)"
+  },
+  "llm": {
+    "models": [
+      "nvidia/nemotron-3.5-super-vl:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-super-120b-a12b:free",
+      "nvidia/nemotron-3.5-lightning:free",
+      "openrouter/free"
+    ],
+    "temperature": 0.3,
+    "max_tokens": 20000,
+    "timeout_s": 150,
+    "retries": 2,
+    "max_requests_per_run": 24,
+    "min_remaining_daily": 3,
+    "effort": "high"
+  },
+  "ranker": {
+    "engine": "lr",
+    "perfect_samples_file": "perfect_samples.json",
+    "label": "liked_or_saved",
+    "features": [
+      "bias",
+      "type",
+      "author",
+      "medoid"
+    ],
+    "authors": {
+      "head": 3,
+      "tail": 2,
+      "threshold": 5
+    },
+    "interests": {
+      "kappa": 5,
+      "maxLikedDays": 1000,
+      "mode": "constrained",
+      "minClusters": 1
+    },
+    "crossFit": {
+      "folds": 5
+    },
+    "embedding": {
+      "model": "leaf-mt"
+    },
+    "model": {
+      "name": "bayes_lr",
+      "maxSweeps": 60,
+      "tol": 0.0001,
+      "numDefault": {
+        "mean": 0.45,
+        "std": 0.15
+      },
+      "prior": {
+        "default": {
+          "prec": 1,
+          "mean": 0
+        },
+        "rules": [
+          {
+            "match": "b",
+            "prec": 0.5,
+            "mean": -2
+          },
+          {
+            "match": "t:",
+            "prec": 2
+          },
+          {
+            "match": "a:",
+            "prec": 3
+          },
+          {
+            "match": "n:d1",
+            "prec": 1,
+            "mean": -0.8
+          },
+          {
+            "match": "n:d2",
+            "prec": 2,
+            "mean": -0.2
+          },
+          {
+            "match": "n:d3",
+            "prec": 2
+          }
+        ]
+      },
+      "l2Strength": 0.01,
+      "unpenalizedKeys": [],
+      "relKey": "rel"
+    },
+    "sampling": {
+      "epsilon": 0.2,
+      "halfLifeDays": 30,
+      "freshness": {
+        "model": "exponential"
+      },
+      "shown_decay": 0.05,
+      "explore": {
+        "gamma": 0.5,
+        "floor": 0.01
+      },
+      "dedupe": {
+        "hardWindowDays": 2,
+        "t0": 7,
+        "scale": 2
+      }
+    }
+  }
+}

@@ -100,6 +100,14 @@ Identical training rows/labels/test split in both conditions; only the medoids (
 
 Excluding liked items from clustering **improved** fitted AUC (~0.05) — the opposite of naive expectation. Liked items are recent/personally-salient and pull medoids toward recent tastes, but the chronological holdout is future-dated, so those medoids generalize poorly. Perfect samples are durable anchors. Caveat: test set is small (n≈50); re-run on other dates to confirm significance.
 
+## Perfect-sample attributes: `core` vs `representative`
+
+These two boolean fields on perfect samples (`user/defaults/perfect_samples.json`, `user/schema/perfect_samples.schema.json`) serve different purposes, and only one is still behaviorally active.
+
+- **`representative` — ACTIVE.** Controls Ward-clustering merge blocking (`ranker/agglo.js`, `wardCut`). Representative perfect samples act as anchors that block merges with each other (two representatives cannot share a cluster under `stop`/`constrained` modes, or as the legacy fallback when `deskOf` is not given). This is the mechanism that enforces "representative samples cannot be merged."
+- **`desk` / desk-aware merging — ACTIVE.** Prevents desks from merging. Cross-desk merges are **skipped** (clustering continues); same-desk merges are allowed. Clusters never mix desks. This is the mechanism that enforces "we prevent desks from merging." See `ranker/interests.js` (`deskOf`) and `docs/model.md` §3.4.
+- **`core` — VESTIGIAL / dangling.** Historically drove desk assignment and cluster identity. It now only records whether a cluster contains ≥1 `core:true` perfect sample (`ranker/interests.js:35`). It is **not** a model feature (`ranker/features.js` has no `core` key), does **not** block merges, does **not** drive desk assignment ("desks do"), and does **not** affect sampling (`ranker/sampler.js` logs it only in a trace event). It is still threaded through as observable metadata: part of the fit-key/cache-invalidation hash (`ranker/pipeline.js:118`), surfaced in CLI output (`ranker/cli.js:137,230`), logged in `[refit]` diagnostics (`ranker/pipeline.js:235-236`), and stored per-story in SQLite (`schema.sql:65`). Treat `core` as metadata only — do not add behavior that depends on it.
+
 ## Standalone report
 
 `docs/experiments/clustering_ablation.qmd` — executable quarto notebook that reads the latest Sacred run from `docs/experiments/runs.db` and renders a results table + Plotly charts (fitted AUC, fitted logLoss, delta). Quarto is not installed in this environment; the notebook executes via Python (plotly/pandas/sqlite3) if rendered through a compatible engine.
