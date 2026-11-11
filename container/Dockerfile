@@ -47,6 +47,9 @@ COPY ranker/ ./ranker/
 COPY scripts/ ./scripts/
 COPY src/ ./src/
 COPY schema.sql prompt_system.md tailwind.css ./
+# User-config modules imported by server/ (datadir, config, routes, save, validate) and their schemas.
+COPY user/*.js ./user/
+COPY user/schema/ ./user/schema/
 # Default config templates (tracked in user/defaults). Seeded into /app/data on first start
 # only (see user/datadir.js -> seedDataDir); user edits in the volume are kept.
 COPY user/defaults/config.json ./user/defaults/config.json

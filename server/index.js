@@ -5,7 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
-import { defaultDataDir, seedDataDir } from './lib/datadir.js';
+import { defaultDataDir, seedDataDir } from '../user/datadir.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = process.env.BRIEF_DATA_DIR ?? defaultDataDir();
