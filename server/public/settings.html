@@ -237,6 +237,51 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
+
+  /* Reordering the dynamic object properties in config.desks. */
+  .settings-editor .settings-desks-order-list > li {
+    display: flex;
+    align-items: stretch;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .settings-editor .settings-desks-order-list > li > .jedi-nav-link {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .settings-editor .settings-desk-order-handle {
+    display: grid;
+    place-items: center;
+    flex: 0 0 18px;
+    color: var(--settings-muted);
+    font-size: 16px;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .settings-editor li[data-order-mode="locked"] .settings-desk-order-handle {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .settings-editor li[data-order-mode="draggable"] .settings-desk-order-handle:hover {
+    color: var(--settings-accent);
+  }
+
+  .settings-editor .settings-desks-order-list > li.is-dragging {
+    opacity: .35;
+  }
+
+  .settings-editor .settings-desks-order-list > li.is-drop-before > .jedi-nav-link {
+    box-shadow: inset 0 2px 0 var(--settings-accent);
+  }
+
+  .settings-editor .settings-desks-order-list > li.is-drop-after > .jedi-nav-link {
+    box-shadow: inset 0 -2px 0 var(--settings-accent);
+  }
+
   .settings-editor .jedi-tab-pane,
   .settings-editor .tab-pane { min-width: 0; }
 
@@ -717,6 +762,236 @@ function bindArrayItemSelection(root) {
   root.addEventListener('focusin', selectFromEvent);
 }
 
+function findSchemaControl(root, propertyName) {
+  return Array.from(root.querySelectorAll('[data-path]')).find((el) => {
+    const parts = (el.dataset.path || '').split('/').filter(Boolean);
+    return parts.at(-1) === propertyName;
+  });
+}
+
+function getDeskNavList(root) {
+  const desksControl = findSchemaControl(root, 'desks');
+  const list = desksControl?.querySelector(
+    '.jedi-nav-list-col > .jedi-nav-list'
+  );
+
+  if (list) list.classList.add('settings-desks-order-list');
+  return list || null;
+}
+
+function getDeskKey(item) {
+  return item.querySelector('.jedi-nav-text')
+    ?.textContent
+    ?.trim()
+    .replace(/^⚠\s*/, '') || '';
+}
+
+function decorateDeskNavItems(list, lockedKeys) {
+  for (const item of list.children) {
+    if (item.tagName !== 'LI') continue;
+
+    const key = getDeskKey(item);
+    if (!key) continue;
+
+    const locked = lockedKeys.has(key);
+    item.dataset.orderMode = locked ? 'locked' : 'draggable';
+
+    let handle = Array.from(item.children).find((child) =>
+      child.classList.contains('settings-desk-order-handle')
+    );
+
+    if (!handle) {
+      handle = document.createElement('span');
+      handle.className = 'settings-desk-order-handle';
+      handle.setAttribute('aria-hidden', 'true');
+      item.prepend(handle);
+    }
+
+    handle.textContent = locked ? '🔒' : '⠿';
+    handle.draggable = !locked;
+    handle.title = locked ? 'Desk order is locked' : 'Drag to reorder desks';
+
+    const link = item.querySelector('.jedi-nav-link');
+    if (link) link.draggable = false;
+  }
+}
+
+function moveDeskItem(list, dragged, target, after) {
+  const children = Array.from(list.children);
+
+  // Locked entries retain their absolute positions.
+  const movableSlots = children
+    .map((item, index) =>
+      item.dataset.orderMode === 'draggable' ? index : -1
+    )
+    .filter((index) => index >= 0);
+
+  const movable = movableSlots.map((index) => children[index]);
+
+  const from = movable.indexOf(dragged);
+  const targetIndex = movable.indexOf(target);
+
+  if (from < 0 || targetIndex < 0) return;
+
+  let insertionIndex = targetIndex + (after ? 1 : 0);
+
+  const [item] = movable.splice(from, 1);
+
+  if (from < insertionIndex) insertionIndex--;
+
+  movable.splice(insertionIndex, 0, item);
+
+  // Write the reordered items back into their original movable slots.
+  movableSlots.forEach((slot, index) => {
+    children[slot] = movable[index];
+  });
+
+  children.forEach((child) => list.appendChild(child));
+}
+
+function bindDeskReordering(root, schema) {
+  const list = getDeskNavList(root);
+  if (!list) {
+    console.warn('Could not find the desks navigation list.');
+    return;
+  }
+
+  const lockedKeys = new Set(
+    schema?.properties?.desks?.['x-ui-locked-keys'] || []
+  );
+
+  decorateDeskNavItems(list, lockedKeys);
+
+  // Dynamic properties added through Jedison should get the same treatment.
+  const observer = new MutationObserver(() => {
+    decorateDeskNavItems(list, lockedKeys);
+  });
+  observer.observe(list, { childList: true });
+
+  let draggedItem = null;
+
+  function clearDropFeedback() {
+    list.querySelectorAll('.is-drop-before, .is-drop-after').forEach((item) => {
+      item.classList.remove('is-drop-before', 'is-drop-after');
+    });
+  }
+
+  function getListItem(target) {
+    const item = target.closest?.('li');
+    return item && item.parentElement === list ? item : null;
+  }
+
+  function isAfter(event, item) {
+    const rect = item.getBoundingClientRect();
+    return event.clientY > rect.top + rect.height / 2;
+  }
+
+  list.addEventListener('dragstart', (event) => {
+    const handle = event.target.closest?.('.settings-desk-order-handle');
+    const item = handle?.parentElement;
+
+    if (
+      !handle ||
+      !list.contains(handle) ||
+      !item ||
+      item.dataset.orderMode !== 'draggable'
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    draggedItem = item;
+    item.classList.add('is-dragging');
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', getDeskKey(item));
+    }
+  });
+
+  list.addEventListener('dragover', (event) => {
+    if (!draggedItem) return;
+
+    const target = getListItem(event.target);
+
+    if (
+      !target ||
+      target === draggedItem ||
+      target.dataset.orderMode !== 'draggable'
+    ) return;
+
+    event.preventDefault();
+    clearDropFeedback();
+
+    target.classList.add(
+      isAfter(event, target) ? 'is-drop-after' : 'is-drop-before'
+    );
+
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  });
+
+  list.addEventListener('drop', (event) => {
+    if (!draggedItem) return;
+
+    const target = getListItem(event.target);
+
+    if (
+      !target ||
+      target === draggedItem ||
+      target.dataset.orderMode !== 'draggable'
+    ) return;
+
+    event.preventDefault();
+
+    moveDeskItem(list, draggedItem, target, isAfter(event, target));
+
+    draggedItem.classList.remove('is-dragging');
+    draggedItem = null;
+    clearDropFeedback();
+  });
+
+  list.addEventListener('dragend', () => {
+    draggedItem?.classList.remove('is-dragging');
+    draggedItem = null;
+    clearDropFeedback();
+  });
+}
+
+function getDeskOrder(root) {
+  const list = getDeskNavList(root);
+  if (!list) return [];
+
+  return Array.from(list.children)
+    .filter((item) => item.tagName === 'LI')
+    .map(getDeskKey)
+    .filter(Boolean);
+}
+
+function reorderObjectProperties(object, order) {
+  if (!object || typeof object !== 'object' || Array.isArray(object)) {
+    return object;
+  }
+
+  const entries = new Map(Object.entries(object));
+  const result = [];
+  const seen = new Set();
+
+  // First, use the visual order.
+  for (const key of order) {
+    if (entries.has(key) && !seen.has(key)) {
+      result.push([key, entries.get(key)]);
+      seen.add(key);
+    }
+  }
+
+  // Preserve any properties not represented in the navigation list.
+  for (const [key, value] of entries) {
+    if (!seen.has(key)) result.push([key, value]);
+  }
+
+  return Object.fromEntries(result);
+}
+
 function createFileTab(fileName, index) {
   const tab = document.createElement('button');
   tab.type = 'button';
@@ -797,6 +1072,16 @@ async function loadFile(fileName, index) {
     ui.save.textContent = 'Saving…';
     try {
       const value = instances[fileName].getValue();
+
+      // Desk order is semantically meaningful: server/lib/config.js uses
+      // Object.entries(config.desks), which preserves this insertion order.
+      if (fileName === 'config.json' && value?.desks) {
+        value.desks = reorderObjectProperties(
+          value.desks,
+          getDeskOrder(ui.root)
+        );
+      }
+
       const response = await fetch(base + '/api/config/' + encodeURIComponent(fileName), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
@@ -852,7 +1137,13 @@ async function loadFile(fileName, index) {
         schema: displaySchema
       });
       instances[fileName].setValue(data, false);
+
       bindArrayItemSelection(ui.root);
+
+      if (fileName === 'config.json') {
+        bindDeskReordering(ui.root, displaySchema);
+      }
+
       ui.save.disabled = false;
     } else {
       const note = document.createElement('p');

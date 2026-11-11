@@ -24,6 +24,22 @@ export function openDb(file, schemaFile) {
     try { db.exec(ddl); } catch (e) { if (!String(e).includes('duplicate column name')) throw e; }
   }
   ensureFtsBuilt(db); // one-time backfill; no-op afterwards
+  // Migration v3→v4: copy stranded like/save data from stories columns to new likes/saves tables.
+  // Only needed on old DBs where stories still has liked/saved columns.
+  const hasLikedCol = db.prepare("SELECT 1 FROM pragma_table_info('stories') WHERE name='liked'").get();
+  if (hasLikedCol) {
+    db.prepare(`
+      INSERT OR IGNORE INTO likes (session_id, item_id, liked_at)
+      SELECT 'legacy', s.item_id, COALESCE(s.liked_at, b.generated_at)
+      FROM stories s JOIN briefs b ON b.brief_id = s.brief_id WHERE s.liked = 1
+    `).run();
+    db.prepare(`
+      INSERT OR IGNORE INTO saves (session_id, item_id, saved_at)
+      SELECT 'legacy', s.item_id, COALESCE(s.saved_at, b.generated_at)
+      FROM stories s JOIN briefs b ON b.brief_id = s.brief_id WHERE s.saved = 1
+    `).run();
+    console.error('[migrate] copied stranded like/save data from stories to likes/saves tables');
+  }
   return db;
 }
 

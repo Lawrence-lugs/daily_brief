@@ -16,6 +16,7 @@
     "desks": {
       "type": "object",
       "title": "Desks",
+      "x-ui-locked-keys": ["misc"],
       "description": "Desk key -> desk spec. Each desk has a title, description, and keyword-model-subtopics.",
       "additionalProperties": {
         "type": "object",
