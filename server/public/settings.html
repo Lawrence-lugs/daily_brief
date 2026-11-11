@@ -10,255 +10,870 @@
 <link rel="stylesheet" href="static/tailwind.css">
 <link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
 <style>
-  :root { --jedison-accent: #4f46e5; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  h1 { font-size: 1.25rem; margin: 0; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 8px; }
-  .tab { padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; cursor: pointer; font-size: 0.9rem; }
-  .tab.active { background: var(--jedison-accent); color: #fff; border-color: var(--jedison-accent); }
-  .tab:hover { background: #e2e8f0; }
-  .file-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; background: #ffffff; }
-  .file-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
-  .file-name { font-weight: 600; color: #1e293b; }
-  .file-desc { color: #64748b; font-size: 0.85rem; margin-left: auto; }
-  .badge { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; background: #e2e8f0; color: #475569; margin-left: 6px; }
-  .saved { color: #166534; font-size: 0.85rem; margin-top: 8px; }
-  .error { color: #dc2626; font-size: 0.85rem; margin-top: 8px; }
-  .note { color: #64748b; font-size: 0.8rem; margin-top: 6px; }
-  .btn-save { background: var(--jedison-accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-  .btn-save:hover { background: #4338ca; }
-  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-  .loading { color: #64748b; font-style: italic; }
-  .back { display: inline-block; margin-bottom: 12px; color: var(--jedison-accent); text-decoration: none; font-size: 0.9rem; }
-  .back:hover { text-decoration: underline; }
-  pre.error-json { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px; font-size: 0.8rem; overflow: auto; max-height: 200px; }
-  #jedison-root { margin-top: 8px; }
+  :root {
+    color-scheme: light;
+    --settings-bg: #ece7dc;
+    --settings-surface: #fbf8f1;
+    --settings-surface-raised: #fffdf8;
+    --settings-fg: #3b362e;
+    --settings-muted: #6f665b;
+    --settings-line: #cfc6b6;
+    --settings-hover: #e0d8c8;
+    --settings-accent: #b45309;
+    --settings-on-accent: #fbf8f1;
+    --settings-ok: #4d7c0f;
+    --settings-error: #b91c1c;
+    --settings-shadow: 0 12px 36px rgba(59, 54, 46, .08);
+  }
+  html.dark {
+    color-scheme: dark;
+    --settings-bg: #0b1016;
+    --settings-surface: #111923;
+    --settings-surface-raised: #151f2b;
+    --settings-fg: #cbd5e1;
+    --settings-muted: #94a3b8;
+    --settings-line: #263344;
+    --settings-hover: #1b2938;
+    --settings-accent: #fbbf24;
+    --settings-on-accent: #0b1016;
+    --settings-ok: #86efac;
+    --settings-error: #fca5a5;
+    --settings-shadow: 0 12px 36px rgba(0, 0, 0, .22);
+  }
 
-  /* Dark mode overrides for the settings page chrome (mirrors app.css / sidebar.css token approach). */
-  html.dark .tab { background: #1e293b; border-color: #334155; color: #f1f5f9; }
-  html.dark .tab:hover { background: #334155; }
-  html.dark .tab.active { border-color: var(--jedison-accent); }
-  html.dark .file-card { background: #0f172a; border-color: #334155; }
-  html.dark .file-header { border-bottom-color: #334155; }
-  html.dark .file-name { color: #f8fafc; }
-  html.dark .file-desc { color: #94a3b8; }
-  html.dark .badge { background: #334155; color: #cbd5e1; }
-  html.dark .loading { color: #94a3b8; }
-  html.dark pre.error-json { background: #1e1b4b; border-color: #4338ca; color: #f8fafc; }
+  * { box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--settings-bg);
+    color: var(--settings-fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  button, input, select, textarea { font: inherit; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--settings-accent);
+    outline-offset: 2px;
+  }
+  .page-shell {
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: 28px clamp(16px, 3vw, 40px) 48px;
+  }
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 48px;
+    margin-bottom: 22px;
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--settings-muted);
+    text-decoration: none;
+    font-size: .875rem;
+    white-space: nowrap;
+  }
+  .back:hover { color: var(--settings-accent); }
+  .page-heading { min-width: 0; }
+  .page-heading h1 {
+    margin: 0;
+    color: var(--settings-fg);
+    font-size: 1.3rem;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+  .page-heading p {
+    margin: 3px 0 0;
+    color: var(--settings-muted);
+    font-size: .8rem;
+  }
+  .header-spacer { flex: 1; }
+  #btn-theme {
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface);
+    color: var(--settings-fg);
+    cursor: pointer;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  #btn-theme:hover { background: var(--settings-hover); }
+
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--settings-line);
+    scrollbar-width: thin;
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 8px 13px;
+    border: 1px solid transparent;
+    border-radius: 7px 7px 0 0;
+    background: transparent;
+    color: var(--settings-muted);
+    cursor: pointer;
+    font-size: .85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tab:hover { background: var(--settings-hover); color: var(--settings-fg); }
+  .tab.active {
+    border-color: var(--settings-line);
+    border-bottom-color: var(--settings-surface);
+    margin-bottom: -11px;
+    background: var(--settings-surface);
+    color: var(--settings-accent);
+  }
+  .file-card {
+    overflow: hidden;
+    border: 1px solid var(--settings-line);
+    border-radius: 0 10px 10px 10px;
+    background: var(--settings-surface);
+    box-shadow: var(--settings-shadow);
+  }
+  .file-card[hidden] { display: none; }
+  .file-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 22px 15px;
+    border-bottom: 1px solid var(--settings-line);
+  }
+  .file-heading { min-width: 0; }
+  .file-name {
+    display: block;
+    color: var(--settings-fg);
+    font-size: .95rem;
+    font-weight: 700;
+  }
+  .file-desc {
+    margin: 3px 0 0;
+    color: var(--settings-muted);
+    font-size: .8rem;
+  }
+  .file-kind {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 3px 8px;
+    border: 1px solid var(--settings-line);
+    border-radius: 5px;
+    color: var(--settings-muted);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .file-content { padding: 20px 22px 8px; }
+  .settings-editor { min-width: 0; }
+
+  /* Jedison navigation: root schema properties become the section navigator. */
+  .settings-editor .jedi-nav-row {
+    display: grid;
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+  .settings-editor .jedi-nav-list-col {
+    position: sticky;
+    top: 12px;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    flex: none;
+  }
+  .settings-editor .jedi-nav-content-col {
+    width: auto;
+    min-width: 0;
+    flex: none;
+  }
+  .settings-editor .jedi-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .settings-editor .jedi-nav-list > li { margin: 0; padding: 0; }
+  .settings-editor .jedi-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
+    border-radius: 5px;
+    color: var(--settings-muted);
+    text-decoration: none;
+    font-size: .82rem;
+    line-height: 1.3;
+    cursor: pointer;
+  }
+  .settings-editor .jedi-nav-link:hover {
+    border-color: var(--settings-line);
+    background: var(--settings-hover);
+    color: var(--settings-fg);
+  }
+  .settings-editor .jedi-nav-list > li.active > .jedi-nav-link,
+  .settings-editor .jedi-nav-link.active {
+    border-color: var(--settings-line);
+    border-left-color: var(--settings-accent);
+    background: var(--settings-hover);
+    color: var(--settings-fg);
+    font-weight: 700;
+  }
+  .settings-editor .jedi-nav-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .settings-editor .jedi-tab-pane,
+  .settings-editor .tab-pane { min-width: 0; }
+
+  /* Schema-derived object grids. The transformer assigns 6/12-column spans. */
+  .settings-editor .jedi-row {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 12px 16px;
+    margin: 0;
+    min-width: 0;
+  }
+  .settings-editor .jedi-col {
+    float: none;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+  }
+  .settings-editor .jedi-col-xs-12 { grid-column: span 12; }
+  .settings-editor .jedi-col-xs-6 { grid-column: span 12; }
+  @media (min-width: 600px) {
+    .settings-editor .jedi-col-sm-12 { grid-column: span 12; }
+    .settings-editor .jedi-col-sm-6 { grid-column: span 6; }
+  }
+  @media (min-width: 900px) {
+    .settings-editor .jedi-col-md-12 { grid-column: span 12; }
+    .settings-editor .jedi-col-md-6 { grid-column: span 6; }
+  }
+  @media (min-width: 1200px) {
+    .settings-editor .jedi-col-lg-12 { grid-column: span 12; }
+    .settings-editor .jedi-col-lg-6 { grid-column: span 6; }
+  }
+
+  /* Consistent paper/slate controls for Jedison's base theme. */
+  .settings-editor .jedi-editor-fieldset {
+    min-width: 0;
+    margin: 0 0 12px;
+    padding: 13px 14px 12px;
+    border: 1px solid var(--settings-line);
+    border-radius: 8px;
+    background: var(--settings-surface-raised);
+  }
+  .settings-editor .jedi-editor-legend { padding: 0 5px; }
+  .settings-editor .jedi-legend,
+  .settings-editor .jedi-label {
+    color: var(--settings-fg);
+    font-size: .8rem;
+    font-weight: 650;
+  }
+  .settings-editor .jedi-description,
+  .settings-editor .text-muted {
+    display: block;
+    margin: 3px 0 7px;
+    color: var(--settings-muted);
+    font-size: .75rem;
+  }
+  .settings-editor .jedi-children-slot { min-width: 0; }
+  .settings-editor .jedi-editor-card {
+    margin: 0 0 12px;
+    overflow: hidden;
+    border: 1px solid var(--settings-line);
+    border-radius: 8px;
+    background: var(--settings-surface-raised);
+  }
+  .settings-editor .jedi-editor-card-header {
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--settings-line);
+    background: var(--settings-hover);
+  }
+  .settings-editor .jedi-editor-card-body { padding: 11px 12px 3px; }
+  .settings-editor .jedi-accordion-item {
+    margin: 0 0 7px;
+    overflow: hidden;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface-raised);
+  }
+  .settings-editor .jedi-accordion-toggle {
+    width: 100%;
+    padding: 9px 11px;
+    border: 0;
+    background: var(--settings-hover);
+    color: var(--settings-fg);
+    text-align: left;
+    cursor: pointer;
+    font-weight: 650;
+  }
+  .settings-editor .jedi-accordion-body { padding: 10px 12px 4px; }
+
+  .settings-editor input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .settings-editor select,
+  .settings-editor textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 35px;
+    padding: 7px 9px;
+    border: 1px solid var(--settings-line);
+    border-radius: 5px;
+    background: var(--settings-surface);
+    color: var(--settings-fg);
+    font-size: .82rem;
+    box-shadow: inset 0 1px 2px rgba(40, 30, 15, .035);
+  }
+  .settings-editor textarea { min-height: 76px; resize: vertical; }
+  .settings-editor input[type="checkbox"],
+  .settings-editor input[type="radio"] { accent-color: var(--settings-accent); }
+  .settings-editor input:disabled,
+  .settings-editor select:disabled,
+  .settings-editor textarea:disabled { opacity: .6; cursor: not-allowed; }
+  .settings-editor .jedi-messages-slot:empty { display: none; }
+  .settings-editor .jedi-messages-slot { color: var(--settings-error); font-size: .75rem; }
+  .settings-editor .jedi-btn {
+    min-height: 27px;
+    padding: 4px 7px;
+    border: 1px solid var(--settings-line);
+    border-radius: 5px;
+    background: var(--settings-surface);
+    color: var(--settings-muted);
+    cursor: pointer;
+    font-size: .72rem;
+  }
+  .settings-editor .jedi-btn:hover:not(:disabled) {
+    border-color: var(--settings-accent);
+    background: var(--settings-hover);
+    color: var(--settings-fg);
+  }
+  .settings-editor .jedi-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* Repeatable data is presented as individual cards. Destructive/reorder
+     actions are progressively disclosed for the selected or focused item. */
+  .settings-editor .jedi-array-item {
+    min-width: 0;
+    margin: 0 0 9px;
+    padding: 8px 10px 10px;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface-raised);
+  }
+  .settings-editor .jedi-array-item > .jedi-actions-slot {
+    display: flex;
+    justify-content: flex-end;
+    min-height: 24px;
+    margin: 0 0 4px;
+  }
+  .settings-editor .jedi-array-actions-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity .12s ease;
+  }
+  .settings-editor .jedi-array-item:not(.is-active):not(:focus-within) .jedi-array-actions-slot {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .settings-editor .jedi-array-item.is-active > .jedi-actions-slot,
+  .settings-editor .jedi-array-item:focus-within > .jedi-actions-slot {
+    color: var(--settings-accent);
+  }
+  .settings-editor .jedi-array-footer {
+    gap: 8px;
+    padding: 9px 0 2px;
+    border-top: 1px solid var(--settings-line);
+  }
+  .settings-editor .jedi-array-footer .jedi-btn,
+  .settings-editor .jedi-array-add {
+    border-color: var(--settings-accent);
+    color: var(--settings-accent);
+  }
+
+  .file-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 22px;
+    border-top: 1px solid var(--settings-line);
+    background: color-mix(in srgb, var(--settings-surface) 94%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .save-hint { color: var(--settings-muted); font-size: .75rem; }
+  .btn-save {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 7px 14px;
+    border: 1px solid var(--settings-accent);
+    border-radius: 6px;
+    background: var(--settings-accent);
+    color: var(--settings-on-accent);
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  .btn-save:hover:not(:disabled) { filter: brightness(1.06); }
+  .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+  .loading { padding: 12px 0; color: var(--settings-muted); }
+  .note { margin: 0 0 10px; color: var(--settings-muted); font-size: .8rem; }
+  pre.error-json {
+    max-height: 420px;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface-raised);
+    color: var(--settings-fg);
+    font: .78rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  .error { color: var(--settings-error); font-size: .82rem; }
+  .toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    max-width: min(34rem, calc(100vw - 40px));
+    padding: 10px 14px;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface-raised);
+    color: var(--settings-fg);
+    box-shadow: var(--settings-shadow);
+    font-size: .82rem;
+  }
+  .toast.saved { border-left: 3px solid var(--settings-ok); }
+  .toast.error { border-left: 3px solid var(--settings-error); }
+
+  @media (max-width: 760px) {
+    .page-shell { padding: 18px 12px 32px; }
+    .page-header { flex-wrap: wrap; gap: 10px; }
+    .page-heading { flex: 1 1 180px; }
+    .file-header, .file-content { padding-left: 14px; padding-right: 14px; }
+    .file-actions { padding-left: 14px; padding-right: 14px; }
+    .settings-editor .jedi-nav-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .settings-editor .jedi-nav-list-col { position: static; }
+    .settings-editor .jedi-nav-list {
+      flex-direction: row;
+      overflow-x: auto;
+      padding-bottom: 7px;
+      border-bottom: 1px solid var(--settings-line);
+    }
+    .settings-editor .jedi-nav-list > li { flex: 0 0 auto; }
+    .settings-editor .jedi-nav-link {
+      min-height: 32px;
+      padding: 6px 9px;
+      border: 1px solid var(--settings-line);
+      border-radius: 5px;
+    }
+    .settings-editor .jedi-nav-list > li.active > .jedi-nav-link,
+    .settings-editor .jedi-nav-link.active { border-color: var(--settings-accent); }
+  }
+  @media (max-width: 520px) {
+    .back { font-size: .8rem; }
+    .page-heading h1 { font-size: 1.15rem; }
+    .file-kind { display: none; }
+    .file-actions { align-items: flex-start; flex-direction: column; }
+    .btn-save { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .settings-editor .jedi-array-actions-slot { transition: none; }
+  }
 </style>
-  <script>
-    // Theme contract shared with client.js / list.js:
-    //   ?theme=dark|light wins, then saved db-theme, else follow the OS.
-    (function () {
-      const KEY = 'db-theme';
-      window.setThemeSettings = (t) => {
-        const c = document.documentElement.classList;
-        c.remove('dark', 'light');
-        c.add(t === 'dark' ? 'dark' : 'light');
-        try { localStorage.setItem(KEY, t); } catch (e) {}
-        const b = document.getElementById('btn-theme');
-        if (b) {
-          b.setAttribute('aria-pressed', String(t === 'dark'));
-          b.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-        }
-      };
-      const q = new URLSearchParams(location.search).get('theme');
-      let t = q === 'dark' || q === 'light' ? q : null;
-      if (!t) {
-        try { const v = localStorage.getItem(KEY); t = (v === 'dark' || v === 'light') ? v : null; } catch (e) {}
+<script>
+  // Share the same theme contract as the brief and archive pages:
+  // URL override -> saved db-theme -> operating-system preference.
+  (function () {
+    const KEY = 'db-theme';
+    window.setThemeSettings = (theme) => {
+      const classes = document.documentElement.classList;
+      classes.remove('dark', 'light');
+      classes.add(theme === 'dark' ? 'dark' : 'light');
+      try { localStorage.setItem(KEY, theme); } catch {}
+      const button = document.getElementById('btn-theme');
+      if (button) {
+        button.setAttribute('aria-pressed', String(theme === 'dark'));
+        button.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
       }
-      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      window.setThemeSettings(t);
-    })();
-  </script>
+    };
+
+    const queryTheme = new URLSearchParams(location.search).get('theme');
+    let theme = queryTheme === 'dark' || queryTheme === 'light' ? queryTheme : null;
+    if (!theme) {
+      try {
+        const saved = localStorage.getItem(KEY);
+        theme = saved === 'dark' || saved === 'light' ? saved : null;
+      } catch {}
+    }
+    if (!theme) {
+      theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    window.setThemeSettings(theme);
+  })();
+</script>
 </head>
-<body data-base="{{basePath}}" class="bg-stone-50 text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-100">
-<div class="container">
-  <header>
+<body data-base="{{basePath}}" class="bg-stone-100 text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200">
+<div class="page-shell">
+  <header class="page-header">
     <a href="{{basePath}}/" class="back"><i class="bi bi-arrow-left"></i> Back to brief</a>
-    <h1>Settings</h1>
-    <span class="badge">Config editor</span>
-    <button id="btn-theme" class="btn-theme" aria-pressed="false" title="Switch to dark mode">
+    <div class="page-heading">
+      <h1>Settings</h1>
+      <p>Configure the inputs and behavior behind your daily brief.</p>
+    </div>
+    <span class="header-spacer"></span>
+    <button id="btn-theme" class="btn-theme" aria-pressed="false" title="Switch to dark mode" type="button">
       <span aria-hidden="true" class="theme-icon theme-icon--light"><i class="bi bi-moon"></i></span>
       <span aria-hidden="true" class="theme-icon theme-icon--dark"><i class="bi bi-sun"></i></span>
     </button>
   </header>
 
-  <div class="tabs" id="tabs"></div>
-
-  <div id="panels"></div>
-
-  <div id="toast" class="saved" style="display:none;"></div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Configuration files"></div>
+  <main id="panels"></main>
 </div>
+<div id="toast" class="toast saved" role="status" aria-live="polite" hidden></div>
 
 <script src="static/vendor/jedison.umd.js"></script>
 <script>
 const base = document.body.dataset.base || '';
 const FILES = ['config.json', 'sources.json', 'perfect_samples.json'];
-const DESC = {
-  'config.json': 'General brief settings: paper name, desks, keywords, selection, fetch, LLM, ranker.',
-  'sources.json': 'Content sources: Semantic Scholar API queries and RSS feeds, grouped by feed type.',
-  'perfect_samples.json': 'Human-curated anchor items used by the ranker to seed cluster medoids.'
-};
 
 const tabsEl = document.getElementById('tabs');
 const panelsEl = document.getElementById('panels');
 const toast = document.getElementById('toast');
-const jedison = window.Jedison; // UMD global
-const instances = {}; // fileName -> jedison instance
+const jedison = window.Jedison;
+const instances = Object.create(null);
+
 if (!jedison) {
-  document.getElementById('panels').innerHTML =
-    '<div class="error">Editor library failed to load (static/vendor/jedison.umd.js). Check the server logs.</div>';
+  const error = document.createElement('div');
+  error.className = 'error';
+  error.textContent = 'Editor library failed to load (static/vendor/jedison.umd.js). Check the server logs.';
+  panelsEl.appendChild(error);
 }
 
-function showToast(msg, kind = 'saved') {
-  toast.textContent = msg;
-  toast.className = kind === 'error' ? 'error' : 'saved';
-  toast.style.display = 'block';
-  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+function showToast(message, kind = 'saved') {
+  toast.textContent = message;
+  toast.className = 'toast ' + (kind === 'error' ? 'error' : 'saved');
+  toast.hidden = false;
+  clearTimeout(showToast.timeout);
+  showToast.timeout = setTimeout(() => { toast.hidden = true; }, 3500);
 }
 
-async function loadFile(fileName) {
-  const panel = document.createElement('div');
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function schemaType(schema) {
+  if (!schema || typeof schema !== 'object') return null;
+  const declared = Array.isArray(schema.type) ? schema.type : [schema.type];
+  if (declared.includes('object') || schema.properties || schema.patternProperties ||
+      (schema.additionalProperties && typeof schema.additionalProperties === 'object')) return 'object';
+  if (declared.includes('array') || schema.items) return 'array';
+  return declared.find((type) => type && type !== 'null') || null;
+}
+
+function isComplexSchema(schema) {
+  const type = schemaType(schema);
+  return type === 'object' || type === 'array';
+}
+
+function withGridSpan(schema) {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return;
+  if (schema.grid === undefined) {
+    const fullWidth = isComplexSchema(schema);
+    schema.grid = {
+      columnsXs: 12,
+      columnsSm: fullWidth ? 12 : 6,
+      columnsMd: fullWidth ? 12 : 6,
+      columnsLg: fullWidth ? 12 : 6
+    };
+  }
+}
+
+function decorateSchema(input, isRoot = false) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+
+  const schema = input;
+  const properties = schema.properties && typeof schema.properties === 'object'
+    ? Object.entries(schema.properties)
+    : [];
+  const propertySchemas = properties.map(([, child]) => child);
+  const hasDynamicProperties = schema.additionalProperties &&
+    typeof schema.additionalProperties === 'object';
+  const dynamicOnly = properties.length === 0 && hasDynamicProperties;
+  const allChildrenComplex = propertySchemas.length > 1 && propertySchemas.every(isComplexSchema);
+
+  // High-level objects become navigation. Dynamic-key maps also get their own
+  // navigator, so keyword/feed/desk maps don't become another endless column.
+  // Mixed/simple objects become responsive grids. Explicit schema formats win.
+  if (!schema.format) {
+    if ((isRoot && properties.length > 1) || dynamicOnly || allChildrenComplex) {
+      schema.format = 'nav-vertical';
+      schema.navMinWidth = schema.navMinWidth || '12rem';
+      schema.navMaxWidth = schema.navMaxWidth || '17rem';
+    } else if (properties.length > 1) {
+      schema.format = 'grid';
+    }
+  }
+
+  const useGrid = schema.format === 'grid';
+  for (const [, child] of properties) {
+    if (useGrid) withGridSpan(child);
+    decorateSchema(child, false);
+  }
+
+  if (schema.patternProperties && typeof schema.patternProperties === 'object') {
+    for (const child of Object.values(schema.patternProperties)) {
+      if (useGrid) withGridSpan(child);
+      decorateSchema(child, false);
+    }
+  }
+
+  if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+    if (useGrid) withGridSpan(schema.additionalProperties);
+    decorateSchema(schema.additionalProperties, false);
+  }
+
+  if (schema.items) {
+    if (Array.isArray(schema.items)) schema.items.forEach((item) => decorateSchema(item, false));
+    else decorateSchema(schema.items, false);
+  }
+
+  for (const keyword of ['allOf', 'anyOf', 'oneOf']) {
+    if (Array.isArray(schema[keyword])) {
+      schema[keyword].forEach((child) => decorateSchema(child, false));
+    }
+  }
+  for (const keyword of ['definitions', '$defs']) {
+    if (schema[keyword] && typeof schema[keyword] === 'object') {
+      Object.values(schema[keyword]).forEach((child) => decorateSchema(child, false));
+    }
+  }
+
+  return schema;
+}
+
+function selectFile(fileName) {
+  for (const tab of tabsEl.querySelectorAll('.tab')) {
+    const active = tab.dataset.file === fileName;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+  }
+  for (const panel of panelsEl.querySelectorAll('.file-card')) {
+    panel.hidden = panel.dataset.file !== fileName;
+  }
+}
+
+function activateArrayItem(item) {
+  const group = item.parentElement;
+  if (!group) return;
+  for (const sibling of group.children) {
+    if (sibling.classList?.contains('jedi-array-item')) {
+      sibling.classList.toggle('is-active', sibling === item);
+    }
+  }
+}
+
+function bindArrayItemSelection(root) {
+  const selectFromEvent = (event) => {
+    const item = event.target.closest?.('.jedi-array-item');
+    if (item && root.contains(item)) activateArrayItem(item);
+  };
+  root.addEventListener('pointerdown', selectFromEvent);
+  root.addEventListener('focusin', selectFromEvent);
+}
+
+function createFileTab(fileName, index) {
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'tab' + (index === 0 ? ' active' : '');
+  tab.dataset.file = fileName;
+  tab.id = 'tab-' + fileName;
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-controls', 'panel-' + fileName);
+  tab.setAttribute('aria-selected', String(index === 0));
+  tab.tabIndex = index === 0 ? 0 : -1;
+  tab.textContent = fileName;
+  tab.addEventListener('click', () => selectFile(fileName));
+  return tab;
+}
+
+function createPanel(fileName, index) {
+  const panel = document.createElement('section');
   panel.className = 'file-card';
   panel.id = 'panel-' + fileName;
+  panel.dataset.file = fileName;
+  panel.setAttribute('role', 'tabpanel');
+  panel.setAttribute('aria-labelledby', 'tab-' + fileName);
+  panel.hidden = index !== 0;
 
   const header = document.createElement('div');
   header.className = 'file-header';
+  const heading = document.createElement('div');
+  heading.className = 'file-heading';
   const name = document.createElement('span');
   name.className = 'file-name';
   name.textContent = fileName;
-  const desc = document.createElement('span');
+  const desc = document.createElement('p');
   desc.className = 'file-desc';
-  desc.textContent = DESC[fileName] || '';
-  header.appendChild(name);
-  header.appendChild(desc);
-  panel.appendChild(header);
+  desc.textContent = 'Loading schema…';
+  heading.append(name, desc);
+  const kind = document.createElement('span');
+  kind.className = 'file-kind';
+  kind.textContent = 'JSON settings';
+  header.append(heading, kind);
 
   const loading = document.createElement('div');
   loading.className = 'loading';
   loading.textContent = 'Loading ' + fileName + '…';
-  panel.appendChild(loading);
 
+  const content = document.createElement('div');
+  content.className = 'file-content';
   const root = document.createElement('div');
+  root.className = 'settings-editor';
   root.id = 'jedison-' + fileName;
-  panel.appendChild(root);
+  content.append(root);
 
   const status = document.createElement('div');
   status.id = 'status-' + fileName;
-  panel.appendChild(status);
 
-  // Set initial visibility (first tab active, rest hidden) now that the panel
-  // exists. init() runs before loadFile() completes, so this must happen here.
-  panel.style.display = (fileName === FILES[0]) ? 'block' : 'none';
+  const actions = document.createElement('div');
+  actions.className = 'file-actions';
+  const hint = document.createElement('span');
+  hint.className = 'save-hint';
+  hint.textContent = 'Changes take effect the next time a brief is generated.';
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'btn-save';
+  save.textContent = 'Save ' + fileName;
+  actions.append(hint, save);
 
-  panelsEl.appendChild(panel);
+  panel.append(header, loading, content, status, actions);
+  return { panel, loading, root, name, desc, status, save };
+}
+
+async function loadFile(fileName, index) {
+  const ui = createPanel(fileName, index);
+  panelsEl.append(ui.panel);
+
+  ui.save.disabled = true;
+  ui.save.addEventListener('click', async () => {
+    if (!instances[fileName]) return;
+    ui.save.disabled = true;
+    ui.save.textContent = 'Saving…';
+    try {
+      const value = instances[fileName].getValue();
+      const response = await fetch(base + '/api/config/' + encodeURIComponent(fileName), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
+        body: JSON.stringify(value)
+      });
+      const result = await response.json();
+      if (response.ok) {
+        showToast(fileName + ' saved. Applies on next brief generation.');
+        ui.save.textContent = 'Saved';
+        setTimeout(() => {
+          ui.save.textContent = 'Save ' + fileName;
+          ui.save.disabled = false;
+        }, 1500);
+      } else {
+        const detail = (result.details || []).slice(0, 3)
+          .map((entry) => entry.path + ': ' + entry.message).join('; ');
+        showToast('Save failed: ' + (result.error || 'error') +
+          (detail ? ' — ' + detail : ''), 'error');
+        ui.save.textContent = 'Save ' + fileName;
+        ui.save.disabled = false;
+      }
+    } catch (error) {
+      showToast('Save error: ' + error.message, 'error');
+      ui.save.textContent = 'Save ' + fileName;
+      ui.save.disabled = false;
+    }
+  });
 
   try {
-    const [dataResp, schemaResp] = await Promise.all([
+    const [dataResponse, schemaResponse] = await Promise.all([
       fetch(base + '/api/config/' + encodeURIComponent(fileName)),
       fetch(base + '/api/config/' + encodeURIComponent(fileName) + '/schema')
     ]);
-    let data = null, schema = null;
-    if (dataResp.ok) data = await dataResp.json();
-    if (schemaResp.ok) schema = await schemaResp.json();
-    else if (schemaResp.status === 404) schema = null;
+    const data = dataResponse.ok ? await dataResponse.json() : null;
+    const schema = schemaResponse.ok ? await schemaResponse.json() : null;
+    ui.loading.remove();
 
-    loading.remove();
-
-    if (!data) {
-      const err = document.createElement('div');
-      err.className = 'error';
-      err.textContent = 'Could not load ' + fileName + '.';
-      status.appendChild(err);
+    if (!dataResponse.ok || data === null) {
+      const error = document.createElement('div');
+      error.className = 'error';
+      error.textContent = 'Could not load ' + fileName + '.';
+      ui.status.append(error);
       return;
     }
 
-    if (schema) {
+    if (schema && jedison) {
+      ui.name.textContent = schema.title || fileName;
+      ui.desc.textContent = schema.description || 'Edit and save this configuration file.';
+      const displaySchema = decorateSchema(cloneJson(schema), true);
       instances[fileName] = new jedison.Create({
-        container: root,
+        container: ui.root,
         theme: new jedison.Theme(),
-        schema: schema
+        schema: displaySchema
       });
       instances[fileName].setValue(data, false);
+      bindArrayItemSelection(ui.root);
+      ui.save.disabled = false;
     } else {
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = schema
+        ? 'The schema editor is unavailable. Raw JSON is shown instead.'
+        : 'No JSON Schema is available for this file. Raw JSON is shown read-only.';
       const pre = document.createElement('pre');
       pre.className = 'error-json';
       pre.textContent = JSON.stringify(data, null, 2);
-      const note = document.createElement('div');
-      note.className = 'note';
-      note.textContent = 'No JSON Schema available for this file. Raw JSON shown (edit via PUT API manually).';
-      root.appendChild(note);
-      root.appendChild(pre);
+      ui.root.append(note, pre);
+      ui.save.disabled = true;
+      ui.save.title = 'A schema is required to edit this file.';
     }
-
-    // Save button
-    const btn = document.createElement('button');
-    btn.className = 'btn-save';
-    btn.textContent = 'Save ' + fileName;
-    btn.onclick = async () => {
-      if (!instances[fileName]) return;
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-      try {
-        const value = instances[fileName].getValue();
-        const resp = await fetch(base + '/api/config/' + encodeURIComponent(fileName), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
-          body: JSON.stringify(value)
-        });
-        const result = await resp.json();
-        if (resp.ok) {
-          showToast(fileName + ' saved. Applies on next brief generation.');
-          btn.textContent = 'Saved';
-          setTimeout(() => { btn.textContent = 'Save ' + fileName; btn.disabled = false; }, 1500);
-        } else {
-          const detail = (result.details || []).slice(0, 3).map((d) => d.path + ': ' + d.message).join('; ');
-          showToast('Save failed: ' + (result.error || 'error') + (detail ? ' — ' + detail : ''), 'error');
-          btn.disabled = false;
-          btn.textContent = 'Save ' + fileName;
-        }
-      } catch (e) {
-        showToast('Save error: ' + e.message, 'error');
-        btn.disabled = false;
-        btn.textContent = 'Save ' + fileName;
-      }
-    };
-    panel.appendChild(btn);
-  } catch (e) {
-    loading.remove();
-    const err = document.createElement('div');
-    err.className = 'error';
-    err.textContent = 'Error loading ' + fileName + ': ' + e.message;
-    status.appendChild(err);
+  } catch (error) {
+    ui.loading.remove();
+    const message = document.createElement('div');
+    message.className = 'error';
+    message.textContent = 'Error loading ' + fileName + ': ' + error.message;
+    ui.status.append(message);
   }
 }
 
-function init() {
-  FILES.forEach((fileName, i) => {
-    const tab = document.createElement('button');
-    tab.className = 'tab' + (i === 0 ? ' active' : '');
-    tab.textContent = fileName;
-    tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      document.querySelectorAll('.file-card').forEach(c => c.style.display = 'none');
-      document.getElementById('panel-' + fileName).style.display = 'block';
-    };
-    tabsEl.appendChild(tab);
-
-    const panel = document.getElementById('panel-' + fileName);
-    if (panel) panel.style.display = i === 0 ? 'block' : 'none';
-    loadFile(fileName);
-  });
+async function init() {
+  FILES.forEach((fileName, index) => tabsEl.append(createFileTab(fileName, index)));
+  await Promise.all(FILES.map((fileName, index) => loadFile(fileName, index)));
 }
 
-// Theme toggle (button exists by now; the head script set the initial class).
-const themeBtn = document.getElementById('btn-theme');
-if (themeBtn) {
-  themeBtn.onclick = () => window.setThemeSettings(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+const themeButton = document.getElementById('btn-theme');
+if (themeButton) {
+  themeButton.addEventListener('click', () => {
+    window.setThemeSettings(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+  });
 }
 
 init();
