@@ -1,6 +1,6 @@
 // Client for the daily-brief page: like/save persistence, Generate + live progress, theme, embed bridge.
 // Generation flow (perceived-performance design):
-//   POST /api/generate -> poll /api/job (log + `preview`) -> render preview cards in place as they
+//   POST /api/restricted/generate -> poll /api/job (log + `preview`) -> render preview cards in place as they
 //   appear (LR: raw winners right after selection; both engines: each desk as soon as it is edited)
 //   -> on done, fetch the finished page and swap [data-swap] regions in place (no full reload).
 // Requires (see PLAN.md): #gen-panel, [data-swap] regions, [data-desk-stories]/[data-desk-deck] per desk,
@@ -10,6 +10,7 @@
   const stories = boot.stories;          // mutated in place after an in-place swap
   const $ = (id) => document.getElementById(id);
   const base = document.body.dataset.base || '';
+  const RESTRICTED_PREFIX = '/api/restricted';
   const u = (p) => base + p;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }[c]));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -230,7 +231,8 @@
   async function startJob(engine, label) {
     setStatus(`${label}...`);
     resetRun();
-    const r = await post(u('/api/generate'), { engine });
+    const r = await post(u(`${RESTRICTED_PREFIX}/generate`), { engine });
+    if (r.status === 401 || r.status === 403) { setStatus('Sign-in required to generate', true); return false; }
     if (r.status !== 202 && r.status !== 409) { setStatus(`${label} failed to start`, true); return false; }
     return watchJob();
   }

@@ -36,7 +36,7 @@ test('generate: skeleton/dim -> raw preview -> edited desk -> in-place swap, pre
   w.fetch = async (url, opts = {}) => {
     calls.push(`${opts.method || 'GET'} ${url}`);
     const json = (o, status = 200) => ({ ok: status < 400, status, json: async () => o, text: async () => '' });
-    if (url.startsWith('/api/generate')) return json({ id: 1 }, 202);
+    if (url.startsWith('/api/restricted/generate')) return json({ id: 1 }, 202);
     if (url.startsWith('/api/job')) {
       if (jobCalls === 0 && url.includes('id=0') && !calls.some((c) => c.includes('generate'))) return json({ status: 'idle' });
       jobCalls++;

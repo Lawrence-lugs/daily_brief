@@ -20,8 +20,8 @@ immediately if a server is already answering `/api/health`, so every entry point
 | `/api/health` | GET | `{ ok: true, name: 'daily-brief' }` — also used for the "already running" check |
 | `/api/briefs` | GET | List generated briefs (with `meta.engine`) |
 | `/api/job` | GET | Background job status (queued/running/done/failed) |
-| `/api/generate` | POST | Spawn `python src/brief.py` to generate a new brief |
-| `/api/shutdown` | POST | Shut down the server |
+| `/api/restricted/generate` | POST | Spawn `python src/brief.py` to generate a new brief (host must restrict `/api/restricted` prefix) |
+| `/api/shutdown` | POST | Shut down the server (local-only; never exposed on hosted path) |
 | `/api/stories/<id>/feedback` | POST | Toggle `liked`/`saved` on a story (feeds ranker training labels) |
 | `/api/export/training.jsonl` | GET | Export `training_examples` as JSONL |
 | `/archive` | GET | Render the stories archive page (`list.html`) |
@@ -88,7 +88,7 @@ There is no separate "web" build. The **web interface is the localhost server it
 
 `server/public/client.js` handles:
 - Like/save persistence (POST to `/api/stories/<id>/feedback` with `{ action: "like"\|"save", value: boolean }`)
-- Generate button + logs (POST to `/api/generate`, SSE/polling for job status)
+- Generate button + logs (POST to `/api/restricted/generate`, SSE/polling for job status)
 - Theme toggle (dark/light, synced to Obsidian via postMessage)
 - Embed bridge (receives theme messages from the Obsidian iframe)
 

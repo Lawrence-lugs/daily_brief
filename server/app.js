@@ -144,8 +144,9 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
         if (!p.startsWith(basePath + '/')) return json(res, 404, { error: 'not found' });
       }
       const routePath = basePath ? p.slice(basePath.length) : p;
-      // Hosted (prefixed) deployments are stateless: no generation or remote shutdown. Likes/saves are per-session (X-Session-Id), so they stay enabled.
-      if (basePath && req.method === 'POST' && /^\/api\/(shutdown|generate)$/.test(routePath)) return json(res, 404, { error: 'not found' });
+      // Hosted (prefixed) deployments are stateless: remote shutdown stays blocked. Likes/saves are per-session (X-Session-Id),
+      // so they stay enabled. Generation now lives under RESTRICTED_PREFIX and is gated by the host, not by this app.
+      if (basePath && req.method === 'POST' && routePath === '/api/shutdown') return json(res, 404, { error: 'not found' });
 
       // Config editor API (GET + PUT). Handled before the method split so PUT works too.
       if (routePath.startsWith('/api/config/')) return handleConfigRoutes(req, res, routePath, dbDir);
@@ -202,7 +203,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           const r = q.setFeedback(Number(m[1]), sessionId, body.action, body.value);
           return r ? json(res, 200, r) : json(res, 404, { error: 'no such story' });
         }
-        if (routePath === '/api/generate') {
+        if (routePath === `${RESTRICTED_PREFIX}/generate`) {
           const body = await readJson(req);
           const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, engine: body.engine });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });

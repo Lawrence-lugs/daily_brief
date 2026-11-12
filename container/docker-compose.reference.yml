@@ -1,0 +1,52 @@
+# Reference compose file: host-enforced auth on /api/restricted.
+#
+# The app itself does NO auth. Generation (POST /api/restricted/generate) is reachable
+# on the hosted path only if the host restricts that path prefix. This file shows how:
+# a dedicated Traefik router with an auth middleware for `PathPrefix(/dailydie/api/restricted)`,
+# plus a plain public router for the rest of `/dailydie`. The restricted router's priority
+# is set higher so Traefik matches it first.
+#
+# Copy to `docker-compose.override.yml` or merge into your existing compose setup.
+# REPLACE the placeholder basicauth hash with a real one (htpasswd) or wire up forwardAuth.
+services:
+  dailydie-server:
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
+    expose:
+      - 4873
+    networks:
+      - proxy
+    labels:
+      # Public router: everything under /dailydie EXCEPT /dailydie/api/restricted.
+      - "traefik.enable=true"
+      - 'traefik.http.routers.dailydie-public.rule=PathPrefix(`/dailydie`)'
+      - "traefik.http.routers.dailydie-public.entrypoints=web"
+      - "traefik.http.routers.dailydie-public.priority=10"
+      - "traefik.http.services.dailydie-public.loadbalancer.server.port=4873"
+
+      # Restricted router: /dailydie/api/restricted — host enforces auth here.
+      - 'traefik.http.routers.dailydie-restricted.rule=PathPrefix(`/dailydie/api/restricted`)'
+      - "traefik.http.routers.dailydie-restricted.entrypoints=web"
+      - "traefik.http.routers.dailydie-restricted.priority=20"
+      - "traefik.http.routers.dailydie-restricted.middlewares=dailydie-auth"
+      - "traefik.http.services.dailydie-restricted.loadbalancer.server.port=4873"
+
+      # Sample basicauth middleware (PLACEHOLDER — replace the users hash).
+      # Generate a real hash with `htpasswd -nb user password` and paste it here.
+      - "traefik.http.middlewares.dailydie-auth.basicauth.users=USER:PLACEHOLDER_HASH_REPLACE_ME"
+    restart: unless-stopped
+    volumes:
+      - dailydie-data:/app/data
+      - dailydie-models:/app/.cache
+      - dailydie-hf:/app/node_modules/@huggingface/transformers/.cache
+    env_file: .env
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  dailydie-data:
+  dailydie-models:
+  dailydie-hf:

@@ -202,8 +202,6 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       footer, boot: raw(boot), brief_options: picker.brief_options, status: picker.status,
       status_class: picker.status_class, generate_label: picker.generate_label,
       basePath,
-      hosted: raw(basePath ? '1' : ''),
-      gen_hidden: raw(basePath ? ' style="display:none"' : ''),
       repo_url: REPO_URL,
       commit_html: raw(commitHtml()),
     });
@@ -215,7 +213,6 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       paper_name: paperName,
       basePath,
       ...briefPicker({ brief, briefs }),
-      gen_hidden: raw(basePath ? ' style="display:none"' : ''),
       repo_url: REPO_URL,
       commit_html: raw(commitHtml()),
     });

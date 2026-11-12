@@ -124,7 +124,7 @@ export class MockServer {
     this.jobPolls = [];          // [{id, since, pseq}] for attach/watch assertions
     this._nextPageIsSwapped = false;
     this.failFeedbackStory = null;
-    this._generateFails = false;                // when set, /api/generate starts a failed job
+    this._generateFails = false;                // when set, /api/restricted/generate starts a failed job
     this._generateFailCode = 1;
     // Config editor mock state.
     this.configCalls = [];                      // [{file, method}]
@@ -252,7 +252,7 @@ export class MockServer {
     }
 
     // ---- generate ----
-    if (pathname === '/api/generate' && method === 'POST') {
+    if (pathname === '/api/restricted/generate' && method === 'POST') {
       const body = await this.readBody(request);
       this.generateCalls.push({ engine: body.engine, body });
       if (this._generateFails) {
@@ -496,7 +496,7 @@ export class MockServer {
     ];
   }
 
-  // Make the next /api/generate call start a failed job (exitCode) instead of
+  // Make the next /api/restricted/generate call start a failed job (exitCode) instead of
   // a successful one. Call with null to restore normal behaviour.
   setGenerateFails(exitCode = 1) {
     this._generateFails = true;

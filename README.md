@@ -9,7 +9,7 @@ Obsidian iframe.
 daily_brief/
   server/            Node localhost server (index.js, app.js, lib/, public/, templates/)
     index.js         HTTP server on http://127.0.0.1:4873 (spawns python src/brief.py to generate)
-    app.js           route handlers (/api/health, /api/briefs, /api/job, /api/generate,
+    app.js           route handlers (/api/health, /api/briefs, /api/job, /api/restricted/generate,
                      /api/shutdown, /api/stories/<id>/feedback, /api/export/training.jsonl)
     lib/             queries.js, render.js, jobs.js, guard.js
     public/client.js like/save persistence, Generate + logs, theme, embed bridge
@@ -108,6 +108,14 @@ The LR engine is the default going forward. The keyword engine remains as a fall
 ## Desktop only
 
 This is a desktop-only tool: it runs a localhost server and an Electron window / Obsidian iframe. There is no mobile support and no GitHub Pages deployment. External links open in the system browser.
+
+## Hosted serving (reverse proxy / Traefik)
+
+When the server is reached through a reverse proxy on a URL prefix (e.g. `/dailydie`), set `basePath` so routes are served under that prefix. Read-only API calls and the UI stay public.
+
+**Generation is not gated by the app.** `POST /api/restricted/generate` is reachable on the hosted path, and the server does no authentication of its own. You **must** restrict the `/api/restricted` path prefix at the host (e.g. Traefik basicauth / forwardAuth) before exposing the server externally. Without that restriction, anyone who can reach the URL can trigger LLM/fetch generation jobs. Shutdown stays blocked on the hosted path regardless.
+
+See `container/docker-compose.reference.yml` for an example Traefik setup that puts auth on `PathPrefix(/dailydie/api/restricted)` while leaving the rest of `/dailydie` public.
 
 ## Documentation
 

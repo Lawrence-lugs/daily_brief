@@ -151,22 +151,26 @@ test('prefix: shutdown endpoint is not exposed when hosted', async () => {
   assert.equal(r.status, 404);
 });
 
-test('hosted: no generate or shutdown; generate UI hidden; likes/saves enabled', async () => {
-  for (const p of ['/dailydie/api/generate', '/dailydie/api/shutdown']) {
-    const r = await call2('POST', p, { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"action":"like","value":true}' });
-    assert.equal(r.status, 404, p);
-  }
+test('hosted: restricted generate reachable; raw generate + shutdown blocked; likes/saves enabled', async () => {
+  const restricted = await call2('POST', '/dailydie/api/restricted/generate', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"engine":"lr"}' });
+  assert.ok([202, 409].includes(restricted.status), `restricted/generate expected 202/409, got ${restricted.status}`);
+
+  const raw = await call2('POST', '/dailydie/api/generate', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"engine":"lr"}' });
+  assert.equal(raw.status, 404, 'raw /api/generate must be 404 on hosted path');
+
+  const sdown = await call2('POST', '/dailydie/api/shutdown', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{}' });
+  assert.equal(sdown.status, 404, 'shutdown must stay blocked on hosted path');
+
   const fb = await call2('POST', '/dailydie/api/stories/1/feedback', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json', 'X-Session-Id': 's1' }, body: '{"action":"like","value":true}' });
   assert.ok(!fb.body.includes('"not found"'), 'feedback reaches the handler, not the hosted guard');
+
   const page = await call2('GET', '/dailydie/');
-  assert.ok(page.body.includes('data-hosted="1"'));
-  assert.ok(page.body.includes('style="display:none"'));
+  assert.ok(!page.body.includes('style="display:none"'), 'generate UI must be visible on hosted path');
 });
 
 test('local: generate UI visible and not hosted', async () => {
   const page = await call('GET', '/');
-  assert.ok(page.body.includes('data-hosted=""'));
-  assert.ok(!page.body.includes('style="display:none"'));
+  assert.ok(!page.body.includes('style="display:none"'), 'generate UI must be visible locally');
 });
 
 test('prefix: without a base path set, behaviour is unchanged', async () => {

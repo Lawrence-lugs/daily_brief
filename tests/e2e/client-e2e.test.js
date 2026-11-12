@@ -176,7 +176,7 @@ test.describe('brief page — generation flow (keyword)', () => {
     // Button disabled immediately (runFlow sets it synchronously before any await).
     await expect(page.locator('#btn-generate')).toBeDisabled();
 
-    // Generation started: a job was created via the mocked /api/generate.
+    // Generation started: a job was created via the mocked /api/restricted/generate.
     await waitFor(() => mock.generateCalls.some((c) => c.engine === 'keyword'));
     expect(mock.generateCalls[0].engine).toBe('keyword');
 
@@ -206,7 +206,7 @@ test.describe('brief page — generation flow (keyword)', () => {
 
   test('a failed generation surfaces "Generation failed: exit code 1", re-enables the button and hides the panel', async ({ page }) => {
     const mock = new MockServer(page);
-    mock.setGenerateFails(1); // /api/generate starts a failed job
+    mock.setGenerateFails(1); // /api/restricted/generate starts a failed job
     await page.goto(`${baseUrl}/`);
     await page.waitForSelector('#btn-generate');
     await expect(page.locator('#btn-generate')).toBeEnabled();
@@ -246,7 +246,7 @@ test.describe('brief page — generation "both" engines', () => {
     await page.evaluate(() => document.getElementById('btn-generate')?.click());
     await expect(page.locator('#btn-generate')).toBeDisabled();
 
-    // Both engines run back to back: two /api/generate calls, keyword then lr.
+    // Both engines run back to back: two /api/restricted/generate calls, keyword then lr.
     await waitFor(() => mock.generateCalls.length === 2);
     expect(mock.generateCalls.map((c) => c.engine)).toEqual(['keyword', 'lr']);
   });

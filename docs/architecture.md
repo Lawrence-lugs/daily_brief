@@ -88,7 +88,7 @@ Key design principles:
 | File | Role |
 |------|------|
 | `index.js` | HTTP server on `http://127.0.0.1:4873`. Exits 0 if already running. Spawns `src/brief.py` to generate. |
-| `app.js` | Route handlers: `/api/health`, `/api/briefs`, `/api/job`, `/api/generate`, `/api/shutdown`, `/api/stories/<id>/feedback`, `/api/export/training.jsonl`. |
+| `app.js` | Route handlers: `/api/health`, `/api/briefs`, `/api/job`, `/api/restricted/generate`, `/api/shutdown` (local-only), `/api/stories/<id>/feedback`, `/api/export/training.jsonl`. |
 | `lib/queries.js` | `openDb` + all SQL (shared with Python via `schema.sql`). |
 | `lib/render.js` | HTML/Tailwind rendering; brief dropdown lists `meta.engine`. |
 | `lib/jobs.js` | Background jobs (feed refresh, auto-shutdown); watches `brief.py` log output for "brief generation done". |
@@ -173,7 +173,7 @@ node ranker/cli.js inspect
 ```
 server/index.js  (alreadyRunning check → start if needed)
   └─► createApp() routes
-        /api/generate   → spawn python src/brief.py (watches stderr for "brief generation done")
+        /api/restricted/generate   → spawn python src/brief.py (host-gated via /api/restricted prefix; watches stderr for "brief generation done")
         /api/job        → job status (queued/running/done/failed)
         /api/health     → { ok: true, name: 'daily-brief' }
         /api/stories/<id>/feedback  → liked/saved toggle → stories + training_examples
