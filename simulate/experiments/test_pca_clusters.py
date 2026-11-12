@@ -1,7 +1,7 @@
 """Synthetic test for simulate/experiments/pca_clusters.compute.
 
 3 well-separated blobs of 10 points each, with clusterOf and medoid ids given.
-Assert k == 3, one medoid per cluster, and the projection covers every item.
+Assert k == 3, one medoid per cluster, and the UMAP projection covers every item.
 """
 
 import numpy as np

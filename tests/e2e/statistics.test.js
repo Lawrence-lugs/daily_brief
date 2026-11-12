@@ -27,7 +27,7 @@ test.describe('statistics page', () => {
       ['feeds', 'Feed health'],
       ['pv_hist', 'p / V score histograms'],
       ['lr_metrics', 'LR model metrics'],
-      ['pca_clusters', 'Clustering (PCA)'],
+      ['pca_clusters', 'Clustering (UMAP)'],
     ];
     for (const [cardId, title] of cards) {
       const card = page.locator(`[data-card="${cardId}"]`);

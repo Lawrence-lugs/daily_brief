@@ -9,7 +9,7 @@ Audience: an executing agent. Follow steps in order. Each step lists the files t
 2. The page shows a 2x2 grid of four cards. Each card has a title, a body, a centred **Generate** button, and a footer.
 3. Card results persist to disk, so they survive a server restart.
 4. Feed audit code moves from `simulate/experiments/audit_feeds.mjs` to `simulate/experiments/audit_feeds.mjs`. The old folder is deleted after the move.
-5. The clustering scatter is a **PCA** scatter (not "PCM"). It uses **all embedded items**: candidate pool, liked items, and perfect samples. Groups are hidden or shown via Plotly legend clicks, not via code.
+5. The clustering scatter is a **UMAP** scatter (not "PCM"). It uses **all embedded items**: candidate pool, liked items, and perfect samples. Groups are hidden or shown via Plotly legend clicks, not via code.
 6. p and V are **not stored** in the DB for candidate items. They are only stored for chosen stories. The p/V card must recompute them from the ranker.
 7. **Auth boundary.** The statistics page is visible to every user, but generation is expensive and must be restricted. All generate calls live under the path prefix `/api/restricted/`. Traefik will force authentication on that prefix. The app must not add its own auth. Read-only calls (`GET`) stay public and live under `/api/stats/`.
    - Generate endpoint: `POST /api/restricted/stats/:cardId/generate`
@@ -122,7 +122,7 @@ Create the page template next to the existing page templates (VERIFY FIRST A). I
     <div class="stat-action"><button type="button" class="stat-generate">Generate</button></div>
   </section>
   ```
-  Card titles: "Feed health", "p / V score histograms", "LR model metrics", "Clustering (PCA)".
+  Card titles: "Feed health", "p / V score histograms", "LR model metrics", "Clustering (UMAP)".
 - Put the Generate button in the middle of the card body area when the card is empty. After generation, keep the button at the bottom of the card as "Regenerate".
 
 ### 3d. Client script
@@ -184,9 +184,9 @@ Register them in `server/stats/index.js` as a map `{ feeds, pv_hist, lr_metrics,
 
 - **VERIFY FIRST C.** Find where embeddings live and how to read them for all items: candidate pool, liked items, perfect samples.
 - `sourceHash()`: sha256 of the sorted list of embedded item ids plus the embedding tag.
-- `generate()` is implemented in Python (see Phase 5). It returns `{ points: [{id, title, group, cluster, x, y}], centroids: [{cluster, x, y, size}], k, silhouette, pcaExplainedVariance: [v1, v2] }`.
+- `generate()` is implemented in Python (see Phase 5). It returns `{ points: [{id, title, group, cluster, x, y}], centroids: [{cluster, x, y, size}], k, silhouette, explainedVariance: null }`.
   - `group` is one of `pool`, `liked`, `perfect`. An item in several groups gets the first match in that order.
-- Renderer: one Plotly scatter per cluster, so the legend toggles groups. Each trace: `mode: 'markers'`, `name: 'cluster <n>'`, hover text = `title + ' (' + group + ')'`. Add a centroid trace with `mode: 'markers+text'`, marker `symbol: 'x'`, size 14, and text labels. Axis titles: `PC1 (<pct>%)` and `PC2 (<pct>%)`. Caption shows k and silhouette.
+- Renderer: one Plotly scatter per cluster, so the legend toggles groups. Each trace: `mode: 'markers'`, `name: 'cluster <n>'`, hover text = `title + ' (' + group + ')'`. Add a centroid trace with `mode: 'markers+text'`, marker `symbol: 'x'`, size 14, and text labels. Axis titles: `UMAP1` and `UMAP2` (UMAP has no explained-variance ratio). Caption shows k and silhouette.
 
 ## Phase 5: Python clustering script
 

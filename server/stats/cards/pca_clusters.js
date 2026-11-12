@@ -1,5 +1,5 @@
-// PCA clusters card: the interest clusters the LR model stored on its last fit (ranker_state
-// 'interests', medoids + members), projected to 2D by PCA in a Python subprocess
+// UMAP clusters card: the interest clusters the LR model stored on its last fit (ranker_state
+// 'interests', medoids + members), projected to 2D by UMAP in a Python subprocess
 // (simulate/experiments/pca_clusters.py). Nothing is re-clustered here.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -75,7 +75,7 @@ export async function generate() {
         clusterOf.push(cluster.id);
       }
     }
-    if (ids.length < 3) throw new Error(`need at least 3 clustered items for PCA, got ${ids.length}`);
+    if (ids.length < 3) throw new Error(`need at least 3 clustered items for UMAP, got ${ids.length}`);
     const medoidIds = interests.clusters.map((c) => c.medoid);
 
     const input = JSON.stringify({ ids, titles, groups, vectors, clusterOf, medoidIds });
@@ -88,7 +88,7 @@ export async function generate() {
     proc.stdin.end();
 
     const status = await new Promise((resolve) => proc.on('close', resolve));
-    if (status !== 0) throw new Error(`python PCA projection exited ${status}: ${stderr.trim() || stdout.trim()}`);
+    if (status !== 0) throw new Error(`python UMAP projection exited ${status}: ${stderr.trim() || stdout.trim()}`);
     return JSON.parse(stdout);
   } finally {
     store.close();

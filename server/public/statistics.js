@@ -153,10 +153,12 @@ function renderLrMetrics(body, payload) {
 }
 
 function renderPcaClusters(body, payload) {
-  const { points, medoids, k, pcaExplainedVariance } = payload;
-  const v1 = pcaExplainedVariance && pcaExplainedVariance[0] != null ? (pcaExplainedVariance[0] * 100).toFixed(1) : '?';
-  const v2 = pcaExplainedVariance && pcaExplainedVariance[1] != null ? (pcaExplainedVariance[1] * 100).toFixed(1) : '?';
-  body.innerHTML = `<div id="plot-pca" class="plotly-graph-div"></div><div class="caption" style="margin-top:0.5rem;font-size:0.85rem">k=${k} interest clusters (ranker medoids)</div>`;
+  const { points, medoids, k, explainedVariance } = payload;
+  const v1 = explainedVariance && explainedVariance[0] != null ? (explainedVariance[0] * 100).toFixed(1) : null;
+  const v2 = explainedVariance && explainedVariance[1] != null ? (explainedVariance[1] * 100).toFixed(1) : null;
+  const xTitle = v1 != null ? `PC1 (${v1}%)` : 'UMAP1';
+  const yTitle = v2 != null ? `PC2 (${v2}%)` : 'UMAP2';
+  body.innerHTML = `<div id="plot-umap" class="plotly-graph-div"></div><div class="caption" style="margin-top:0.5rem;font-size:0.85rem">k=${k} interest clusters (ranker medoids)</div>`;
 
   const clusters = [...new Set(points.map((pt) => pt.cluster))];
   const traces = clusters.map((cid) => {
@@ -175,9 +177,9 @@ function renderPcaClusters(body, payload) {
     hovertext: medoids.map((m) => escapeHtml(m.title) + ' (medoid, ' + m.size + ' items)'), hoverinfo: 'text',
     marker: { symbol: 'x', size: 14, color: '#000' },
   });
-  Plotly.newPlot('plot-pca', traces, {
+  Plotly.newPlot('plot-umap', traces, {
     margin: { l: 50, r: 16, t: 16, b: 46 },
-    xaxis: { title: { text: 'PC1 (' + v1 + '%)', standoff: 8 } },
-    yaxis: { title: { text: 'PC2 (' + v2 + '%)', standoff: 8 } },
+    xaxis: { title: { text: xTitle, standoff: 8 } },
+    yaxis: { title: { text: yTitle, standoff: 8 } },
   });
 }
