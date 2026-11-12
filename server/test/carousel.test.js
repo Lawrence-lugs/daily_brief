@@ -183,13 +183,13 @@ test('autoplay pauses on hover / focus and resumes on leave / blur', () => {
 
 test('dot click stops autoplay permanently', () => {
   const { w } = buildCarousel({ search: '?carousel=1&autoplay=1', visible: 4 });
-  evalCarousel(w);
   const track = w.document.querySelector('[data-desks]');
   const nav = w.document.getElementById('cr-dots');
-  const dots = [...nav.querySelectorAll('.carousel-dot')];
   Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
   const { intervals, clears } = spyTimers(w, track);
-  assert.equal(intervals.length, 1);
+  evalCarousel(w);
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  assert.equal(intervals.length, 1, 'autoplay started');
 
   dots[1].click();
   assert.equal(clears.length, 1, 'click cleared timer');
