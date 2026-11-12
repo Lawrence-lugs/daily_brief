@@ -1,8 +1,11 @@
-// Carousel (embed) layout: round-robin story order across desks, top-N cutoff, desk layout unchanged.
+// Carousel (embed) layout: round-robin story order across desks, top-N cutoff, desk layout unchanged,
+// plus client-side dot/autoplay behavior in server/public/carousel.js (jsdom).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { JSDOM } from 'jsdom';
 import { makeRenderer } from '../lib/render.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -54,4 +57,158 @@ test('page links carousel stylesheet and script', () => {
   assert.ok(html.includes('href="static/carousel.css"'));
   assert.ok(html.includes('src="static/carousel.js"'));
   assert.ok(html.includes('id="cr-dots"'));
+  assert.ok(html.includes('class="carousel-dots"'));
+  assert.ok(!html.includes('class="cr-nav"'));
+  assert.ok(!html.includes('class="cr-dot"'));
+});
+
+const CAROUSEL_SRC = readFileSync(join(root, 'server', 'public', 'carousel.js'), 'utf8');
+
+// Build a jsdom window containing the carousel track + dots, then eval carousel.js inside it.
+// search  : query string (controls ?carousel=1 / ?autoplay=1).
+// visible : number of visible story cards (one dot each).
+// cr      : whether <html> has the 'cr' class (carousel layout active).
+// reduced : whether prefers-reduced-motion matches.
+function buildCarousel({ search = '?carousel=1', visible = 4, cr = true, reduced = false } = {}) {
+  const cards = Array.from({ length: visible }, (_, i) =>
+    `<article class="story-card" data-story-id="${i + 1}">Story ${i + 1}</article>`).join('');
+  const html = `<!doctype html><html${cr ? ' class="cr"' : ''}>
+  <head></head>
+  <body>
+    <div data-desks>${cards}</div>
+    <nav id="cr-dots" aria-label="Carousel pages"></nav>
+  </body></html>`;
+  const dom = new JSDOM(html, {
+    url: 'http://localhost' + search,
+    runScripts: 'outside-only',
+    pretendToBeVisual: true,
+  });
+  const w = dom.window;
+  w.matchMedia = () => ({ matches: reduced });
+  return { dom, w };
+}
+
+function spyTimers(w, track) {
+  const intervals = [], clears = [], scrolls = [];
+  w.setInterval = (fn, ms) => { intervals.push({ fn, ms }); return intervals.length; };
+  w.clearInterval = () => { clears.push(true); };
+  track.scrollTo = (opts) => { if (opts.left != null) track.scrollLeft = opts.left; scrolls.push(opts); };
+  return { intervals, clears, scrolls };
+}
+
+function evalCarousel(w) {
+  w.eval(CAROUSEL_SRC);
+}
+
+test('carousel dots: one per visible story, aria-labels, new class names', () => {
+  const { w } = buildCarousel({ visible: 4 });
+  evalCarousel(w);
+  const nav = w.document.getElementById('cr-dots');
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  assert.equal(dots.length, 4);
+  assert.ok(dots.every((d) => d instanceof w.HTMLButtonElement && d.type === 'button'));
+  assert.deepEqual(dots.map((d, i) => d.getAttribute('aria-label')),
+    ['Story 1', 'Story 2', 'Story 3', 'Story 4']);
+  assert.ok(!nav.classList.contains('cr-nav'));
+  assert.ok(!dots.some((d) => d.classList.contains('cr-dot')));
+});
+
+test('carousel marks active dot by scroll position', () => {
+  const { w } = buildCarousel({ visible: 4 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  track.scrollLeft = 190;
+  const nav = w.document.getElementById('cr-dots');
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  track.dispatchEvent(new w.Event('scroll'));
+  assert.equal(dots[2].getAttribute('aria-current'), 'true');
+  assert.ok(dots[2].classList.contains('active'));
+  assert.ok(dots.every((d, j) => d.getAttribute('aria-current') === (j === 2 ? 'true' : 'false')));
+});
+
+test('dot click scrolls to that slide and re-marks the active dot', () => {
+  const { w } = buildCarousel({ visible: 4 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { scrolls } = spyTimers(w, track);
+  const nav = w.document.getElementById('cr-dots');
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  dots[2].click();
+  assert.equal(scrolls.length, 1);
+  assert.equal(scrolls[0].left, 200);
+  assert.equal(scrolls[0].behavior, 'smooth');
+  assert.equal(track.scrollLeft, 200);
+  assert.equal(dots[2].getAttribute('aria-current'), 'true');
+  assert.ok(dots[2].classList.contains('active'));
+});
+
+test('autoplay starts only when carousel is active AND ?autoplay=1 AND not reduced-motion', () => {
+  const make = ({ search, cr, reduced }) => {
+    const { w } = buildCarousel({ search, visible: 4, cr, reduced });
+    const track = w.document.querySelector('[data-desks]');
+    Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+    const { intervals } = spyTimers(w, track);
+    evalCarousel(w);
+    return intervals.length;
+  };
+  assert.equal(make({ search: '?carousel=1&autoplay=1', cr: true, reduced: false }), 1, 'started');
+  assert.equal(make({ search: '?autoplay=1', cr: false, reduced: false }), 0, 'needs ?carousel=1');
+  assert.equal(make({ search: '?carousel=1&autoplay=1', cr: true, reduced: true }), 0, 'respects reduced motion');
+  assert.equal(make({ search: '?carousel=1', cr: true, reduced: false }), 0, 'needs ?autoplay=1');
+});
+
+test('autoplay pauses on hover / focus and resumes on leave / blur', () => {
+  const { w } = buildCarousel({ search: '?carousel=1&autoplay=1', visible: 4 });
+  const track = w.document.querySelector('[data-desks]');
+  const nav = w.document.getElementById('cr-dots');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { intervals, clears } = spyTimers(w, track);
+  evalCarousel(w);
+  assert.equal(intervals.length, 1);
+
+  track.dispatchEvent(new w.Event('pointerenter'));
+  assert.equal(clears.length, 1, 'paused on hover');
+
+  track.dispatchEvent(new w.Event('pointerleave'));
+  assert.equal(intervals.length, 2, 'resumed on leave');
+
+  nav.dispatchEvent(new w.Event('focusin'));
+  assert.equal(clears.length, 2, 'paused on focus');
+
+  nav.dispatchEvent(new w.Event('focusout'));
+  assert.equal(intervals.length, 3, 'resumed on blur');
+});
+
+test('dot click stops autoplay permanently', () => {
+  const { w } = buildCarousel({ search: '?carousel=1&autoplay=1', visible: 4 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  const nav = w.document.getElementById('cr-dots');
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { intervals, clears } = spyTimers(w, track);
+  assert.equal(intervals.length, 1);
+
+  dots[1].click();
+  assert.equal(clears.length, 1, 'click cleared timer');
+  assert.equal(dots[1].getAttribute('aria-current'), 'true');
+
+  // pointerleave should NOT restart because userStopped is now true.
+  track.dispatchEvent(new w.Event('pointerleave'));
+  assert.equal(intervals.length, 1, 'did not restart after user click');
+});
+
+test('autoplay stops when tab is hidden', () => {
+  const { w } = buildCarousel({ search: '?carousel=1&autoplay=1', visible: 4 });
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { intervals, clears } = spyTimers(w, track);
+  evalCarousel(w);
+  assert.equal(intervals.length, 1);
+
+  Object.defineProperty(w.document, 'hidden', { value: true, configurable: true, writable: true });
+  w.document.dispatchEvent(new w.Event('visibilitychange'));
+  assert.equal(clears.length, 1, 'stopped when hidden');
 });

@@ -13,14 +13,11 @@
 <link rel="stylesheet" href="static/sidebar.css">
 <link rel="stylesheet" href="static/carousel.css">
 <script>
-// Carousel layout: forced with ?carousel=1, otherwise automatic on very small viewports (tracks live resizes).
+// Carousel layout: only forced with ?carousel=1 (no automatic small-viewport activation).
 (function () {
   var d = document.documentElement;
   var forced = new URLSearchParams(location.search).get('carousel') === '1';
-  var small = matchMedia('(max-width:400px), (max-height:320px)');
-  var sync = function () { d.classList.toggle('cr', forced || small.matches); };
-  sync();
-  small.addEventListener('change', sync);
+  d.classList.toggle('cr', forced);
 })();
 </script>
 <script>
@@ -119,7 +116,7 @@
 <div id="sb-backdrop" class="sb-backdrop"></div>
 <div id="sb-toast" class="sb-toast" role="alert" hidden></div>
 
-<nav class="cr-nav" id="cr-dots" aria-label="Carousel pages"></nav>
+<nav class="carousel-dots" id="cr-dots" aria-label="Carousel pages"></nav>
 
 <div class="sb-content">
 <div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">
