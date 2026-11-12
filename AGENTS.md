@@ -56,6 +56,8 @@ daily_brief/                      # project root
 - It imports ranker modules via `../../ranker/*.js` (project-root-relative), since it now lives one directory deeper.
 - The Sacred experiment wrapping it is `simulate/experiments/clustering_ablation.py` (`ex = Experiment("daily_brief_clustering_ablation")`), exported from `simulate/experiments/__init__.py` as `clustering_ablation_ex`, and routed in `simulate/cli.py` under the `clustering-ablation` subcommand.
 
+**`simulate/` must not be imported from outside `simulate/`.** Runtime/server code (including tests under `server/`) must not import modules from `simulate/experiments/` or anywhere under `simulate/`. If a script such as `audit_feeds.mjs` is needed by the server, it belongs under `server/` (e.g. `server/stats/cards/`), not `simulate/experiments/`. The container build only copies `server/`, `ranker/`, `scripts/`, `src/` and `user/` — anything under `simulate/` is excluded by `container/Dockerfile.dockerignore`, so importing it would fail with `ERR_MODULE_NOT_FOUND` in the hosted container.
+
 When adding a new experiment:
 1. Put any experiment-specific script under `simulate/experiments/`.
 2. Create a Sacred `Experiment` in `simulate/experiments/<name>.py`, register input JSONs as resources, record `db_hash` as config, and return `None` (SqlObserver's `result` column expects a scalar; attach artefacts via `_run.add_artifact`).

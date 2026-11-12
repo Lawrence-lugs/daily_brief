@@ -1,9 +1,10 @@
 // Feeds card generator: audits every RSS feed in user/defaults/sources.json.
-// Imports auditFeeds from simulate/experiments/audit_feeds.mjs (moved there per plan).
+// Imports auditFeeds from server/stats/cards/audit_feeds.mjs (runtime helper,
+// not experiment code — simulate/ must not be imported from outside).
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { auditFeeds } from '../../../simulate/experiments/audit_feeds.mjs';
+import { auditFeeds } from './audit_feeds.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..');
 

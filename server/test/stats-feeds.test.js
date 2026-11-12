@@ -2,7 +2,7 @@
 // blocked = blocked, failed = !ok && !blocked, matching printTable.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { auditFeeds } from '../../simulate/experiments/audit_feeds.mjs';
+import { auditFeeds } from '../stats/cards/audit_feeds.mjs';
 
 // auditFeeds returns rows; this test exercises the same totals mapping the card
 // generator uses, against a synthetic fixture array.

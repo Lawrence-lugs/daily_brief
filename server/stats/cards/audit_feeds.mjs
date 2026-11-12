@@ -1,23 +1,23 @@
 /**
  * @fileoverview Audit every RSS feed in user/defaults/sources.json.
  *
- * Scope (per AGENTS.md): experiment-specific code lives under simulate/experiments/.
- * This is the ONLY folder touched by this script. It reads (never writes)
- * user/defaults/sources.json and user/defaults/config.json.
+ * Scope: runtime helper used by the feeds stats card (server/stats/cards/feeds.js).
+ * This is NOT experiment code — it lives under server/ because it is imported at
+ * runtime by server code. simulate/ must not be imported from outside (see AGENTS.md).
  *
  * Purpose: fetch each RSS source with the app's real User-Agent (read from
  * config.json) and print a summary table of which ones succeed vs. are blocked,
  * plus item counts. Mirrors the findings table from feeds.mjs but is driven
  * entirely by config so it stays in sync as sources are added/removed.
  *
- * Run: node simulate/experiments/audit_feeds.mjs
+ * Run: node server/stats/cards/audit_feeds.mjs
  */
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const ROOT = join(import.meta.dirname, '..', '..');
+const ROOT = join(import.meta.dirname, '..', '..', '..');
 
 /** Resolve the app's real User-Agent from config.json. */
 async function loadUserAgent() {
