@@ -31,7 +31,8 @@
     "@xenova/transformers": "^2.17.2",
     "bootstrap-icons": "^1.13.2",
     "jedison": "^1.31.1",
-    "onnxruntime-common": "^1.30.0"
+    "onnxruntime-common": "^1.30.0",
+    "umap-js": "^1.4.0"
   },
   "build": {
     "productName": "Daily Brief",

@@ -1,19 +1,16 @@
-// UMAP clusters card: the interest clusters the LR model stored on its last fit (ranker_state
-// 'interests', medoids + members), projected to 2D by UMAP in a Python subprocess
-// (simulate/experiments/pca_clusters.py). Nothing is re-clustered here.
+// UMAP clusters card: projects the ranker's stored interest clusters to 2D
+// using umap-js (pure JavaScript, no Python). Nothing is re-clustered here.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { defaultDataDir } from '../../../user/datadir.js';
 import { loadConfig } from '../../../user/config.js';
 import { Store } from '../../../ranker/store.js';
 import { hydrateInterests } from '../../../ranker/interests.js';
 import { resolvePsFile } from '../../../ranker/pipeline.js';
+import { UMAP } from 'umap-js';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..');
-
-const PYTHON = process.env.PYTHON ?? 'python';
 
 function normId(rawId) {
   return String(rawId).startsWith('ps:') ? String(rawId) : `ps:${String(rawId)}`;
@@ -77,19 +74,54 @@ export async function generate(dataDir = defaultDataDir()) {
     if (ids.length < 3) throw new Error(`need at least 3 clustered items for UMAP, got ${ids.length}`);
     const medoidIds = interests.clusters.map((c) => c.medoid);
 
-    const input = JSON.stringify({ ids, titles, groups, vectors, clusterOf, medoidIds });
-    const proc = spawn(PYTHON, ['-m', 'simulate.experiments.pca_clusters'], { cwd: ROOT });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d; });
-    proc.stderr.on('data', (d) => { stderr += d; });
-    proc.stdin.write(input);
-    proc.stdin.end();
+    // Deterministic PRNG so UMAP output is reproducible (mirrors Python random_state=42).
+    const mulberry32 = (seed) => () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed, seed ^ (seed >>> 15));
+      t = (t + Math.imul(t, t ^ (t >>> 7))) | 0;
+      t = Math.imul(t ^ (t >>> 16), t);
+      t = (t + Math.imul(t ^ (t >>> 16), t >>> 15)) | 0;
+      return (t >>> 0) / 4294967296;
+    };
 
-    const status = await new Promise((resolve) => proc.on('close', resolve));
-    if (status !== 0) throw new Error(`python UMAP projection exited ${status}: ${stderr.trim() || stdout.trim()}`);
-    return JSON.parse(stdout);
+    const nNeighbors = Math.min(15, Math.max(2, ids.length - 1));
+    const reducer = new UMAP({ nComponents: 2, nNeighbors, minDist: 0.1, random: mulberry32(42) });
+    const Z = reducer.fit(vectors);
+
+    const indexOf = {};
+    for (let i = 0; i < ids.length; i++) indexOf[ids[i]] = i;
+
+    const medoids = [];
+    for (let c = 0; c < medoidIds.length; c++) {
+      const medoidId = medoidIds[c];
+      const i = indexOf[medoidId];
+      if (i === undefined) continue; // medoid has no embedding / isn't projected
+      medoids.push({
+        cluster: c,
+        id: medoidId,
+        title: titles[i],
+        x: Number(Z[i][0]),
+        y: Number(Z[i][1]),
+        size: intCount(clusterOf, c),
+      });
+    }
+
+    const points = [];
+    for (let i = 0; i < ids.length; i++) {
+      points.push({
+        id: ids[i],
+        title: titles[i],
+        group: groups[i],
+        cluster: clusterOf[i],
+        x: Number(Z[i][0]),
+        y: Number(Z[i][1]),
+      });
+    }
+
+    return { points, medoids, k: medoidIds.length, explainedVariance: null };
   } finally {
     store.close();
   }
 }
+
+function intCount(arr, v) { let n = 0; for (const a of arr) if (a === v) n++; return n; }
