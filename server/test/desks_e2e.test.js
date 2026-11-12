@@ -461,10 +461,10 @@ test('desks e2e: desk grid caps at 3 columns regardless of desk count', async ()
   const html = renderer.page({ brief: null, desks, briefs: [], embed: false });
 
   // 5 desks but max 3 columns: never a 5-column rule. At 3 columns, 5 = 3 + 2, so 6 tracks:
-  // top row spans 2 each, bottom row spans 3 each (fills the width).
+  // leftover top row spans 3 each (2 desks), bottom row spans 2 each (3 desks) (fills the width).
   assert.ok(!html.includes('repeat(5, 1fr)'), '5 desks must not produce a 5-column rule');
   assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] \{ grid-template-columns: repeat\(6, 1fr\); \} \}/);
-  assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] > section:nth-last-child\(-n\+2\) \{ grid-column: span 3; \} \}/);
+  assert.match(html, /@media \(min-width: 1152px\) \{ \[data-desks\] > section:nth-child\(-n\+2\) \{ grid-column: span 3; \} \}/);
   assert.ok(!html.includes('overflow-x'), 'desk grid style must not introduce horizontal scroll');
 });
 

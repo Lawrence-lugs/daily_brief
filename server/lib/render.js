@@ -165,17 +165,18 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     if (deskCount >= 2) {
       // Decision 5: W2 = min width of 2-column format (current md breakpoint = 768px).
       // C columns at width >= ceil((C/2) * W2); 1 column below W2. Cap at 3 columns.
-      // Fill the last row: with N desks at C columns, r = N mod C desks sit in the short last row.
-      // Use T = lcm(C, r) tracks; normal desks span T/C and last-row desks span T/r, so every row fills the width.
+      // Fill the first row: with N desks at C columns, r = N mod C desks sit in a short leftover row at the top.
+      // Use T = lcm(C, r) tracks; leftover desks span T/r and the rest span T/C, so every row fills the width.
       const W2 = 768;
       const columns = Math.min(deskCount, 3);
       const gcd = (a, b) => (b ? gcd(b, a % b) : a);
       // 1px divider line only between desks in the same row (light/dark theme-aware).
-      // A section is the rightmost of its row when its index is a multiple of the column count,
-      // and the last child never gets a divider. Single-column (below W2) gets no divider.
-      const divider = (cols, media) => `@media ${media} {`
-        + ` [data-desks] > section:not(:last-child):not(:nth-child(${cols}n)) { border-right: 1px solid var(--color-stone-300); }`
-        + ` html.dark [data-desks] > section:not(:last-child):not(:nth-child(${cols}n)) { border-right-color: var(--color-stone-700); } }`;
+      // The top row holds the first r desks (index r is its rightmost); below it, rows hold C desks,
+      // so a section is the rightmost of its row when its index is r + kC. The last child never gets a divider.
+      // Single-column (below W2) gets no divider.
+      const divider = (cols, r, media) => `@media ${media} {`
+        + ` [data-desks] > section:not(:last-child):not(:nth-child(${cols}n+${r})) { border-right: 1px solid var(--color-stone-300); }`
+        + ` html.dark [data-desks] > section:not(:last-child):not(:nth-child(${cols}n+${r})) { border-right-color: var(--color-stone-700); } }`;
       const rules = [`[data-desks] { display: grid; gap: 1rem; }`];
       for (let c = 2; c <= columns; c++) {
         const min = Math.ceil((c / 2) * W2);
@@ -185,8 +186,8 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
         const tracks = r ? (c * r) / gcd(c, r) : c;
         rules.push(`@media ${media} { [data-desks] { grid-template-columns: repeat(${tracks}, 1fr); } }`);
         rules.push(`@media ${media} { [data-desks] > section { grid-column: span ${tracks / c}; } }`);
-        if (r) rules.push(`@media ${media} { [data-desks] > section:nth-last-child(-n+${r}) { grid-column: span ${tracks / r}; } }`);
-        rules.push(divider(c, media));
+        if (r) rules.push(`@media ${media} { [data-desks] > section:nth-child(-n+${r}) { grid-column: span ${tracks / r}; } }`);
+        rules.push(divider(c, r, media));
       }
       deskGridStyle = rules.join('\n');
     }

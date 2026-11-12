@@ -17,6 +17,12 @@
     "rss": [
       {"name": "arXiv Computer Architecture", "url": "https://rss.arxiv.org/rss/cs.AR", "weight": 1.0, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
       {"name": "arXiv Emerging Tech", "url": "https://rss.arxiv.org/rss/cs.ET", "weight": 0.85, "type": "researchlike", "default_subtopic": "accel", "kind": "rss"},
+      {"name": "arXiv Computational Engineering", "url": "https://rss.arxiv.org/rss/cs.CE", "weight": 0.85, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "arXiv Computer Vision", "url": "https://rss.arxiv.org/rss/cs.CV", "weight": 0.85, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "arXiv Data Structures & Algorithms", "url": "https://rss.arxiv.org/rss/cs.DS", "weight": 0.85, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "arXiv Machine Learning", "url": "https://rss.arxiv.org/rss/cs.LG", "weight": 0.85, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "arXiv Multiagent Systems", "url": "https://rss.arxiv.org/rss/cs.MA", "weight": 0.85, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
+      {"name": "arXiv Electrical Eng. & Systems Science", "url": "https://rss.arxiv.org/rss/eess", "weight": 0.9, "type": "researchlike", "default_subtopic": null, "kind": "rss"},
       {"name": "arXiv General Relativity", "url": "https://rss.arxiv.org/rss/gr-qc", "weight": 0.9, "type": "researchlike", "default_subtopic": "gr", "kind": "rss"},
       {"name": "arXiv High Energy Theory", "url": "https://rss.arxiv.org/rss/hep-th", "weight": 0.9, "type": "researchlike", "default_subtopic": "qft", "kind": "rss"},
       {"name": "arXiv Mesoscale Physics", "url": "https://rss.arxiv.org/rss/cond-mat.mes-hall", "weight": 0.85, "type": "researchlike", "default_subtopic": "condmat", "kind": "rss"},
