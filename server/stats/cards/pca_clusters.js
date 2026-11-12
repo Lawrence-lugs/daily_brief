@@ -33,8 +33,8 @@ function readPerfect(dataDir) {
   }
 }
 
-export async function sourceHash() {
-  const store = openStore(defaultDataDir());
+export async function sourceHash(dataDir = defaultDataDir()) {
+  const store = openStore(dataDir);
   try {
     const parts = [store.getState('fit_key') ?? '', store.getState('interests') ?? ''];
     return createHash('sha256').update(parts.join(':')).digest('hex');
@@ -43,8 +43,7 @@ export async function sourceHash() {
   }
 }
 
-export async function generate() {
-  const dataDir = defaultDataDir();
+export async function generate(dataDir = defaultDataDir()) {
   const store = openStore(dataDir);
   try {
     const raw = store.getState('interests');

@@ -19,8 +19,7 @@ const COUNT_MAX_SQL = 'SELECT COUNT(*) AS c, MAX(created_at) AS ma FROM model_ev
 
 const num = (x) => (Number.isFinite(x) ? x : null);
 
-export async function sourceHash() {
-  const dataDir = defaultDataDir();
+export async function sourceHash(dataDir = defaultDataDir()) {
   const cfg = loadConfig(dataDir, 'config.json') ?? {};
   const db = resolve(dataDir, cfg.db_file ?? 'daily_brief.db');
   const store = new Store(db);
@@ -32,8 +31,7 @@ export async function sourceHash() {
   }
 }
 
-export async function generate() {
-  const dataDir = defaultDataDir();
+export async function generate(dataDir = defaultDataDir()) {
   const cfg = loadConfig(dataDir, 'config.json') ?? {};
   const db = resolve(dataDir, cfg.db_file ?? 'daily_brief.db');
   const store = new Store(db);

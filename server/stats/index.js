@@ -45,7 +45,7 @@ export async function getStats(cardId, dataDir = defaultDataDir()) {
   const card = CARDS[cardId];
   if (!card) return null;
   const stored = readCard(cardId, dataDir);
-  const currentSourceHash = await card.sourceHash();
+  const currentSourceHash = await card.sourceHash(dataDir);
   return { card: stored, outdated: isOutdated(stored, currentSourceHash), currentSourceHash };
 }
 
@@ -56,8 +56,8 @@ export async function generateStats(cardId, dataDir = defaultDataDir()) {
   if (generating.has(cardId)) throw Object.assign(new Error('a generation is already running for this card'), { status: 409 });
   generating.add(cardId);
   try {
-    const currentSourceHash = await card.sourceHash();
-    const payload = await card.generate();
+    const currentSourceHash = await card.sourceHash(dataDir);
+    const payload = await card.generate(dataDir);
     return writeCard(cardId, { sourceHash: currentSourceHash, payload }, dataDir);
   } finally {
     generating.delete(cardId);
