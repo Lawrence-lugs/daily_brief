@@ -283,6 +283,38 @@ test('selectBrief: no cross-desk backfill, short desk returns fewer', () => {
   assert.equal(out.science.filter((c) => c.mode !== 'reserve').length, 5);
 });
 
+test('selectBrief: meanCutoff on drops below-mean candidates from all picks', () => {
+  const cands = [...mk(30, true, 0), ...mk(30, false, 10)];
+  const allP = cands.map((c) => c.p);
+  const meanP = allP.reduce((a, b) => a + b, 0) / allP.length;
+  const out = selectBrief(cands, { ...CFG, epsilon: 0, meanCutoff: true }, mulberry32(1));
+  const picks = Object.values(out).flat().filter((c) => c.mode !== 'reserve');
+  assert.ok(picks.length > 0, 'some picks remain');
+  assert.ok(picks.every((c) => c.p >= meanP - 1e-9), `below-mean pick found: ${picks.filter((c) => c.p < meanP).map((c) => ({ id: c.id, p: c.p }))}`);
+});
+
+test('selectBrief: meanCutoff trace reports meanP and the number dropped', () => {
+  const cands = [...mk(30, true, 0), ...mk(30, false, 10)];
+  const allP = cands.map((c) => c.p);
+  const meanP = allP.reduce((a, b) => a + b, 0) / allP.length;
+  let filterData = null;
+  selectBrief(cands, { ...CFG, epsilon: 0, meanCutoff: true }, mulberry32(1), (kind, data) => { if (kind === 'filter') filterData = data; });
+  assert.ok(filterData, 'filter trace event emitted');
+  assert.equal(filterData.meanP, meanP);
+  assert.ok(filterData.meanCutoffDropped > 0, 'some candidates dropped by cutoff');
+  assert.equal(filterData.live, cands.length - filterData.meanCutoffDropped);
+});
+
+test('selectBrief: meanCutoff off leaves the pool unfiltered', () => {
+  const cands = [...mk(30, true, 0), ...mk(30, false, 10)];
+  const events = [];
+  selectBrief(cands, { ...CFG, epsilon: 0, meanCutoff: false }, mulberry32(1), (kind, data) => { if (kind === 'filter') events.push(data); });
+  const [fd] = events;
+  assert.equal(fd.meanP, null);
+  assert.equal(fd.meanCutoffDropped, 0);
+  assert.equal(fd.live, cands.length);
+});
+
 test('epsilon=1 explores and still returns a valid brief', () => {
   const out = selectBrief([...mk(30, true, 0), ...mk(30, false, 10)], { ...CFG, epsilon: 1 }, mulberry32(2));
   assert.ok(out.primary.filter((c) => c.mode === 'explore').length >= 1);

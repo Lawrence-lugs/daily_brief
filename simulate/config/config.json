@@ -146,6 +146,7 @@
       "relKey": "rel"
     },
     "sampling": {
+      "meanCutoff": true,
       "epsilon": 0.2,
       "halfLifeDays": 30,
       "freshness": {

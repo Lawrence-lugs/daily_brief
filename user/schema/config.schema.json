@@ -155,6 +155,7 @@
         "sampling": {
           "type": "object",
           "properties": {
+            "meanCutoff": { "type": "boolean", "title": "Mean cutoff" },
             "epsilon": { "type": "number", "minimum": 0, "maximum": 1 },
             "halfLifeDays": { "type": "number", "minimum": 0 },
             "freshness": { "type": "object" },

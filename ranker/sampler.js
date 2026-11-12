@@ -69,9 +69,19 @@ export function draw(pool, cfg, rng) {
 export function selectBrief(cands, cfg, rng, trace) {
   const draws = [];
   if (trace) { const base = rng; rng = () => { const v = base(); draws.push(v); return v; }; }
-  const kept = cands.filter((c) => c.days_since_shown == null || c.days_since_shown >= cfg.dedupe.hardWindowDays);
-  trace?.('filter', { candidates: cands.length, hardWindowRemoved: cands.length - kept.length, live: kept.length, hardWindowDays: cfg.dedupe.hardWindowDays });
+  let kept = cands.filter((c) => c.days_since_shown == null || c.days_since_shown >= cfg.dedupe.hardWindowDays);
+  const hardWindowRemoved = cands.length - kept.length;
+  let meanP = null;
+  let meanCutoffDropped = 0;
+  if (cfg.meanCutoff) {
+    const ps = kept.map((c) => c.p);
+    meanP = ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : 0;
+    const before = kept.length;
+    kept = kept.filter((c) => c.p >= meanP);
+    meanCutoffDropped = before - kept.length;
+  }
   const live = kept.map((c) => ({ ...c, V: value(c, cfg) }));
+  trace?.('filter', { candidates: cands.length, hardWindowRemoved, live: kept.length, hardWindowDays: cfg.dedupe.hardWindowDays, meanP, meanCutoffDropped });
   const nPerDesk = cfg.stories_per_desk ?? 5;
   const kReserve = cfg.reserve_per_desk ?? 25;
 
