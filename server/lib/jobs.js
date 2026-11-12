@@ -1,15 +1,34 @@
-// Runs `server/lib/brief.js` main() in-process (no preinstalled Python required).
+// Runs `server/lib/brief.js` main() in a child process (no preinstalled Python required; the server's
+// event loop stays free so /api/job keeps answering while a generation runs).
 // Exposes the job log for polling. brief.js writes its log to --log-file via util.LOG_FILE,
 // and --progress-file via the Progress class. We tail both files like the old Python version.
 //
+import { fork } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { setLogFile } from './util.js';
 
-async function defaultRunBrief(flags) {
-  const { main } = await import('./brief.js');
-  return main(flags);
+const BRIEF_CHILD = path.join(path.dirname(fileURLToPath(import.meta.url)), 'brief_child.js');
+
+/** Runs one brief in a child process, so its CPU-bound work never blocks the HTTP event loop
+ *  (the client polls /api/job during a run; a blocked loop makes polls time out -> "lost contact"). */
+export function forkRunBrief(script = BRIEF_CHILD) {
+  return (flags) => new Promise((resolve, reject) => {
+    const child = fork(script, [], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    let settled = false;
+    child.on('message', (msg) => {
+      settled = true;
+      if (msg && msg.error !== undefined) reject(new Error(msg.error));
+      else resolve(msg?.exitCode ?? 1);
+    });
+    child.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+    child.on('exit', (code) => {
+      if (!settled) { settled = true; reject(new Error(`brief child exited with code ${code}`)); }
+    });
+    child.send(flags);
+  });
 }
 
 const POLL_MS = 500;
@@ -18,7 +37,7 @@ const TAIL_DEADLINE_MS = 15 * 60 * 1000;
 export class JobRunner {
   /** @param {{cwd:string, progress?:boolean, runBrief?:(flags:object)=>Promise<number>}} o
    *  progress=false skips --progress-file. runBrief is injected for testing. */
-  constructor({ cwd, dataDir = null, progress = true, runBrief = defaultRunBrief }) {
+  constructor({ cwd, dataDir = null, progress = true, runBrief = forkRunBrief() }) {
     Object.assign(this, { cwd, dataDir, useProgress: progress, runBrief });
     this.state = { id: 0, status: 'idle', exitCode: null, error: '', log: '', startedAt: null, progress: null };
     this.timer = null;
