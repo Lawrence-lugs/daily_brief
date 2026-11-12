@@ -209,7 +209,7 @@
     let fails = 0;
     for (;;) {
       let j;
-      try { j = await (await fetch(`/api/job?id=${jobId}&since=${offset}&pseq=${pseq}`)).json(); fails = 0; }
+      try { j = await (await fetch(u(`/api/job?id=${jobId}&since=${offset}&pseq=${pseq}`))).json(); fails = 0; }
       catch { if (++fails > 20) throw new Error('lost contact with the server'); await sleep(1500); continue; }
       if (j.reset) { logEl.textContent = ''; lastPreview = null; pseq = -1; }
       jobId = j.id; offset = j.offset;
