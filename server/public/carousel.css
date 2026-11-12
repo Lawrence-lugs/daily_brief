@@ -19,6 +19,9 @@ html.cr [data-desks] article.story-card {
 }
 html.cr [data-desks] article.story-card[data-cr-out] { display: none !important; }
 
+/* Seamless embed: transparent page so the host shows through. color-scheme must stay light here,
+   otherwise the browser paints a dark canvas under the transparent body when the OS is in dark mode. */
+html.cr { color-scheme: light; }
 html.cr body { background: transparent; }
 
 .carousel-dots { display: none; }
