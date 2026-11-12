@@ -53,7 +53,7 @@
     "arxiv_delay_s": 3.1,
     "api_delay_s": 5,
     "hn_lookback_days": 45,
-    "user_agent": "daily-brief/1.0 (personal Obsidian vault; stdlib urllib)"
+    "user_agent": "DailyBrief/1.0"
   },
   "llm": {
     "models": [

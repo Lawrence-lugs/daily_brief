@@ -127,6 +127,14 @@
         "kind": "rss"
       },
       {
+        "name": "ACM JACM — Journal of the ACM",
+        "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=jacm",
+        "weight": 0.9,
+        "type": "researchlike",
+        "default_subtopic": null,
+        "kind": "rss"
+      },
+      {
         "name": "Communications of the ACM",
         "url": "https://cacm.acm.org/magazine.rss",
         "weight": 0.85,
@@ -136,7 +144,7 @@
       },
       {
         "name": "ACM Queue",
-        "url": "https://queue.acm.org/rss/feeds/latestitems.xml",
+        "url": "https://acm-queue-rss.val.run/feed",
         "weight": 0.9,
         "type": "commentary",
         "default_subtopic": "accel",

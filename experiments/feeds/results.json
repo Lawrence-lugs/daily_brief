@@ -1,0 +1,915 @@
+{
+  "generatedAt": "2026-11-12T05:14:18.741Z",
+  "sources": 6,
+  "results": [
+    {
+      "name": "IEEE JSSC — Solid-State Circuits",
+      "url": "https://ieeexplore.ieee.org/rss/TOC4.XML",
+      "type": "researchlike",
+      "default_subtopic": "fab",
+      "fetchedAt": "2026-11-12T05:14:16.690Z",
+      "status": 200,
+      "statusText": "OK",
+      "ok": true,
+      "contentType": "text/xml",
+      "finalUrl": "https://ieeexplore.ieee.org/rss/TOC4.XML",
+      "error": null,
+      "blocked": false,
+      "blockReason": null,
+      "itemCount": 50,
+      "items": [
+        {
+          "title": "Table of Contents",
+          "link": "http://ieeexplore.ieee.org/document/11764932",
+          "published": "2026-10-30T13:21:56.000Z",
+          "snippet": "null",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "IEEE Journal of Solid-State Circuits Publication Information",
+          "link": "http://ieeexplore.ieee.org/document/11764933",
+          "published": "2026-10-30T13:21:54.000Z",
+          "snippet": "null",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "New Associate Editor",
+          "link": "http://ieeexplore.ieee.org/document/11764935",
+          "published": "2026-10-30T13:21:54.000Z",
+          "snippet": "null",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "Guest Editorial Introduction to the Special Section on the 2026 IEEE International Solid-State Circuits Conference (ISSCC)",
+          "link": "http://ieeexplore.ieee.org/document/11764936",
+          "published": "2026-10-30T13:21:54.000Z",
+          "snippet": "null",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Energy-Efficient Hybrid Optogenetic Stimulation System With Sub-Threshold Electrical Stimuli and Decaying Exponential Irradiance",
+          "link": "http://ieeexplore.ieee.org/document/11695069",
+          "published": "2026-09-17T13:42:20.000Z",
+          "snippet": "This article presents a hybrid optogenetic stimulation system incorporating sub-threshold electrical preconditioning, a high-efficiency switched-capacitor LED driver, and decaying exponential irradiance waveforms to improve both stimulation system efficiency and optogenetic efficacy in wirelessly powered implantable devices. The system consists of an optogenetic switched-capacitor stimulator (OSCS), a sub-threshold electrical stimulator (STES), and a hybrid stimulus configurator, where the OSCS employs an inductor-assisted capacitor charger with a per-LED $V_{TG}$ -matched charging scheme, the STES delivers a sub-threshold biphasic pre-pulse to lower the optical activation threshold, and the configurator synchronizes the stimulation timing for coordinated hybrid stimulation. The proposed system achieves capacitor charging and discharging efficiencies up to 94.05% and 99.14%, respectively",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 43.8-to-662.0-μW 27.5-to-878.9-fps Frame-Rate-Scalable Duty-Cycled Electrical Impedance Tomography System",
+          "link": "http://ieeexplore.ieee.org/document/11767985",
+          "published": "2026-10-30T13:21:54.000Z",
+          "snippet": "This article presents an electrical impedance tomography (EIT) system featuring a duty-cycling operation for gesture recognition to address the high power consumption of conventional EIT systems in wearable applications. The duty-cycling operation supports a scalable frame rate at proportionally scaled average power consumption. Moreover, a fast-settling high-pass filter (HPF) and digital I/Q demodulation with a digital matched filter are employed to reduce settling time, improving the system throughput. In addition, an intermediate-frequency (IF) shifting chopping technique is utilized to reduce power consumption, while the IF-converted harmonics are suppressed by harmonic-canceling finite-impulse-response (FIR) filters. A multiple-input–multiple-output (MIMO) current-balancing instrumentation amplifier is also proposed, employing a shared common node for multiple transconductance (TC) ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Fully Integrated Wireless Multimodal Biosensing System-on-Chip for Stress Monitoring",
+          "link": "http://ieeexplore.ieee.org/document/11701260",
+          "published": "2026-09-21T05:04:50.000Z",
+          "snippet": "A fully integrated multimodal biosensing system-on-chip (SoC) for stress monitoring is presented. The proposed SoC integrates electrocardiography (ECG), electrochemical (ECH), photoplethysmography (PPG), and galvanic skin response (GSR) sensing together with an on-chip transmitter (TX), wake-up receiver (WuRX), and power-management unit (PMU) for compact, standalone operation. ECG and ECH share a current-balancing instrumentation amplifier (CBIA), while the PPG and GSR channels employ an enhanced precharge scheme and automatic feedback adjustment (AFA), respectively. Fabricated in a 0.18- $\\mu $ m CMOS process, the chip occupies $4.67\\times 6.85$ mm and consumes $125.8~\\mu $ W in the analog front end (AFE). The ECG readout achieves a 130-dB common-mode rejection ratio (CMRR). The shared ECH front end consumes $16.8~\\mu $ W. The PPG and GSR readouts achieve dynamic ranges (DRs) of 113.86 ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Intelligent Vision SoC With Fully Analog Sensing-to-Inference Pipeline and Linearity-Recovery RRAM Compute-in-Memory",
+          "link": "http://ieeexplore.ieee.org/document/11722536",
+          "published": "2026-10-08T05:09:27.000Z",
+          "snippet": "Edge vision systems that integrate image sensing and neural-network inference on a single chip are constrained by inter-layer analog-to-digital converters (ADCs) and on-chip weight storage density, which together limit system efficiency and network scale. This article presents a fully analog vision system-on-chip (SoC) with 2-Mbit multi-level-cell (MLC) resistive random access memory (RRAM) that addresses both limitations through a continuous voltage–time datapath spanning pulsewidth-modulation (PWM) image sensing and multi-layer convolutional neural network (CNN) inference, eliminating inter-layer ADCs and off-chip memory access. The proposed linearity-recovery analog memory (LR-AMEM) compensates for the RC nonlinearity of direct charge-domain RRAM-based compute-in-memory (CIM), and a self-referenced threshold-variation-cancellation (TVC) mechanism suppresses process, voltage, and tempe",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 28-nm CMOS 1-Chip In-Pixel Memory Backplane Circuit for 1800 × 1350 6652-PPI MicroLED AR Glasses With Per-Pixel Current Sensing and Compensation",
+          "link": "http://ieeexplore.ieee.org/document/11719886",
+          "published": "2026-10-05T05:04:04.000Z",
+          "snippet": "This article presents a 28-nm CMOS 1-chip LED-on-Silicon (LEDoS) backplane (BP) for 6652-pixel-per-inch (PPI) microLED ( $\\mu $ LED) augmented reality (AR) displays. To address power and display quality challenges in AR glasses, the proposed BP employs two low-power techniques: self-refresh and partial update, and introduces four display quality enhancement methods: MSB data shuffling, 2-bit bias calibration and tuning (2BCT), dead-pixel compensation, and spatial/temporal dithering. These functions are enabled by an 8-bit in-pixel memory (iPxM) for data storage and a per-pixel built-in self-test (pBIST) for current sensing. In self-refresh mode at 120 Hz, power consumption is reduced to 24.3 mW, achieving 50% power-reduction compared to normal operation. Display quality measurements show luminance differential nonlinearity (DNL) below ±0.5 LSB across all gray levels, flicker signal-to-no",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 4042-PPI 10-bit Shared Memory-in-Pixel Digital-PWM CMOS Backplane With On-Chip BIST for 240-Hz Micro-LED-on-Silicon Displays",
+          "link": "http://ieeexplore.ieee.org/document/11717827",
+          "published": "2026-10-01T05:10:08.000Z",
+          "snippet": "This article presents a 10-bit memory-in-pixel (MIP) digital pulsewidth-modulation (PWM) CMOS backplane for 240-Hz micro-LED-on-silicon ( $\\mu $ LEDoS) displays. It features a unified D-flip-flop chain (UDC) that integrates register and counter functions to minimize the pixel circuit area, along with a hierarchical time-divided PWM (HTD-PWM) scheme and a shuffled rolling shutter (SRS) technique that allow the LSB-group UDC to be shared across adjacent pixels without routing congestion. An on-chip built-in self-test (BIST) circuit equipped with a current-controlled oscillator (CCO)-based analog-to-digital converter (ADC) is also presented to support pre-bonding known good die (KGD) screening, fast post- $\\mu $ LED-bonding tests, and inter-pixel non-uniformity compensation. The prototype $120 \\times 120$ backplane was fabricated using a 28-nm CMOS process. The measurement results show that",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 16-Channel Cryo-CMOS Flux Control Pulse Generator ASIC",
+          "link": "http://ieeexplore.ieee.org/document/11769434",
+          "published": "2026-10-30T13:21:58.000Z",
+          "snippet": "This article reports a 16-channel cryo-CMOS flux-control pulse generator ASIC demonstrated in conjunction with a superconducting-qubit-based quantum processor unit to advance the state of the art in cryo-CMOS-controlled two-qubit gate error rate. An architecture consistent with future scaled system requirements is presented and discussed. A qubit-limited error rate of 0.084% is achieved, demonstrating that the ASIC has sufficiently low noise, while dissipating <7 mW of power per flux control channel. Low noise with low power is realized using multiple methods. Three 10-bit sub-DACs, all referenced to an on-chip highly stable current reference and operating at different rates (up to 1 Gs/s), are combined to realize a pulse generator with 14-bit level resolution. Pre-compensation functionality is implemented in the on-chip digital processor to compensate for off-chip distortion. A custom S",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Cryo-CMOS Electron- and Nuclear-Spin Controller for Color-Center Quantum Processors",
+          "link": "http://ieeexplore.ieee.org/document/11688060",
+          "published": "2026-09-11T05:07:54.000Z",
+          "snippet": "Pursuing a scalable quantum processor based on color centers in diamond, this work presents a novel multi-qubit cryo-CMOS system-on-chip (SoC) with a class-DE radio frequency digital-to-analog converter (RFDAC) and a class-D pulse-density modulation (PDM) driver that controls both electron and nuclear spin qubits of a nitrogen-vacancy (NV) center using a shared driving coil. The electron spin driver employs a polar-based architecture with programmable memory for amplitude control and a direct-digital-synthesis (DDS) phase modulation (PM) path for accurate phase and frequency control. The nuclear-spin driver adopts a digital loop filter with resonant feedback to shape quantization noise out of band, while ensuring improved supply rejection thanks to a feedback loop via an analog-to-digital converter (ADC). Fabricated in a 40-nm CMOS process and operating at 6 K, the chip can drive over 80",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "Medusa: A Scalable Quantum-Inspired k-SAT Solver With Make and Break Feedback",
+          "link": "http://ieeexplore.ieee.org/document/11672293",
+          "published": "2026-08-31T13:18:10.000Z",
+          "snippet": "Boolean satisfiability (SAT or $k$ -SAT, $k \\ge 3$ ) is a binary combinatorial optimization problem (COP) that is challenging for traditional classical computing to address in polynomial time. Quantum and quantum-inspired systems have been touted to tackle these and similar nondeterministic polynomial-time (NP) problems. This work describes Medusa, a quantum-inspired $k$ -SAT solver capable of addressing problems of up to 200 variables and 1016 clauses. Implemented using analog and mixed-signal circuits, the solver benefits heavily from massive parallelism, continuous-time operation, and excellent energy efficiency, and advances the field of quantum-inspired, analog computing with best-in-class performance and energy efficiency. This performance is achieved with the introduction of three key architectural advancements: dual Make and Break feedback, a distributed logic feedback network, a",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "End-to-End AI-Enabled mmWave Amplifier Design Combining Reinforcement Learning and Inverse Design",
+          "link": "http://ieeexplore.ieee.org/document/11721082",
+          "published": "2026-10-06T05:04:26.000Z",
+          "snippet": "In this article, we present an end-to-end AI-driven design methodology for radio frequency integrated circuits (RFICs) and validate it with silicon measurements spanning 24–150 GHz. RFIC design requires tight co-design among architecture, circuit topology, and electromagnetic (EM) structures, where each decision strongly influences the others. This highly coupled design space has traditionally relied on expert intuition, iterative refinement, and heuristic optimization. We introduce a unified framework that jointly synthesizes architecture, circuit topology, and EM interfaces from specifications to layout, without the EM structures being restricted to pre-defined templates. A reinforcement learning (RL) engine explores architectural (driver stages, combining), topological (amplifier cell circuits), and parameter choices while identifying optimal impedances or scattering parameters for EM",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "THz-TSI: A Terahertz Wireless Through-Silicon Interconnect Module for Advanced 3-D Integration Applications",
+          "link": "http://ieeexplore.ieee.org/document/11649841",
+          "published": "2026-08-11T13:16:59.000Z",
+          "snippet": "By vertically stacking device layers, advanced 3-D integration overcomes traditional planar scaling limits, delivering the bandwidth and power efficiency essential for modern artificial intelligence (AI) and high-performance computing (HPC) integrated systems. However, continued scaling of conventional through-silicon vias (TSVs) and microbumps presents critical bottlenecks due to inherent thermo-mechanical stress, complex manufacturing, and poor heat dissipation. Consequently, wireless interconnects based on electromagnetic (EM) coupling have emerged as a robust alternative. By pushing operating frequencies into the terahertz (THz) band, these wireless links exploit abundant spectrum to support the massive data throughput requirements. In this work, a THz through-silicon interconnect (THz-TSI) module for advanced 3-D integration is presented, which achieves a record-high data rate of 26",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Energy-Efficient 8λ × 38-Gb/s/λ Optical WDM Transmitter in 45-nm CMOS SOI",
+          "link": "http://ieeexplore.ieee.org/document/11694344",
+          "published": "2026-09-17T13:42:21.000Z",
+          "snippet": "This article presents a monolithically integrated eight-channel optical transmitter (OTX) based on wavelength-division multiplexing (WDM), which is implemented in a 45-nm CMOS SOI process. A scalable inductorless level-boosting driver is proposed to generate large output swings without level shifters or additional supply domains, enabling energy- and area-efficient operation. The driver is co-designed with microring modulators (MRMs) featuring capacitive fine-tuning with near-zero static power, supplemented by thermal tuning for coarse alignments when needed. An autonomous digital wavelength-locking loop ensures robust resonance alignment across all channels. The transmitter operates at 38 Gb/s per wavelength, achieving an aggregate data rate of 304 Gb/s and a bandwidth density of 2.1 Tb/s/mm2. Concurrent error-free operation (BER ${\\lt }~10{^{-12}}$ ) across all channels is demonstrated",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 256-Channel Solid-State Nanopore Readout Array With 193-pA TIAs and Event Detection at 1-MHz in 65-nm CMOS",
+          "link": "http://ieeexplore.ieee.org/document/11674178",
+          "published": "2026-09-01T13:17:29.000Z",
+          "snippet": "Solid-state nanopore single-molecule sensing aims to replace the commercially available biological nanopores. Array sizes have remained limited due to the area and power consumption of the transimpedance amplifiers (TIAs), thus preventing throughput and cost scaling. This article presents a 256-channel readout array for solid-state nanopore single-molecule sensing in 65 nm CMOS. Each channel contains a novel discrete-time TIA architecture, which is based on an Integrate and Reset concept and exploits source-degeneration to improve the noise performance. Each TIA is combined with a new event-detection architecture that allows disabling channels and reusing ADC resources, resulting in a $32\\times $ reduction in data rate. These innovations result in a more than $8\\times $ smaller channel area compared to the state-of-the-art while reaching an integrated noise performance of 193 pA ${}_{rms",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "Integrated Low-Power Self-Coherent Kramers--Kronig Millimeter-Wave Receiver With Nonlinear Analog and Mixed-Signal Computing",
+          "link": "http://ieeexplore.ieee.org/document/11670019",
+          "published": "2026-08-28T13:16:50.000Z",
+          "snippet": "A critical challenge in scaling up high-frequency wireless communication in the millimeter-Wave (mmWave) spectrum has been poor energy efficiency of the constituent transceivers, particularly on the highly energy constrained user equipment (UE). Receiving spectrally-efficient wireless signals (e.g., 64-quadrature amplitude modulation (QAM) etc.) require coherent transceivers with programmable frequency synthesizers, carrier recovery techniques, and carrier synchronization, all of which pose significant energy and latency burden on the wireless systems. Here, we present a different approach to allow low-power mm-Wave/sub-THz receivers, where such complex frequency synthesis, control and conversion, can be eliminated in favor of a simple amplitude detection, and energy-efficient nonlinear analog and mixed-signal computing fabric. The approach, inspired by the Kramers–Kronig (KK) principle,",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Ultra-Compact K-Band Wideband Linearized Power Amplifier Supporting 4096-QAM for mm-Wave Communication Applications",
+          "link": "http://ieeexplore.ieee.org/document/11649863",
+          "published": "2026-08-11T13:16:58.000Z",
+          "snippet": "This article presents an ultra-compact wideband linearized power amplifier (PA) for millimeter-wave (mm-Wave) wireless communication systems. An adaptive-varactor-linearizer (AVL) and an embedded tunable-inductor-linearizer (TIL) are proposed to mitigate amplitude-to-phase (AM–PM) distortion. Unlike conventional capacitive linearizers, the proposed AVL employs a non-complementary capacitive compensation technique that introduces a compensating capacitance at low power while preserving the original capacitance at high power, thereby alleviating insertion loss and maintaining high power gain. The TIL generates an adjustable predistortion phase to compensate for AM–PM distortion induced by the power stage. In addition, a resistor and an external control voltage are introduced in the TIL to fine-tune and flatten the predistortion phase, thereby enabling wideband linearization of the PA. Prot",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "10--30-GHz Reflectionless Pseudo-Four-Path Mixer-First Receivers With Two-Phase LO",
+          "link": "http://ieeexplore.ieee.org/document/11674168",
+          "published": "2026-09-01T13:17:29.000Z",
+          "snippet": "This article presents 10–30-GHz reflectionless pseudo-four-path mixer-first receivers. By introducing a balanced input network at the radio frequency (RF) port, the proposed receiver requires only a two-phase local oscillator (LO) to generate differential and orthogonal baseband (BB) signals, significantly reducing the complexity and power consumption of the LO generation circuit. The crosstalk issue caused by LO overlap is topologically mitigated by the inherent isolation (ISO) between the CPL and THU ports. In addition, the balanced input network not only maintains the reflection-based out-of-band (OOB) rejection mechanism of the $N$ -path mixer-first receiver but also enables a reflectionless design. To further improve the transition-band roll-off and OOB rejection, two pairs of transmission zeros flanking the passband are introduced. The first pair of close-in transmission zeros is g",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Thermally Adaptive Ku-Band Array-Scalable Transmitter Incorporating VSWR-Resilient PA for Ground Terminal Phased-Array Applications",
+          "link": "http://ieeexplore.ieee.org/document/11684836",
+          "published": "2026-09-09T13:16:13.000Z",
+          "snippet": "This article presents an eight-channel dual-polarized Ku-band transmitter (Tx) beamformer integrated circuit (BFIC) fabricated in a 22-nm GlobalFoundries FDSOI process. Each channel integrates independent phase and gain control utilizing a 7-bit active phase shifter (PS) and a 5.5-bit attenuator (ATT). To mitigate performance degradation caused by load impedance variations in dense arrays, the Tx utilizes a load-insensitive source–follower power amplifier (PA) topology. The chip includes an on-chip power management unit (PMU) with low-dropout regulators and temperature-compensated biasing to ensure stable operation across temperature. The Tx occupies a total area of $4.17\\times 3.3$ mm2. Measurement results demonstrate a peak small-signal gain of 30.9 dB, a peak saturated output power ( $P_{\\text {sat}}$ ) of 16.8 dBm, and a peak front-end power added efficiency (PAE) of 31.5%. The peak ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 6--10.1-GHz Compact CMOS SOI Power Amplifier Using a 6:1 Dual-Mode-Optimized Interleaved Transformer for Portable Radar and ISAC Front Ends",
+          "link": "http://ieeexplore.ieee.org/document/11654362",
+          "published": "2026-08-13T13:17:30.000Z",
+          "snippet": "This article presents a power-dense and energy-efficient power amplifier (PA) for portable radar and integrated sensing and communication (ISAC) nodes, addressing the concurrent requirements of high output power and stringent spectral compliance, all within tight thermal and silicon-area budgets. A 6:1 dual-mode-optimized interleaved transformer (DMO-IT) is introduced to co-integrate efficient six-way power combining and embedded $2f_{0}$ suppression within a single magnetic structure, mitigating the area and insertion-loss overhead of discrete harmonic-filtering networks. A physics-based odd-/even-mode analytical framework establishes closed-form efficiency-optimal and $2f_{0}$ -compliant inductance bounds, enabling disciplined co-design under practical layout constraints. Centrosymmetric, path-matched interleaving ensures port-to-port uniformity, resulting in < 0.13-dB amplitude mismat",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "Analysis and Design of a 2--8 GHz Eight-Phase N-Path Passive Mixer-First Receiver With Overlapping LO Signals and Harmonic Loss Suppression",
+          "link": "http://ieeexplore.ieee.org/document/11698905",
+          "published": "2026-09-21T05:04:50.000Z",
+          "snippet": "This article presents a technique for suppressing the effects of overlapping LO signals in an eight-phase N-path passive mixer-first receiver. In particular, an architecture for an eight-phase mixer is presented, allowing the receiver to operate at higher frequencies with overlapping 25% duty-cycle LO pulses without incurring significant degradation in loss or noise figure (NF). A theoretical framework is presented that predicts loss and allows efficient optimization of the associated circuitry. To verify these predictions, an experimental prototype eight-phase mixer-first receiver was designed in 45-nm RF silicon-on-insulator (SOI) CMOS, operating from 2 to 8 GHz with a 25% duty-cycle LO. The prototype receiver achieves an NF of 2.5–4.7 dB while consuming 81–176 mW. The out-of-band (OOB) blocker 1 dB compression point (B1dB) is 5.1–7.7 dBm and OOB input-referred third-order intercept po",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 300-μW BLE-Compliant Packet-Based Data-Agnostic Clock-Harvesting RX Achieving −85/−70 dBm Sensitivity for ±40/±15 ppm Accuracy",
+          "link": "http://ieeexplore.ieee.org/document/11646441",
+          "published": "2026-08-10T13:17:16.000Z",
+          "snippet": "An ultralow-power Bluetooth low energy (BLE)-compliant crystal-less clock-harvesting receiver is presented that uses the BLE advertising packets (APs) to calibrate an on-chip frequency reference with ±400 ppm initial frequency offset. The proposed front-end, fabricated in 22 nm FDSOI, is capable of pushing the frequency accuracy of the reference further to below ±40/±15 ppm ( $3\\sigma $ ) at −85/−70 dBm input power, while consuming $300~\\mu $ W when active. Both system and circuit implementations are specifically tailored for BLE requirements to minimize power consumption. Various system and design innovations are employed to create a calibration system that remains independent of data and resilient to interference in the crowded ISM band. Specifically, a custom frequency synthesizer in combination with injection-locking is proposed to replace the conventional PLL structure, resulting in",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A −251.4-dB FoM Calibration-Free Fractional-N Cascaded PLL With Wideband Oversampling Noise-and-Spur Cancellation",
+          "link": "http://ieeexplore.ieee.org/document/11672790",
+          "published": "2026-08-31T13:18:10.000Z",
+          "snippet": "This article presents a calibration-free fractional-N cascaded phase-locked loop (PLL) employing a sampling phase detector (SPD)-bypass-based phase-domain oversampling noise-and-spur cancellation (P-OSNSC) technique. By incorporating an oversampling cancellation path that eliminates the gain errors and noise cancellation bandwidth limitation introduced by the SPD, the proposed architecture suppresses noise from the first-stage RO-based frequency multiplier at minimal power overhead, without invoking high-frequency reference or calibration. This approach enables noise cancellation across a wider bandwidth compared to previous arts. Moreover, the proposed prototype fabricated in a 28-nm CMOS achieves 127.8-fs rms jitter (integrated from 10 kHz to 100 MHz) with 4.48-mW power consumption, corresponding to a figure of merit (FoM) of −251.4 dB.",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 31.5--36-GHz Low-Spur Digitally Assisted Gain-Boosting Charge-Sharing Locking PLL Achieving 54-fs RMS Jitter",
+          "link": "http://ieeexplore.ieee.org/document/11658933",
+          "published": "2026-08-19T13:16:27.000Z",
+          "snippet": "This article presents a 31.5–36 GHz digitally assisted gain-boosting (GB) charge-sharing locking (CSL) phase-locked loop (PLL) that achieves record-low reference spurs while maintaining sub-60 fs integrated jitter. In conventional CSL PLLs, reference spur suppression is fundamentally traded against loop bandwidth, whereas ping-pong CSL (PP-CSL) approaches typically require complex duty-cycle calibration. The proposed GB-CSL architecture introduces a gain-boosting loop that uses ADC–DAC residue feedback to amplify charge information in the digital domain, thereby breaking the spur–bandwidth tradeoff without calibration overhead. Fabricated in 28-nm CMOS, the prototype achieves 54.6-fs rms jitter at a 33 GHz carrier, a −66-dBc reference spur, and a normalized FoM of −272 dB while consuming 14.76 mW and occupying $0.73\\times 1.0$ mm2. These results surpass recent state-of-the-art mm-wave PL",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A SAR Time-to-Digital Converter Embedding Time-Domain Noise-Shaping Self-Calibration",
+          "link": "http://ieeexplore.ieee.org/document/11649842",
+          "published": "2026-08-11T13:16:59.000Z",
+          "snippet": "This article introduces a pipelined successive-approximation time-to-digital converter (SAR–TDC) that employs architectural and calibration techniques to improve linearity and bit utilization under delay mismatch and PVT variations. The design introduces a new bit-stage structure that enables practical decoupling of dominant error sources, and a noise-shaping SAR–TDC (NS-SAR–TDC) operating mode that facilitates in situ characterization of random delay errors and rapid foreground self-calibration without external hardware. Fabricated in 28-nm CMOS, the prototype achieves 800 MS/s over a ±100 ps input range from a 0.8 V supply, occupying 0.01 mm2, and consuming 1.71 mW. The proposed calibration improves the raw SFDR/SNDR by more than 20/12 dB, corresponding to a 2-bit ENOB enhancement. At Nyquist, the TDC achieves 5.73-bit ENOB with a 3.2 ps LSB, while static integral nonlinearity (INL) re",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Reference-Less All-Digital Droop Detection and Mitigation Circuit Using a Shared Dual-Mode Delay Line in 28-nm CMOS",
+          "link": "http://ieeexplore.ieee.org/document/11655900",
+          "published": "2026-08-14T13:16:58.000Z",
+          "snippet": "Supply voltage fluctuations due to large and rapid current consumption in modern high-performance system-on-chips (SoCs), known as supply voltage ( ${V} {_{\\text {DD}}}$ ) droops, may incur critical timing violations and functional failures. This article presents a fully digital, reference-less droop detection and mitigation circuit utilizing a shared dual-mode delay line (SDMDL). The proposed circuit unifies a time-to-digital converter (TDC)-based droop detector and a digitally controlled oscillator (DCO)-based droop mitigator into SDMDL, enabling direct ratio-based frequency reduction. Furthermore, a time-domain glitch-free recovery circuit (GFRC) is employed to guarantee seamless clock source switching from DCO to the input clock through phase alignment, preventing timing violations during the recovery phase. Fabricated in a 28-nm CMOS process, the proposed design demonstrates a droop",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Eight-Channel, 42-Gb/s/Channel Single-Ended PAM-4 Transmitter With a ZQ-Based FFE and PAM-4 LSB DBI Encoding for Memory Interfaces",
+          "link": "http://ieeexplore.ieee.org/document/11655558",
+          "published": "2026-08-14T13:16:58.000Z",
+          "snippet": "This article presents a high-bandwidth eight-channel single-ended four-level pulse amplitude modulation (PAM-4) transmitter for next-generation pseudo-open drain (POD)-terminated memory interfaces. To reduce power consumption in POD termination, a PAM-4 least-significant-bit (LSB) data bus inversion (DBI) encoding scheme is implemented and compared to previous PAM-4 encoding schemes. Based on a theoretical analysis of termination power, the PAM-4 LSB DBI encoding achieves termination power savings comparable to those of previous schemes while reducing the overall system power by simplifying the DBI flag lane. A series-resistor-shielded, source-series-terminated (SST) driver improves output bandwidth by isolating the parasitic capacitances of pull-up and pull-down segments from the output node. A four-tap ZQ-based feed-forward equalizer (FFE) provides fine coefficient control to alleviate",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Continuous-Time Incremental Zoom ADC With Extended Quantization, Easy-to-Drive Capacitive Input and Deadband-Embedded Gm-C Loop Filter",
+          "link": "http://ieeexplore.ieee.org/document/11643570",
+          "published": "2026-08-06T13:17:11.000Z",
+          "snippet": "This article presents a continuous-time (CT) analog-to-digital converter (ADC) featuring an incremental zoom with extended quantization architecture. The proposed MASH topology comprises an 8-bit oversampled successive-approximation register (SAR) ADC as the first stage, a 1-bit incremental CT delta-sigma modulator (CT-DSM) as the second stage, and a 12-bit Nyquist SAR ADC as the final stage. This architecture achieves a high signal-to-quantization noise ratio (SQNR) with a low oversampling ratio (OSR). To relax the requirements on the input driver, the ADC incorporates a chopped coupling-based capacitive input network. Furthermore, to achieve high efficiency and a high signal-to-noise ratio (SNR), a high-linearity Gm-C integrator employing low-noise deadband operation is introduced. Fabricated in a 28-nm CMOS process, the ADC achieves 94.4 dB signal-to-noise-and-distortion ratio (SNDR) ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 10-bit Source-Driver IC for High-Resolution OLED-on-Silicon Displays With All-Channel Automatic Offset Calibration and Data-Aware Slew-Rate Enhancement",
+          "link": "http://ieeexplore.ieee.org/document/11674147",
+          "published": "2026-09-01T13:17:29.000Z",
+          "snippet": "This article presents a 10-bit source-driver (SD) IC for high-resolution OLED-on-silicon (OLEDoS) microdisplays in augmented reality (AR)/virtual reality (VR) applications. To address the stringent constraints of aggressive area scaling, sub-microsecond settling time, and high output uniformity, three key techniques are proposed. First, a demultiplexer (DEMUX)-based channel width expansion method combined with deep-N-well (DNW)-based voltage-domain transformation enables the source driver IC (SD-IC) to fit within the 1.33- $\\mu $ m sub-pixel pitch of the OLEDoS panel. This DNW-based voltage-domain transformation allows the DAC and channel logic circuits to operate in a low-voltage (LV) domain, allowing the use of compact LV devices and thereby significantly reducing the channel area. Second, a data-difference-dependent dynamic current source (D3DCS) is introduced to meet the sub-microsec",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 6-A 93.8%-Peak-Efficiency 5-V-to-Sub-1-V Segment-Interlaced SC-Parallel-Inductor Converter Featuring Inherently Balanced Ganging for Wafer-Scale Computing System",
+          "link": "http://ieeexplore.ieee.org/document/11657784",
+          "published": "2026-08-18T13:16:31.000Z",
+          "snippet": "A segment-interlaced switched-capacitor-parallel-inductor (SI-SCPL) converter is proposed to power a wafer-scale computing system and accommodate unbalanced load-current distribution. Benefiting from quad-path operation across all switching states, the proposed segment interlacing (SI)-SCPL achieves continuous reduction in inductor current over a wide range of control duty cycles (D). Furthermore, the symmetric power-segment operation mitigates inductor-current imbalance without complex active-balancing control. To address the challenges of non-uniform power delivery, a comprehensive analytical model is developed to quantify the impact of spatial load asymmetries on system efficiency and stability. Fabricated in a 65-nm FCCSP CMOS process, the proposed SI-SCPL successfully clamps the voltage undershoot within 69.7 mV against a 2.5-A switching load. It achieves a peak efficiency of 93% at",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Reconfigurable Self-Clamp CSCR Converter With Fast-Converging MPPT for Energy Harvesting",
+          "link": "http://ieeexplore.ieee.org/document/11672277",
+          "published": "2026-09-01T13:17:29.000Z",
+          "snippet": "This article presents a reconfigurable self-clamp, continuously scalable-conversion-ratio (CSCR) switched-capacitor (SC) converter for photovoltaic (PV) solar energy harvesting (EH). By reducing flying-capacitor voltage stress without additional SC stages, the proposed architecture enables high-density capacitors and mitigates the complexity-loss tradeoff of conventional CSCR converters. A clamp-stage outphasing technique improves the power conversion efficiency (PCE), while a design methodology for selecting the number of flying and clamping capacitors is established. In addition, an insight is revealed for reducing the energy penalty of open-circuit-voltage (OCV)-based maximum power point tracking (MPPT). The reconfigurable-clamp-mode scheme extends the high-PCE voltage conversion-ratio (VCR) range and improves MPPT accuracy. Fabricated in a 180-nm CMOS process, the prototype exhibits ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 13.56-MHz Wireless Power and Synchronized Full-Duplex Data Transceiver IC Using a Single Inductive Link for Wearable Biomedical Applications",
+          "link": "http://ieeexplore.ieee.org/document/11654361",
+          "published": "2026-08-13T13:17:30.000Z",
+          "snippet": "This article proposes a 13.56-MHz wireless power and synchronized full-duplex data transceiver (WPSFDT) IC using a single inductive link for compact wearable and biomedical systems. Conventional full-duplex (FD) data telemetry systems are limited by their use of additional antennas or external LC networks to create data channels in separate frequency bands, which increases system complexity and power consumption. On the contrary, the proposed WPSFDT system implements synchronized FD data telemetry without additional components by utilizing transmitter (TX) and receiver (RX) synchronization (TRXS), which keeps the TX and RX always synchronized at the same frequency. The proposed WPSFDT significantly reduces system size and complexity by integrating both TX and RX functions into a single chip using a reconfigurable transceiver architecture. For the downlink, this system employs off-duratio",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 60-V High-Linearity Shunt-Based In-Line Current Sensor With DLL-Assisted Dynamic Body-Biasing and High dV/dt PWM Rejection Up to 2 MHz",
+          "link": "http://ieeexplore.ieee.org/document/11643687",
+          "published": "2026-08-06T13:17:11.000Z",
+          "snippet": "This article presents a fully integrated shunt-resistor-based in-line current sensor for high-voltage (HV) pulse-width modulation (PWM)-based power systems. Floating-Gm current sensors are effective at rejecting HV PWM common-mode (CM) interference, but their linearity degrades at high CM voltages due to the substrate current-induced body effect (SCBE) in HV laterally diffused metal-oxide-semiconductor (LDMOS) devices. This article proposes a delay-locked loop (DLL)-assisted dynamic body-biasing (DBB) technique to suppress SCBE-induced distortion while avoiding large switching glitches during PWM transitions. By dynamically controlling the body connection of the LDMOS devices, the proposed scheme significantly improves sensor linearity. The DLL predicts the PWM falling edge and provides accurate timing for the DBB control over a wide PWM frequency range. Implemented in a 0.18- $\\mu $ m B",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Dual-Chip-Based NV-Center Magnetometer With Integrated Microwave Generation and Optical Readout",
+          "link": "http://ieeexplore.ieee.org/document/11667915",
+          "published": "2026-08-27T13:17:47.000Z",
+          "snippet": "In this article, we present a nitrogen-vacancy (NV) center magnetometer that incorporates two application-specific integrated circuits (ASICs) to implement several key functionalities of the system, marking an important step toward miniaturization and scalable production of NV magnetic field sensors. More specifically, the presented magnetometer utilizes a microwave ASIC (MW ASIC) for generating the required microwave (MW) magnetic field and a current-to-digital interface ASIC (readout ASIC) for reading out the optical quantum sensor signal. The MW ASIC incorporates an on-chip stripe array that produces the required MW magnetic field. The stripe array is driven by an on-chip quadrature modulator and a custom-designed current driver array, which includes a series resonance tuning feature for maximizing generation efficiency. The stripe array achieves a $\\mathbf {\\pm 5\\%}~\\mathbf {B_{1}}$ ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "Multi-Mode In/Near-Pixel Processing CMOS Vision Sensor With Time-Memory-Based Temporal Derivative Computing",
+          "link": "http://ieeexplore.ieee.org/document/11670216",
+          "published": "2026-08-28T13:16:50.000Z",
+          "snippet": "This article presents a temporal-derivative (TD) computing multi-mode vision sensor. The proposed sensor features a novel frame difference (FD) processing scheme that eliminates the need for frame memory by employing a checkerboard patch-based pixel architecture and column-shared processing circuits. This configuration efficiently detects patch-level temporal changes and generates 1-bit event signals (EVTs). Furthermore, an in-pixel time memory (TM) circuit is introduced to enable area- and power-efficient mixed-signal TD computing. The $324~\\times ~252$ prototype sensor was implemented in a 0.18- $\\mu $ m CMOS process. Measurement results demonstrate that the sensor consumes $4.79~\\mu $ W at 12.5 frames/s, achieving a FoM of 42.2 pJ/pix $\\cdot $ frame in the patch mode operation for FD-based motion detection and TD generation.",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "CTH-CAM: A Cryogenic eDRAM-Based CAM With 1--26 Tunable Hamming Distance",
+          "link": "http://ieeexplore.ieee.org/document/11663418",
+          "published": "2026-08-24T13:17:07.000Z",
+          "snippet": "Cryogenic approximate content-addressable memory (ACAM) offers an appealing solution that allows mismatches between the query and the stored data, measured by the Hamming distance (HD). However, in ACAM designs, increasing the word length shrinks the matchline (ML) voltage spacing between adjacent HD tolerance levels, thereby limiting the tunable-HD tolerance range and degrading discrimination. To address this issue, we propose a cryogenic eDRAM-based tunable-HD CAM (CTH-CAM) for reliable approximate search with a small ML voltage spacing. First, we present a cryogenic 4T1C single-finger embedded dynamic random access memory (eDRAM) gain cell with two complementary and decoupled comparison ports, which enables a wide HD tolerance range in approximate search with a small ML voltage spacing. Second, we introduce an adaptive reference voltage generation (ARG) scheme that replicates mismatch",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Mixed-Signal SAT Solver for Exploring Nonideal Effects and Scalability in Analog Computation",
+          "link": "http://ieeexplore.ieee.org/document/11655899",
+          "published": "2026-08-14T13:16:58.000Z",
+          "snippet": "Recent years have seen growing interest in custom and nature-inspired computing methods for solving computationally challenging combinatorial optimization problems. The Boolean satisfiability (SAT), a canonical nondeterministic polynomial (NP)-complete problem, has remained a focal point due to its wide applicability in artificial intelligence, cryptography, and formal verification. This article presents a custom mixed-signal hardware SAT solver that maps the cost function of three-SAT instances onto an array of current-coupled computational nodes. The system progressively minimizes the cost function while employing an integrated perturbation mechanism to escape local minima. The proposed architecture is implemented in a standard 65-nm CMOS technology and experimentally evaluated. A central open question in the analog computation domain is the scalability of analog and mixed-signal archi",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Eight-Channel Direct Analog Sensor Fusion Core for On-the-Spot Time-Series Analysis in Edge AI",
+          "link": "http://ieeexplore.ieee.org/document/11674152",
+          "published": "2026-09-01T13:17:29.000Z",
+          "snippet": "A time-series analysis on multi-channel sensor signals is critical for wide-range Artificial Intelligence (AI) applications, such as in a field of mobility, robot, and infrastructure monitoring. Edge-device data collection followed by cloud-based analysis suffers from high latency and power consumption. This article presents an edge-AI-oriented sensor fusion architecture, performing analog multiply-accumulation operation by time-domain processing among eight-channel analog sensor signals to directly extract hyper-dimensional digital features, namely, direct analog sensor fusion (DASF). It completely eliminates general-purpose analog-to-digital converters (ADCs) from the system to significantly save energy and delay for on-the-spot edge-AI response. A 28-nm CMOS proof-of-concept system shows only 2.5% MAC full-scale error under $0~^{\\circ } \\text {C}$ – $70~^{\\circ } \\text {C}$ temperatur",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Valuewise Hybrid-Domain Compute-In-Memory Macro for Energy-Efficient Edge-AI Devices",
+          "link": "http://ieeexplore.ieee.org/document/11661700",
+          "published": "2026-08-21T13:18:00.000Z",
+          "snippet": "This article presents a valuewise hybrid (VWH) compute-in-memory (CIM) macro that improves hybrid efficiency by $1.75\\times $ while simultaneously reducing computation error by $2.02\\times $ compared to prior bitwise hybrid schemes. The VWH approach performs accurate computations digitally for the most significant values (MSVs) in a small proportion, while the vast majority of the values are processed by lossy analog CIM (ACIM) macros to achieve high energy efficiency. To minimize latency and enhance the energy efficiency of the ACIM macros, a heterogeneous memory fabric (HMF) is introduced, which combines the benefits of static random access memory (SRAM)-CIM and dynamic random access memory (DRAM)-CIM. In addition, an asynchronous sparsity manager (ASM) enables adaptive throughput and power consumption based on sparsity. Fabricated using a 28-nm CMOS process, the prototype VWH-CIM macr",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Two-Step Time-Domain Logic-Compatible Embedded-Flash Computing-in-Memory Macro for On-Device AI",
+          "link": "http://ieeexplore.ieee.org/document/11663409",
+          "published": "2026-08-24T13:17:07.000Z",
+          "snippet": "Computing in memory (CIM) has emerged as a promising architecture that can significantly reduce power consumption and latency in edge artificial intelligence (AI) devices. For battery-constrained edge devices, non-volatile memories (NVMs) are ideal due to their ability to retain neural network parameters even when powered down, ensuring rapid response time upon device wake-up. However, the tradeoff between energy efficiency and computing precision in CIM implementation limits their ability to support various computational workloads in edge AI. In this article, we propose a logic-compatible embedded-flash macro with two-step time-domain computation. The proposed macro computes through dual capacitors operating in a ping-pong manner, enabling simultaneous activation of up to 128 cells with signed weights and achieving 10-bit output precision with the option of further scalable resolution. ",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "APM-CIM: An Array Partition Multi-Macro CIM System With Dynamic Sparse Approximation for Neural Network Edge Applications",
+          "link": "http://ieeexplore.ieee.org/document/11649852",
+          "published": "2026-08-11T13:16:59.000Z",
+          "snippet": "Computing-in-memory (CIM) has been widely investigated as a solution to the von Neumann bottleneck to reduce data transfer between memory and processor. However, existing CIM macros for neural network (NN) edge applications still suffer from high latency and energy consumption due to the correlation between data precision and the number of multiplication and accumulation (MAC) cycles. Moreover, modern convolutional NN (CNN) models contain massive parameters that are distributed across multiple CIM macros. While multi-macro architectures enable large-scale deployment, they incur inefficient bandwidth utilization during input loading and frequent inter-module communication, both of which cause significant performance degradation. To address these issues, this article presents an array partition multi-macro CIM (APM-CIM) system with dynamic sparse approximation. First, a novel CIM macro inc",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A Hybrid Inner--Outer-Product SRAM Compute-in-Memory GEMM Engine With Precision-Adaptive Systolic Dataflow",
+          "link": "http://ieeexplore.ieee.org/document/11670223",
+          "published": "2026-08-28T13:16:50.000Z",
+          "snippet": "This article presents an efficient SRAM compute-in-memory (CIM) macro design for general matrix multiplication (GEMM). A hybrid inner–outer product (HIOP) architecture is designed to enable long-time weight reusing and short-time input reusing, reducing 1.57– $2.69\\times $ overall SRAM access. A data-precision-adaptive dataflow is developed to scale the CIM macros with balanced bandwidth (BW) across varying data precisions. Our CIM-friendly dataflow obtains 19%–38.5% reduction in operation cycles with the CIM capability of concurrent read/write and computing. Fabricated in 22-nm technology, the CIM macro achieves energy efficiency (EE) of 56.2 TOPS/W for GEMM and 71.65 TOPS/W for multiply–accumulate operation (MAC) in 8-bit inputs and weights. The macro and system area efficiency (AE) are 3.18 and 1.89 TOPS/mm2, respectively, which is $1.42\\times $ and $1.12\\times $ compared with prior s",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "MTDiff: A Multi-Task Diffusion Accelerator With Bandwidth-Aware Memory Partition and Efficient Digital Compute-in-Memory",
+          "link": "http://ieeexplore.ieee.org/document/11655557",
+          "published": "2026-08-14T13:16:58.000Z",
+          "snippet": "Initially applied to image synthesis, diffusion models have rapidly expanded into various content generation tasks, such as 3-D scene reconstruction and video generation, due to the superior generative quality. Based on our observations, the imbalanced operational intensities across diffusion model layers lead to suboptimal hardware utilization due to inadequate bandwidth optimization. Additionally, emerging 3-D and video generation tasks require computationally intensive multi-view consistency operations to ensure smooth transitions between perspectives and frames. In this work, we present MTDiff, a multi-task diffusion accelerator featuring three key innovations: 1) a dynamic bandwidth-aware memory partitioning scheme optimizing hardware utilization and reducing external memory accesses; 2) an efficient bitline (BL)-segmented compute-in-memory (CIM) macro together with a reuse-aware we",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 65 nm Privacy-Preserving Neuromorphic Encoder With 7.13 nJ Efficiency, 2.38 Mb/mm2 2T--2T Item Memory Density and Federated Learning Support",
+          "link": "http://ieeexplore.ieee.org/document/11665536",
+          "published": "2026-08-25T13:16:48.000Z",
+          "snippet": "The increasing demand for privacy-preserving personal data analytics in smart assistants and context-aware systems necessitates hardware that is both energy-efficient and secure. This work presents a 65 nm privacy-preserving neuromorphic encoder that addresses these challenges through physically uncloneable and hardware-efficient encoding. At the core of the architecture is a 2T–2T entropy cell that enables compact and uncloneable hyperdimensional representations. The fabricated prototype achieves 7.13 nJ per encoding, 2.38 Mb/mm2 item memory (IM) density, and supports in situ decision-making and continual learning with 76.44 nJ per prediction and 357.32 nJ per training update. To support multiuser deployment, a custom federated learning (FL) framework is proposed, enabling efficient cold-start personalization while preserving device-level model privacy. Evaluations on biosignal datasets",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "An Ultra-Low-Energy Environmental Sound Recognition Processor With Adaptive Learning for Intelligent Edge Devices",
+          "link": "http://ieeexplore.ieee.org/document/11676828",
+          "published": "2026-09-03T13:16:51.000Z",
+          "snippet": "Environmental sound recognition (ESR) technology has gained increasing prevalence in recent years across various applications such as smart caregiving and hearing-assistive devices, where always-on operation requires both high accuracy and ultra-low power consumption. However, the existing works have two main issues. First, the existing ESR algorithms are mainly implemented on GPUs or FPGAs, which cannot meet the energy constraints of AIoT devices, especially when SOTA ESR algorithms heavily rely on deep neural networks (NNs) to improve accuracy, resulting in large computations. Second, most of the existing ESR algorithms are trained using public datasets that are recorded in different sound environmental conditions (e.g., microphone and room sound environment) from those of their actual use, leading to significant accuracy degradation. Therefore, this work presents, to the best of our k",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 28-nm Heterogeneous Processor for Programmable Sensor-Fusion Perception",
+          "link": "http://ieeexplore.ieee.org/document/11670472",
+          "published": "2026-08-28T13:16:50.000Z",
+          "snippet": "This article presents a 28-nm heterogeneous programmable perception processor, based on a generalized deep-learning sensor-fusion (DL-SF) model, for combining vision and embedded sensing. The DL-SF model applies across a range of embedded-sensor modalities (acoustic, inertial, temperature, vibration), and its computational characteristics drive processor specialization to achieve simultaneously high programmability and efficiency. The architecture includes: CPU, with custom extensions for programmable DSP-based embedded-sensor feature extraction; configurable convolution accelerator, with parallelism and precision optimized for vision-processing efficiency and throughput requirements; and dense/sparse memory referencing for efficient activation storage. Four bookend applications are demonstrated, with energy reduction relative to DSP application processor: 1) human-activity recognition (",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "A 28-nm, 8.3-mm2, 76.9-μJ/Pairing Compiler-Driven Crypto-Processor for Hybrid ZKP--PBC Application With Software--Hardware Co-Design",
+          "link": "http://ieeexplore.ieee.org/document/11676477",
+          "published": "2026-09-03T13:16:51.000Z",
+          "snippet": "Zero-knowledge proof (ZKP), one of the most popular privacy-preserving schemes, enables the prover to convince the verifier of a certain statement’s correctness without leaking any private information. Among them, the Pairing-based succinct non-interactive argument of knowledge (zkSNARK), like Groth16 and Plonk, featuring succinct proof size and constant-time verification, is deployed across a promising ecosystem. However, the heavy operations of proof generation that grow rapidly with application sizes and the frequent verification that requires costly Pairing severely hinder broader adoption. Moreover, there are many other cryptographic schemes also constructed based on Pairing, such as Boneh–Lynn–Shacham (BLS) signature, functional encryption (FE), identity-based encryption (IBE), and so on. Unfortunately, existing synthesis-based ZKP accelerators suffer from low area efficiency and i",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        },
+        {
+          "title": "IEEE Journal of Solid-State Circuits Information for Authors",
+          "link": "http://ieeexplore.ieee.org/document/11764934",
+          "published": "2026-10-30T13:21:56.000Z",
+          "snippet": "null",
+          "source": "IEEE JSSC — Solid-State Circuits"
+        }
+      ],
+      "feedValid": true
+    },
+    {
+      "name": "IEEE TCAS-I — Circuits and Systems I",
+      "url": "https://ieeexplore.ieee.org/rss/TOC8919.XML",
+      "type": "researchlike",
+      "default_subtopic": "fab",
+      "fetchedAt": "2026-11-12T05:14:18.026Z",
+      "status": 200,
+      "statusText": "OK",
+      "ok": true,
+      "contentType": "text/xml",
+      "finalUrl": "https://ieeexplore.ieee.org/rss/TOC8919.XML",
+      "error": null,
+      "blocked": false,
+      "blockReason": null,
+      "itemCount": 50,
+      "items": [
+        {
+          "title": "Table of Contents",
+          "link": "http://ieeexplore.ieee.org/document/11755599",
+          "published": "2026-10-27T05:02:45.000Z",
+          "snippet": "null",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "IEEE Transactions on Circuits and Systems--I: Regular Papers Publication Information",
+          "link": "http://ieeexplore.ieee.org/document/11755545",
+          "published": "2026-10-27T05:02:45.000Z",
+          "snippet": "null",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "Guest Editorial Special Issue on the International Symposium on Integrated Circuits and Systems---ISICAS 2026",
+          "link": "http://ieeexplore.ieee.org/document/11755629",
+          "published": "2026-10-27T05:02:45.000Z",
+          "snippet": "null",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Hardware-Efficient Large-Kernel Convolution-Based Super-Resolution Accelerator",
+          "link": "http://ieeexplore.ieee.org/document/11692328",
+          "published": "2026-09-15T05:01:16.000Z",
+          "snippet": "Large-kernel convolutional networks have enabled CNN-based image super-resolution (SR) methods to achieve encouraging reconstruction quality. However, the large-kernel design poses severe challenges in computational throughput and energy consumption, hindering their deployment on edge devices. Given this, a high-throughput and energy-efficient SR accelerator for large-kernel convolution-based SR models is proposed. For hardware-efficient large-kernel algorithm design, we combine “multiplication-free” shift operations with a kernel decomposition strategy to simplify large-kernel convolutions and fundamentally shrink the computation load. For efficient shift large-kernel computation acceleration, we design a vector-line-buffer-based shift large-kernel convolution unit to cache feature rows on-chip and generate shifted vectors locally, while simultaneously performing multi-directional shift",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Novel Adaptive Crosstalk Detection and Selective Encoding Scheme Without Redundant Bits",
+          "link": "http://ieeexplore.ieee.org/document/11707735",
+          "published": "2026-09-24T05:18:07.000Z",
+          "snippet": "Crosstalk in vertical interconnects of 2.5D and 3D integrated circuits has become a critical issue as interconnect density rapidly increases. With the scaling of through-silicon vias (TSVs) and micro-bumps, capacitive and inductive coupling intensifies, leading to signal degradation, timing errors, and increased power consumption in multi-layer architectures. This work presents a novel architecture for crosstalk detection and selective encoding and decoding to mitigate crosstalk effects. The primary objective of this work is to first detect both inductive and capacitive crosstalk patterns in the bitstream and then apply encoding and decoding selectively, ensuring minimal overhead and complexity. This detection and selective encoding approach significantly reduces computations compared to traditional crosstalk avoidance code (CAC), as on average, around 50% of the data does not require en",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "Analysis of Single-Stage Class-E Power Amplifier With Load-Independent and Global Regulation",
+          "link": "http://ieeexplore.ieee.org/document/11700525",
+          "published": "2026-09-21T05:04:58.000Z",
+          "snippet": "This paper presents an analytical design method for a single-stage load-independent (LI) Class-E power amplifier (PA) implementing global regulation and zero-voltage-switching (ZVS). By integrating the buck converter with the Class-E PA into a single stage and deriving the optimal delay between the buck stage and the Class-E ON state from the LI ZVS condition, this PA reduces off-chip components, improves efficiency, and ensures ZVS over a wide range of loads and input power. A 6.78-MHz prototype is implemented to validate the proposed method. The analytically derived optimal delay is experimentally verified across different resonant frequency ratios $q$ . Compared to conventional LI Class-E designs, which are highly sensitive to variations in $q$ , the proposed approach significantly enhances design flexibility. The prototype demonstrates LI ZVS operation for load resistances ranging fr",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Robot-Action-Planning FPGA Accelerator With Flow-Predictive Inference and Adaptive Real-Time Chunking for Embodied AI",
+          "link": "http://ieeexplore.ieee.org/document/11705414",
+          "published": "2026-09-23T13:19:25.000Z",
+          "snippet": "Vision-language-action (VLA) models have shown strong potential for robotic manipulation, yet deploying their diffusion-based action experts on edge platforms remains challenging due to the high inference latency, the overhead of real-time chunking (RTC), and the large memory footprint of model parameters and intermediate activations. This article presents an FPGA accelerator for real-time action planning in embodied robotic systems. The accelerator integrates three co-designed techniques. First, a velocity-estimation-driven flow predictor exploits the near-linear evolution of flow velocity across diffusion steps in rectified-flow-based inference to improve planning throughput. Second, an adaptive RTC scheduler dynamically switches between gradient-based and rectified guidance according to robotic states, thereby reducing computational overhead and energy consumption during asynchronous ",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "An RF Energy Harvesting System Supporting a 15-dB Input Power Range Using Digital Gate-Bias Relocation and Dynamic Voltage Scaling",
+          "link": "http://ieeexplore.ieee.org/document/11685863",
+          "published": "2026-09-10T05:08:14.000Z",
+          "snippet": "This paper proposes an RF energy harvesting system capable of operating over a wide input power range. The system incorporates a reconfigurable rectifier with a proposed digital gate-bias relocation technique to enhance power conversion efficiency under high input power conditions. The rectifier configuration and gate-bias tuning are jointly managed by a dual-parameter maximum power point tracking (DMPPT) controller, enabling efficient operation across a broad input range. Furthermore, the rectifier output feeds a load-modulation and dynamic voltage-regulation unit that functions as a variable load, adjusting the system output voltage in response to input power variations and thereby facilitating MPPT. A tunable matching network is also employed to maintain proper impedance matching under both high- and low-power scenarios. In addition, a pipeline startup scheme is introduced to accelera",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A DVS-Enabled SIMO Converter Using Adaptive Dual-Window Synthetic Current Control for 0.02 mV/mA Cross Regulation and 90.8% Peak Efficiency",
+          "link": "http://ieeexplore.ieee.org/document/11644768",
+          "published": "2026-08-07T13:17:16.000Z",
+          "snippet": "This paper presents a single-inductor multiple-output (SIMO) converter employing an adaptive dual-window synthetic current (ADSC) control scheme to achieve fast dynamic voltage scaling (DVS) and low cross-regulation. The proposed ADSC architecture establishes the fundamental control boundary by stacking multiple error-amplifier outputs to generate an adaptive lower hysteresis boundary, thereby enabling inherent multi-output coordination and stable regulation. To further improve transient performance, an adaptive window scaling (AWS) technique dynamically adjusts the upper hysteresis boundary according to load conditions, achieving a load-transient sensitivity of 0.103 mV/mA while reducing cross-regulation sensitivity to 0.02 mV/mA. For rapid voltage transitions, a pre-request DVS control (PDC) loop directly updates the control boundary upon receiving the voltage identification (VID) comm",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 28-nm 64-kb Bit-Rotated Hybrid Domain Computing-in-Memory Macro for High-Performance Computing",
+          "link": "http://ieeexplore.ieee.org/document/11675917",
+          "published": "2026-09-02T13:17:28.000Z",
+          "snippet": "The development of computing-in-memory (CIM) has gone through the era of analog domain CIM, which pursued extreme energy efficiency and area efficiency, and the era of digital domain CIM, which pursued extreme computational precision. Currently, research is exploring hybrid domain CIM designs that combine the advantages of both analog and digital approaches. In order to find a better balance point between computational precision and hardware efficiency, this work proposes a bit-rotated hybrid domain CIM design which primarily employs: 1) a bit-rotated feature-in hybrid structure to achieve the optimal boundary segmentation (better computational precision) with lower hardware overhead; 2) an embedded sign-bit-processing SRAM array, enabling sign-bit extension with low hardware overhead; 3) an multi-bit-fusion scheme for low-power multi-bit quantization; and 4) a dual-granularity cooperati",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "BAPE: A Binary or Ternary-Weights Transformer Accelerator Based on Precomputation at the Edge",
+          "link": "http://ieeexplore.ieee.org/document/11675903",
+          "published": "2026-09-02T13:17:28.000Z",
+          "snippet": "Binary and ternary weights substantially reduce model storage and weight-memory traffic in large language models. However, conventional GEMM independently reduces each output column, repeatedly generating candidate partial dot products for the same activation row and thus underusing ultra-low-bit computation. We present BAPE, a precomputation-based FPGA accelerator core for binary- and ternary-weight Transformer linear layers. BAPE schedules and retains candidates by complete activation row. Each activation group’s candidate partial dot products are generated once, indexed and reused across output columns by streamed weight patterns, and accumulated across groups on chip. The Precomputation Unit (PCU) and dual-mode Adder Tree Processing Engine (ATPE) reuse the same hierarchical adder tree for candidate generation and lookup-based accumulation. Joint exploration of precomputation granular",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Neural Stimulator ASIC With an Improved Blocking Capacitor Charge Balancing Method and Speed-Boosting Feedback",
+          "link": "http://ieeexplore.ieee.org/document/11679093",
+          "published": "2026-09-04T13:17:47.000Z",
+          "snippet": "This paper presents a 16-channel stimulator ASIC for prosthetic sensory feedback that incorporates a compact charge balancing method utilizing an initialization phase to preset the voltage across a series blocking capacitor. The stimulator enforces strict per-cycle charge balance between the total sourced and sunk charge without any residual current, regardless of mismatch between the current sources. To further enhance performance, a speed-boosting feedback loop is introduced to monitor the anodic phase current and temporarily increase the stimulation amplitude, enabling higher stimulation rates. The ASIC was designed and fabricated in a 130-nm BCD CMOS process. For a 1 mA stimulation current, it achieves a 99.96% reduction in unbalanced residual charge compared with a conventional, uncorrected blocking-capacitor-based approach. Incorporating the speed-boosting feedback loop yields a ma",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "Gate-Voltage Slope Sensing in Active Gate Driver ICs: A Multi-Step Control Architecture and Boundary Analysis for SiC MOSFETs",
+          "link": "http://ieeexplore.ieee.org/document/11684855",
+          "published": "2026-09-09T13:16:18.000Z",
+          "snippet": "Active gate drivers (AGD) employing gate voltage ( $V_{\\mathrm {G}}$ ) sensing have proven to be a cost-effective approach when designing AGDs without the need for high voltage isolation. This method relies on the parasitic source inductance voltage ( $V_{\\mathrm {LS}}$ ) acting as a feedback signal to control the driving sequence. However, as packaging technologies continue to minimize internal parasitics, the induced $V_{\\mathrm {LS}}$ signal reduces, making the variations in the $V_{\\mathrm {G}}$ slope harder to detect. This article presents a fully integrated active gate driver with multi-step turn-off control (AGD-MSTO) for silicon carbide (SiC) MOSFETs. The applicability of the $V_{\\mathrm {G}}$ sensing mechanism is theoretically investigated to determine a minimum resolvable slope variation. The proposed AGD-MSTO is verified through a multi-pulse test on commercial TO-247-3 device",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 19.8-Gb/s/Wire Single-Ended PAM-3/NRZ Simultaneous Bidirectional Transceiver With Shared ZQ/Hybrid Calibration for Memory Interfaces",
+          "link": "http://ieeexplore.ieee.org/document/11644841",
+          "published": "2026-08-07T13:17:16.000Z",
+          "snippet": "This paper presents a single-ended simultaneous bidirectional (SBD) transceiver for pin-limited memory interfaces and demonstrates dual-mode NRZ/PAM-3 operation. To increase aggregate throughput without pushing the Nyquist frequency, the proposed architecture combines a low-V ${}_{DDQ}$ voltage-mode transmitter (TX) with a voltage-current/resistance (V-IR) hybrid that suppresses the locally transmitted outbound signal at the receiver (RX). A shared calibration scheme reuses the conventional ZQ pin to calibrate both TX impedance and hybrid current, improving robustness to process variation without additional calibration pins. Fabricated in 28-nm CMOS, the prototype operates over a wire-bonded off-chip channel and achieves 16 Gb/s/wire (8 Gb/s per direction) in NRZ mode at V ${}_{\\textit {DDQ}}$ /V ${}_{\\textit {DD}}=0.6$ /1.0 V, and 19.8 Gb/s/wire (9.9 Gb/s per direction) in PAM-3 mode at",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 27-GHz Magnetic-Isolated Sub-Sampling PLL With a Fast-Locking Controller Achieving 64.9-fs Jitter and −69.1-dBc Reference Spur",
+          "link": "http://ieeexplore.ieee.org/document/11653594",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "This article presents an integer-N magnetic-isolated sub-sampling phase-locked loop (miSSPLL) that achieves low jitter, low reference (REF) spur, and fast locking at millimeter-wave (mm-wave) frequencies. The proposed magnetic-isolated sub-sampling phase detector (miSSPD) mitigates capacitive loading on the differential resonant tank of the voltage-controlled oscillator (VCO), effectively suppressing the high REF spur, particularly induced by the binary frequency shift keying (BFSK) effect. The fast-locking controller (FLC) enables the frequency-locked loop (FLL) to operate within a narrow dead zone (DZ) of approximately [ $-\\pi $ /8, $\\pi $ /8], thereby reducing locking time and enhancing loop robustness. Fabricated in a 65-nm CMOS process, the proposed miSSPLL occupies a core area of 0.19 mm2 and achieves a rms jitter of 64.9 fs at a carrier frequency of 27 GHz while consuming 11.2 mW,",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "An Energy-Efficient Hybrid Circuit Design Using Double-Tail Strong-Arm Latch for Full Duplex Communication",
+          "link": "http://ieeexplore.ieee.org/document/11682971",
+          "published": "2026-09-07T13:18:01.000Z",
+          "snippet": "The continuous demand for high-speed data transfer has driven significant interest in full duplex (FD) communication, where transmission and reception occur simultaneously over the same channel. However, this concurrent operation leads to the superposition of the signal on the interconnect, making accurate extraction of the desired signal at the receiver is challenging. To successfully recover the desired signal at the receiver end from this overlapped signal, a hybrid circuit is essential. Therefore, this work introduces a hybrid circuit using a Double-Tail Strong-ARM Latch (DTSAL) for the first time. The DTSAL extracts the received signal and produces a full-swing output signal within the same circuit. The proposed hybrid circuit topology offers several advantages, including zero static power consumption and a rail-to-rail output, without requiring additional complex circuits. This app",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Robust Self-Calibrated Dual-RON Paths Gate Driver With Tri-Level Gate Control for Optimized Turn-On of GaN Gate Injection Transistors",
+          "link": "http://ieeexplore.ieee.org/document/11663157",
+          "published": "2026-08-21T13:18:12.000Z",
+          "snippet": "This paper proposes a GaN-based gate driver optimized for gate injection transistors (GITs), whose current-driven gate behavior renders conventional voltage-driven drivers inefficient. A self-calibrated dual-RON-path architecture is introduced to meet the unique drive requirements by delivering both high transient turn-on current and low-loss steady-state current. In addition, a tri-level gate-control scheme is employed to handle hard-switching conditions, improving coupling immunity and suppressing third-quadrant conduction in half-bridge operation. Fabricated in a 0.5- $\\mu $ m GaN process, the proposed driver achieves a peak output current of 1.93 A and supports up to 1200 W in a 400-V boost converter. Experimental results demonstrate up to $2\\times $ reduction in driver power loss compared to conventional RC-interface and Schottky-gate drivers. The converter achieves a peak efficienc",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 3-MHz All-NMOS Adaptive Active Gate Driver With Dual-Buffer Architecture and Detection-Free CSIV Spike Suppression for SiC MOSFETs",
+          "link": "http://ieeexplore.ieee.org/document/11683245",
+          "published": "2026-09-07T13:18:02.000Z",
+          "snippet": "This paper presents the on-chip all-NMOS adaptive active gate driver (ANA-AGD) for high-speed, high-voltage SiC MOSFET applications. A dual-floating dual-buffer architecture enables inherent suppression of Common Source Inductance Voltage (CSIV)-induced oscillations without auxiliary sensing circuits. By forming two floating source-buffer paths with distinct frequency responses, the architecture generates a transient voltage difference in response to high-frequency CSIV components, enabling implicit spike discrimination without explicit sensing circuits. An active float bridge (AFB) is introduced to ensure reliable signal transmission across floating domains, preventing signal distortion and device overstress under high-voltage operation. In addition, an adaptive drive strength (ADS) structure dynamically regulates the gate-driving current through a frequency-dependent mechanism, limitin",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A High Cross-Domain Accuracy and Energy-Efficient sEMG-Based Hand Gesture Recognition Processor Supporting Hybrid-Label Online Learning Based on CDEM",
+          "link": "http://ieeexplore.ieee.org/document/11674150",
+          "published": "2026-09-01T13:17:34.000Z",
+          "snippet": "Surface electromyographic (sEMG)-based hand gesture recognition (HGR) is a promising technique for AI glasses and VR devices control. However, its practical deployment is mainly restricted by recognition accuracy degradation caused by sEMG signal variability across individuals and time. Although a few sEMG HGR processors have proposed online learning to address the issue, they either achieve insufficient accuracy improvement or introduce significant energy overhead, making them difficult to be implemented on edge devices. In this work, a hand gesture recognition processor is proposed based on a state-of-the-art cross-domain error minimization (CDEM) learning method. The processor solves the problem with three key features: 1) a hybrid-label CDEM (HL-CDEM) online learning architecture to enable low-energy continuous CDEM learning in non-cross-day scenarios; 2) an inference-learning integr",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "SHARP: An Energy-Efficient Spike-Based 3-D Recognition Processor With Hierarchical Hybrid Sparsity Awareness on Point Cloud",
+          "link": "http://ieeexplore.ieee.org/document/11649855",
+          "published": "2026-08-11T13:17:04.000Z",
+          "snippet": "LiDAR-based 3D recognition leverages exceptional spatial granularity and broad sensory coverage to achieve high-precision perception in complex outdoor environments. Despite these advantages, the prohibitive computational workload makes real-time deployment on resource-limited edge devices a significant challenge. High-fidelity point cloud processing typically demands deep network structure, thus requiring massive operations and consuming many resource-intensive multipliers in conventional DNN accelerators. Moreover, conventional data representations and computing architectures become suboptimal under the dynamic sparsity among partitioned data tiles. In this paper, we propose SHARP, a novel spiking reconfigurable accelerator featuring hierarchical hybrid sparsity awareness on 3D point cloud based recognition tasks. A hierarchical hybrid sparsity codec is introduced to minimize data volu",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Low-Cost Trigonometric Current-Mode Phase Interpolator Exploiting the MOSFET Square-Law for Enhanced Phase Linearity",
+          "link": "http://ieeexplore.ieee.org/document/11668730",
+          "published": "2026-08-28T13:17:00.000Z",
+          "snippet": "This paper presents a low-cost 7-bit current-mode phase interpolator (PI) with good linearity for high-speed clocking applications. Conventional current-mode PIs use a linear weighting strategy to produce a diamond-shaped phasor constellation in the I/Q plane, resulting in phase nonlinearity and code-dependent amplitude variation. Digital predistortion or lookup-table-based calibration improves the linearity but requires additional coefficient-generation or calibration hardware. The proposed PI employs a CML-based sin2/cos2 current-weighting scheme that exploits the square-law of the MOSFET. It drives the synthesized phasor closer to circular rotation in the analog domain, achieving a good trade-off among calibration complexity, coefficient-control overhead, and power consumption. Fabricated in a 40-nm CMOS process, the proposed PI occupies an active area of 0.015 mm2 and consumes 2.59 m",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Power-Efficient Timing-Aligned Charge-Injection Phase Rotator With Inherent Linearity for 64-Gb/s PAM-4 CDR",
+          "link": "http://ieeexplore.ieee.org/document/11653396",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "This paper presents a highly linear and power-efficient PR using the timing-aligned charge-injection technique. In the proposed PR, phase shifting is achieved by injecting charge into the oscillator core, and the phase step per injection is determined by the impulse sensitivity function (ISF). By controlling the number of injection cycles, the total phase shift is the accumulation of identical phase steps per injection, which makes the phase rotation inherently linear. Moreover, this architecture eliminates dedicated clock drivers by embedding the phase-tuning function inside the oscillator. It uses minimal charge per injection and is disabled after reaching the target phase, achieving negligible static power and low dynamic power. Consequently, the proposed PR avoids both the nonlinearity of conventional interpolation-based or integration-based designs and their associated power overhea",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Silicon-Based Integrated FMCW LiDAR System",
+          "link": "http://ieeexplore.ieee.org/document/11672866",
+          "published": "2026-08-31T13:18:19.000Z",
+          "snippet": "This paper presents an integrated light detection and ranging (LiDAR) system alongside its corresponding 22-nm FD-SOI controller IC. The proposed architecture integrates four distinct dies—a 1550-nm DFB laser diode, a photonic IC (PIC), an $8\\times 8$ silicon photomultiplier (SiPM) array, and a mixed-signal silicon controller chip—complemented by a custom resonant concave acoustic mechanical mirror specifically designed to support the multi-die assembly. A laser driver and stabilization electro-optic phase-locked loop (EO-PLL), transimpedance amplifiers (TIAs), variable gain amplifiers (VGAs), analog–to-digital converters (ADCs), a custom fast Fourier transform (FFT) engine, mirror drivers, SiPM read-out circuitry, power management and 8-Gbps low-voltage differential signaling (LVDS) driver are all integrated in planar double thick metal RF SOI process. The total final device volume targ",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 96.7%-Peak-Efficiency 2.5-A Scalable Hybrid Buck Converter Module With Complementary Dual-Mode Reconfiguration and Interleaving-Assisted COUT Augmentation",
+          "link": "http://ieeexplore.ieee.org/document/11663204",
+          "published": "2026-08-21T13:18:12.000Z",
+          "snippet": "This article presents a scalable hybrid DC-DC converter module for compact CPU/GPU power delivery. The proposed complementary dual-mode reconfigurable topology combines two extended dual-path switched-capacitor cells through a DEMUX path, enabling a continuous 0.4–1.5-V output from a 1.8-V input while maintaining full-range inductor-current reduction. The overlapping voltage-conversion-ratio (VCR) regions avoid extremely narrow duty ratios near the mode boundary and support smooth hot switching, with a current capability enhancement factor ( $I_{\\mathrm {LOAD}}$ / $I_{\\mathrm {L,DC}}$ ) of 1.33–2 over the targeted range. An N-phase interleaving scheme further exploits the phase in which the flying capacitor is paralleled with the output capacitor, thereby enhancing the globally equivalent output capacitance and reducing both output ripple and flying-capacitor hard-charging stress. A full",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Low-Phase-Noise and Low-Flicker-Noise-Corner Quad-Core Class-F23 VCO Without Second and Third Harmonic Tuning in 65-nm CMOS",
+          "link": "http://ieeexplore.ieee.org/document/11653373",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "This paper proposes a quad-core Class-F23 voltage-controlled oscillator (VCO) based on a circular triple-coupled transformer without manual harmonic alignment. Through innovative differential-mode (DM) and common-mode (CM) resonator topology design, both phase noise (PN) and $1/f^{3}$ PN corner are significantly improved. Multi-core structure along with inductive coupling design boosts the tank quality factor (Q) of the circular inductor to be above 40. A 6th-order DM resonator is synthesized via the triple-coupled transformer to generate dual resonance peaks near the 3rd harmonic, thereby expanding the impedance bandwidth and eliminating the need for manual tuning. A well-defined CM return path along with an 8 shape head inductor is designed to achieve an expanded high 2nd harmonic impedance, removing the manual alignment for the 2nd harmonic frequency and frequency mismatch. Fabricated",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Dual-Triggered Adaptive-Cycle SIMO Buck-Boost Converter With Hybrid Zero-Current Detector for Thermoelectric Energy Harvesting",
+          "link": "http://ieeexplore.ieee.org/document/11674166",
+          "published": "2026-09-01T13:17:35.000Z",
+          "snippet": "This paper presents a buck-boost converter with dual-triggered adaptive-cycle (DTAC) control for thermoelectric energy harvesting. The proposed DTAC control dynamically determines the switching period according to the energy conditions at both the input and output nodes, while adaptively adjusting the on-time based on the input energy condition to maintain the energy extraction point close to the maximum power point. Based on a single-inductor multiple-output (SIMO) architecture, the converter regulates two output voltages with the assistance of an energy storage capacitor, $C_{\\text {STO}}$ , which recovers the residual inductor energy during the discharge phase. In addition, a low-power hybrid zero-current detector (H-ZCD) is implemented to accurately detect the inductor zero-current point. The proposed converter was fabricated in a 180-nm CMOS process with an active area of 0.701 mm2.",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Wide-Load High-Stability LDO With Dynamic Semi-Pole Compensation and Capacitor Tracking Technique",
+          "link": "http://ieeexplore.ieee.org/document/11653368",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "A low-dropout regulator (LDO) exhibiting an extended load range is presented, wherein both wide load resistance and capacitance ranges are simultaneously achieved. Whereas conventional compensation schemes are restricted to stable operation over a narrow load resistance interval at a specific capacitance value. To overcome the limited load range, a dynamic semi-pole compensation (DSPC) in conjunction with a capacitor tracking technique (CTT) is proposed. Consequently, stable operation is ensured over a load resistance span of $20~\\Omega $ to 10 M $\\Omega $ and a load capacitance range of $1~\\mu $ F to $200~\\mu $ F. The design is implemented in a 0.18- $\\mu $ m process. An input voltage range of 3.6–40 V is supported, with a regulated output voltage of 3.3 V and a maximum load current of 150 mA. The dropout voltage is measured to be 270 mV. A power-supply rejection ratio (PSRR) of 60 dB a",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "QUARC: A Compact and Energy-Efficient Quad-Mode Reconfigurable Analog--Digital Hybrid eDRAM CIM for Ternary-LLM Acceleration",
+          "link": "http://ieeexplore.ieee.org/document/11646616",
+          "published": "2026-08-10T13:17:29.000Z",
+          "snippet": "This paper presents QUARC, a highly energy-efficient analog–digital hybrid computing-in-memory (CIM) processor for ternary large language model (LLM) acceleration. QUARC leverages a high-density 3T1C embedded DRAM bitcell and introduces a quad-mode reconfigurable macro with causal-mask-adaptive operation to improve both macro- and system-level energy efficiency. The proposed architecture incorporates four key features. First, a sign-embedded ternary encoding scheme supports both ternary projection and multi-bit attention, enabling area-efficient analog MAC operations. Second, an in-column signed-magnitude SAR ADC reduces ADC area overhead by up to 87.5% and lowers ADC energy consumption by up to 82% through comparison skipping. Third, in-column partial-sum accumulation exploits in-memory digital computation to process only effective bits, reducing accumulation area and energy by 90.5% an",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Single-Mode Hybrid Buck--Boost Converter for Voltage-Regulating Cable in Cell-to-Cell Power Delivery System",
+          "link": "http://ieeexplore.ieee.org/document/11663193",
+          "published": "2026-08-21T13:18:12.000Z",
+          "snippet": "This paper presents a hybrid buck–boost converter for a voltage-regulating cable enabling cell-to-cell (C2C) power delivery (PD) for identical cell counts. An inductor-first architecture directly utilizes the cable inductance as the energy-transfer element, achieving single-mode step-up/down operation over a wide conversion ratio (CR) range suitable for single-cell C2C PD. Power-stage loss is minimized by reducing both voltage and current stress on the switches. Unlike conventional non-inverting buck–boost converters, the output current is continuously delivered through multiple current paths, which mitigates the right-half-plane (RHP) zero and enables stable voltage regulation without requiring an additional current-control loop. Fabricated in a $0.18~\\mu $ m BCD process, the proposed VRC converter achieves a peak chip efficiency of 95.6 % and maintains efficiency above 91.5 % across th",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Timing Relaxed Pre-Decision Feedforward Equalizer for DSP-Based Wireline Receiver Using Hardware-in-the-Loop Verification on FPGA",
+          "link": "http://ieeexplore.ieee.org/document/11674159",
+          "published": "2026-09-01T13:17:34.000Z",
+          "snippet": "This paper presents a critical-timing-relaxed pre-decision feedforward equalizer (pDFFE) designed for high-speed digital signal processor (DSP)-based wireline receivers. Since conventional decision feedback equalizer (DFE) suffers from an increasing timing burden due to recursive feedback loops, which hinder parallelization and scalability, the proposed pDFFE architecture eliminates the feedback path by replacing post-cursor inter-symbol interference (ISI) cancellation with feed-forward equalizer (FFE)-based decisions. The overall system employs a hardware-in-the-loop (HIL) verification platform based on the Versal ACAP, integrating a DSP engine with sign-sign LMS (SS-LMS) adaptation. The power and area of the proposed DSP in 28 nm CMOS layout are estimated to be 176.5 mW and 0.201 mm2, respectively. Both simulation and measurement results under −24 dB channel loss at Nyquist frequency d",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "KWS-CIM: A Charge-Domain eDRAM-Based Compute-in-Memory Macro for Ternary DFSMN Keyword Spotting",
+          "link": "http://ieeexplore.ieee.org/document/11654553",
+          "published": "2026-08-13T13:17:37.000Z",
+          "snippet": "This paper presents a 3T2C embedded DRAM (eDRAM)-based charge-domain compute-in-memory (CIM) macro for ternary deep feedforward sequential memory network (DFSMN)-based keyword spotting (KWS) with ternary activations and binary weights. The proposed architecture integrates a charge-domain ternary multiply-and-accumulate (MAC) bitcell, a selectable dual-mode sensing scheme, and an in-array offset calibration technique using fixed calibration rows. The dual-mode sensing scheme supports an energy-prioritized conventional sense amplifier (SA) mode for always-on monitoring and an accuracy-prioritized two-step sense amplifier (TSSA) mode for robust inference under reduced sensing margins. The proposed TSSA mitigates decision-timing-induced kickback disturbance, while the calibration rows suppress systematic column-wise sensing offsets. A sense amplifier-based 1-bit readout is employed to minimi",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 920-MS/s 12-bit Energy-Efficient SAR-Assisted Pipelined ADC With a Dynamic-Bias Floating Ring Amplifier",
+          "link": "http://ieeexplore.ieee.org/document/11672680",
+          "published": "2026-08-31T13:18:19.000Z",
+          "snippet": "This paper presents a 12-bit SAR-assisted pipelined ADC that features an energy-efficient self-biasing amplifier. Based on a unified architecture-level power model, we identify the 3-3-3-6-bit resolution partition as an energy-efficient solution for gigahertz ADCs. The proposed amplifier employs a floating power supply with a compact adaptive gate-biasing scheme to improve high-frequency stability without consuming static bias current. An output-dependent feedback-compensation further enhances linearity without extra circuits, flattening the gain versus output voltage characteristic over a wide output swing. Moreover, a low-latency SAR logic switching scheme improves timing efficiency without hardware overhead, allocating more time for accurate residue-amplifier settling and thereby achieving an optimal balance between speed and accuracy. With these techniques, a single-channel 12-bit SA",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "System-Level Modeling and Implementation of Spread-Spectrum Clocking in a Multi-Channel PMIC With RB-ACOT DC--DC Converters",
+          "link": "http://ieeexplore.ieee.org/document/11672909",
+          "published": "2026-08-31T13:18:19.000Z",
+          "snippet": "This paper proposes and validates the implementation of a Spread-Spectrum Clocking (SSC) technique in a fully-integrated 6-channel Power Management Integrated Circuit (PMIC) for power management applications of microprocessor units. Each channel of the PMIC embeds a Ripple-Based Adaptive Constant ON-Time (RB-ACOT) DC–DC Buck converter and a type-II Charge-Pump Phase-Locked Loop (CP-PLL). The converters are synchronized via the CP-PLLs to mutually phase-shifted reference clock signals derived from a centralized SSC-modulated reference oscillator. We investigate here from a theoretical perspective the impact of the CP-PLL in altering the effectiveness of the SSC technique through a design-oriented model that includes both the CP-PLL and the RB-ACOT converter. A prototype of the proposed system is fabricated in 0.18-um Bipolar-CMOS-DMOS (BCD) process. Both simulation results and experimenta",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 1.1-GHz Tuning Range, High-Linearity, Power- and Area-Efficient Ring Oscillator for VCO-Based ADCs in FMCW LiDARs",
+          "link": "http://ieeexplore.ieee.org/document/11682979",
+          "published": "2026-09-07T13:18:01.000Z",
+          "snippet": "Voltage-controlled oscillator (VCO)-based analog-to-digital converters (ADCs) are potentially advantageous for modern and next-generation automotive LiDARs due to their low power (<2-mW) and small IC area (<0.01-mm2). Nevertheless, state-of-the-art VCOs require linearization techniques that either incur power and area overheads or suffer from limited tuning range ( $\\ll 1$ -GHz), thereby compromising the ADC resolution. We present herein a power- and area-efficient ring-oscillator-based VCO embodying two novel linearization techniques applied to the transconductor and to the delay-cell. The first technique employs a proposed transistor network to dynamically vary the degeneration resistance according to the input voltage, thereby linearizing the transconductor. The second technique exploits the propagation delay of a level shifter within the proposed linearized delay-cell to compensate f",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A High-Throughput FPGA Accelerator for Real-Time Sort-Free 3-D Gaussian Splatting",
+          "link": "http://ieeexplore.ieee.org/document/11655913",
+          "published": "2026-08-14T13:17:01.000Z",
+          "snippet": "This paper presents the first FPGA-based real-time sort-free 3DGS accelerator through algorithm–architecture co-optimization. The accelerator enables a fully pipelined and highly parallel rendering architecture by eliminating global depth sorting and adopting an order-independent weighted-sum accumulation scheme. The proposed Gaussian pruning scheme further reduces the number of Gaussian primitives by 64%–80% with less than 1.35 dB PSNR loss while maintaining over 30 dB PSNR. Spherical harmonics analysis is applied to facilitate hardware design for rendering quality and hardware complexity balancing. A scale-adaptive Covariance Computation Unit is designed to remove data overflow for stable computation. An optimized Width Predictor and Processing Element further reduce the redundant computation and the rendering latency by 57.5%. Implemented on an AMD-Xilinx Alveo U200 FPGA, the proposed",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Low-Latency Reconstruction-Based Symbol Error Correction for PAM-4 DSP-Based Wireline Receivers",
+          "link": "http://ieeexplore.ieee.org/document/11659768",
+          "published": "2026-08-19T13:16:31.000Z",
+          "snippet": "This paper proposes a decision-error correction scheme that improves the pre-forward error correction (pre-FEC) bit-error rate (BER) by identifying and correcting symbol errors after the decision feedback equalizer (DFE) without introducing any coding overhead. The proposed method reconstructs the received waveform to localize error-prone symbols without requiring additional redundancy and performs symbol-level correction by exploiting intrinsic properties of pulse-amplitude modulation (PAM) signaling. The error detection and correction scheme is implemented using simple digital arithmetic and logic and completes the correction process within three digital signal processor (DSP) clock cycles, thereby avoiding excessive latency. A 4-level pulse-amplitude modulation (PAM-4) DSP employing a 64-way parallel datapath was implemented in a 14-nm FinFET process, occupying 0.269 mm2 and targeting",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A ±50-A Shunt-Based Current Sensor With ±0.2% Gain Error From --40 °C to 125 °C",
+          "link": "http://ieeexplore.ieee.org/document/11653390",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "This paper presents a shunt-based low-side current sensor that consists of an off-chip PCB trace shunt resistor and a readout circuit. A temperature-dependent reference voltage, composed of a proportional-to-absolute-temperature voltage and a tunable complementary-to-absolute-temperature (CTAT) voltage, is used to compensate for the shunt’s temperature-dependent resistance variation. To compensate for both the first- and higher-order temperature dependence of the shunt resistor, this paper proposes a CTAT voltage generation technique based on a temperature-coefficient (TC)-adjustable current source and a CTAT resistor. This technique enables the shunt’s temperature-dependent resistance variation to be compensated over a wide temperature range using only a single batch-calibration parameter. In addition, this paper proposes a dual-mode amplifier for the first integrator of the discrete-ti",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "An Area-Efficient Synthesizable Inverter-Delay-Ring Time-to-Digital Converter With Enhanced Linearity",
+          "link": "http://ieeexplore.ieee.org/document/11677173",
+          "published": "2026-09-03T13:17:09.000Z",
+          "snippet": "A fully synthesizable, area-optimized time-to-digital converter (TDC) with improved linearity is described. Its architecture exploits a cyclic inverter-based delay line (ring) tapped with two alternating cycle counters. A compact delay ring enables reduced hardware cost and efficient digital post-processing. The delay ring linearity is enhanced through back-annotated insertion of optional dummy inverter capacitive loads. To estimate the average inverter propagation delay, a straightforward calibration scheme is proposed. The TDC prototype fabricated in 180 nm CMOS occupies 4500 $\\mu $ m2 and consumes a mean power of 2.7 mW at 1.8 V and room temperature. It achieves 52 ps resolution over a 3.2 ns full-scale range, with maximum DNL/INL of 0.38/0.7 LSB and measured single-shot precision of up to 16 ps or 0.31 LSB. Due to its low complexity, excellent PPA, and automated standard-cell-based i",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Two-Unit-Interval Window Oversampling Referenceless Clock and Data Recovery for Robust Frequency Detection Against Duty-Cycle Distortion of Received Data",
+          "link": "http://ieeexplore.ieee.org/document/11675919",
+          "published": "2026-09-02T13:17:28.000Z",
+          "snippet": "This paper proposes a reference-less clock and data recovery (CDR) architecture that employs two-unit-interval (2-UI) windowing for frequency acquisition. The proposed 2-UI-based frequency detector (FD) enables half-rate frequency tracking without frequency-detection errors even in the presence of duty-cycle distortion (DCD) in the received data. Conventional Extended Bang-Bang Phase Detector (XBBPD) suffers from sampling errors near data transition edges due to variations in the reference interval for frequency detection. This results in false frequency-up/down (FUP/FDN) signals and may lead to prolonged stabilization time. Moreover, conventional XBBPD-based FD requires careful tuning of the FLL gain and lock-detection tolerance to avoid false lock or lock release under DCD. To address these limitations, the proposed FD employs six sampling points over a 2-UI window, effectively avoidin",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "SPAHRTA: Sparsity-Aware Hybrid Run-Time Training Accelerator for Spiking Neural Networks",
+          "link": "http://ieeexplore.ieee.org/document/11663179",
+          "published": "2026-08-21T13:18:12.000Z",
+          "snippet": "Training Spiking Vision Transformers (SViTs) on heterogeneous accelerators faces two compounding inefficiencies: backwards locking from conventional backpropagation prevents sparse and dense cores from operating concurrently, and spatio-temporal activation sparsity makes compile-time workload allocation suboptimal across training. We present SPAHRTA, a co-designed acceleration stack that addresses both through complementary training-algorithm and runtime-allocation mechanisms on a heterogeneous SNN-DNN SoC. The algorithmic contribution pairs Hybrid-DFA—which selectively replaces backpropagation in MLP sub-blocks with Direct Feedback Alignment—with an Out-of-Sync schedule that overlaps the forward and backward passes of successive mini-batches. The runtime contribution, Dynamic Workload Allocation (DWA), tracks per-dispatch sparsity and adaptively splits each operation across the sparse a",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A Single-Mode Double Step-Up-Down Hybrid Converter With Reduced Inductor Current and Continuous Output Current",
+          "link": "http://ieeexplore.ieee.org/document/11653401",
+          "published": "2026-08-12T13:16:59.000Z",
+          "snippet": "This paper presents a double step-up-down (DSUD) hybrid converter with single-mode operation, designed for lithium-ion battery applications in mobile devices. By employing solitary $D$ -control, the converter achieves seamless buck and boost operations without mode transitions, allowing output voltage to be seamlessly adjusted to the target voltage. With the inductors permanently connected to the output, the inductor current is always equal to half of the load current, thereby reducing inductor DCR losses and power transistors conduction losses. Furthermore, it achieves continuous output current delivery, which minimizes output voltage ripple and eliminates the right-half-plane zero. Additionally, the introduction of adaptive ramp circuit with fast path improves the transient response, while the proposed dual-stage start-up circuit eliminates inrush current and allows the converter to gr",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "Analysis and Design of Low-Noise Bandgap References",
+          "link": "http://ieeexplore.ieee.org/document/11665651",
+          "published": "2026-08-25T13:16:53.000Z",
+          "snippet": "Bandgap references are realized using a linear combination of base-emitter voltages of two transistors biased at different current densities. Usually, BJTs with unequal areas are biased at the same current. It is shown here that using unequal currents in the BJTs in the bandgap core and having the higher current flow through the PTAT-current-setting resistor reduces the resistor noise contribution. Rotating the BJT unit elements reduces their flicker noise contribution. A PTAT core based on the peaking current source reduces the gain for opamp offset and noise. A systematic study of bandgap reference topologies in the literature shows that almost all of them have the lowest noise for unequal currents in the BJTs used for PTAT generation. It also shows that the bandgap reference based on the peaking current source has among the lowest output noise for a given current consumption. A 2.4 V ",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 410-MHz Bandwidth and 22.7-dBm OIP3 dB-Linear Variable Gain Active-RC Feedback Amplifier With High Frequency Feedforward Compensated OTA and Ramp-Based Control",
+          "link": "http://ieeexplore.ieee.org/document/11677195",
+          "published": "2026-09-03T13:17:09.000Z",
+          "snippet": "This paper presents a dB-linear variable gain amplifier (VGA) based on an active-RC feedback filter topology with a ramp-based control scheme. As a core building block of a closed-loop amplifier-based VGA, a self-biased current-reuse feedforward (FF) compensated operational transconductance amplifier (OTA) is incorporated. The proposed FF-OTA achieves a unity-gain bandwidth (UGB) of 2.92 GHz and a DC gain of 36.25 dB while consuming only 3.1 mW. To ensure smooth gain scaling, our proposed VGA incorporates a tunable ramp-based control that eliminates discrete steps typically introduced by switched-resistor transitions. This approach enables stable dB-linear operation and yields highly linear performance, achieving an OIP3 of 22.7 dBm at the highest gain setting, outperforming conventional open-loop VGAs. Owing to the ramp generator’s flexibility, the VGA supports a wide 0.5 V control rang",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "T-2T SRAM: A CMOS 8-bit T-2T SRAM Ladder-Based Analog Current-Domain Compute-in-Memory (CIM) Architecture",
+          "link": "http://ieeexplore.ieee.org/document/11658647",
+          "published": "2026-08-18T13:16:37.000Z",
+          "snippet": "This paper presents a CMOS 8-bit T-2T SRAM ladder-based analog current-domain Compute-In-Memory (CIM) architecture for multi-bit neural network applications. A 1-to-2 ratio CMOS 8-bit T-2T SRAM ladder structure was implemented across the entire Multiply-Accumulate (MAC) macro, where the area scales linearly (~N) with N-weight, while the power consumption scales sub-linearly (~2(1 - 1 / $2{^{\\text {N-1}}}$ ), enabling area- and power-efficient multi-bit CIM operation. The proposed T-2T SRAM ladder-based Successive Approximation Register Analog-to-Digital Converter (SAR ADC) effectively reuses the memory read and write peripheral circuits for asynchronous SAR operation, removing the need for dedicated SAR logic and register, thereby improving silicon area efficiency. Pre-distortion technique was implemented within input Digital-to-Analog Converter (DAC) stage, to compensate for the non-lin",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 128 × 128 Dual-Resolution CMOS Image Sensor With In-Sensor Temporal and Spatial Gradient Calculations for Optical Flow Pre-Processing",
+          "link": "http://ieeexplore.ieee.org/document/11649862",
+          "published": "2026-08-11T13:17:04.000Z",
+          "snippet": "This paper presents a $128\\times 128$ smart CMOS image sensor that utilizes the processing-in-sensor (PIS) technique for gradient-based pyramidal optical flow pre-processing in power- and bandwidth-constrained edge vision systems. By embedding motion feature extraction directly within the image sensor, the proposed design avoids complex computation and frequent frame-buffer access in digital processors. The sensor simultaneously outputs temporal gradients, two-dimensional spatial gradients, raw intensity images, and dual-resolution data within a single frame period. A multi-row access readout scheme enables concurrent availability of neighboring pixel data, while column-level time-domain processing circuits efficiently compute spatial gradients and $3\\times 3$ binning without relying on power-hungry analog subtraction or extensive digital buffering. Fabricated in TSMC 0.18- $\\mu $ m stan",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 135-FPS and 0.81-mJ/frame Heterogeneous Processor for Real-Time and Energy-Efficient LiDAR Odometry and Mapping",
+          "link": "http://ieeexplore.ieee.org/document/11674177",
+          "published": "2026-09-01T13:17:34.000Z",
+          "snippet": "The growing demand for physical AI is expanding the capabilities of autonomous systems; however, these capabilities require accurate trajectory estimation and precise 3D map reconstruction for understanding the surrounding environment. In this context, LiDAR Odometry and Mapping (LOAM) has gained attention as a widely adopted SLAM framework that offers dense geometric map reconstruction. Nevertheless, the large number of keypoints captured per frame makes real-time hardware acceleration of LOAM extremely challenging in mobile robots, and even high-performance CPUs/GPUs fail to meet real-time constraints. This paper presents a real-time and energy-efficient heterogeneous processor with four key architectural features to address the dominant memory and computational bottlenecks of LOAM acceleration: 1) a 3D spherical-bin partitioning with neighboring bin search tailored to LiDAR point dist",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 28-nm 2.25-Mb CO-DCIM RRAM Macro With 1.25-ns/bit Read Speed, 0.12-pJ/bit, and 12.85-Mb/mm2 Storage Density for Autoregressive Transformer",
+          "link": "http://ieeexplore.ieee.org/document/11658638",
+          "published": "2026-08-18T13:16:37.000Z",
+          "snippet": "Edge AI urgently demand computing hardware with large on-chip storage capacity, low memory access overhead. Resistive random-access memory (RRAM) based digital computing-in-memory (DCIM) suits such scenarios by achieving a optimized performance balance in calculation precision, storage density and access overhead. However, traditional RRAM-DCIM scheme suffers from two issues: 1) RRAM multi-bit storage boosts density but introduces significant errors, while conventional ECC scheme requires massive redundant bits that offset density gains; 2) Wiring RC parasitism in large-scale arrays leads to slow and energy-intensive random access. To resolve these issues, the proposed computation-oriented DCIM (CO-DCIM) paradigm integrates two core solutions: a hierarchical multi-bit storage coding scheme and a charge-domain continuous access scheme. The designed CO-DCIM macro is fabricated in a 28nm CM",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "A 65-nm Compute-in-Read-Only-Memory Macro With Bidirectional Ternary Weight Storage and Sparsity-Aware Local Accumulation for 1.58-bit LLM Inference",
+          "link": "http://ieeexplore.ieee.org/document/11649857",
+          "published": "2026-08-11T13:17:04.000Z",
+          "snippet": "Compute-in-Read-Only-Memory (CiROM) is a promising paradigm for weight reload-free edge inference. The recent emergence of BitNet, which represents weights in ternary values at an average precision of approximately 1.58 bits, opens a path toward single-chip LLM deployment by drastically reducing storage footprint. However, fully exploiting this opportunity requires addressing three key challenges: compact ternary weight storage, effective exploitation of high weight sparsity, and post-fabrication adaptability for downstream tasks. To this end, this paper presents a BitNet-oriented CiROM macro with three dedicated techniques. First, a Bidirectional ROM Array based on Configurable Source/Bit-Lines stores two ternary weights in each 1T ROM cell, significantly improving the weight storage density. Second, a Tri-Mode Local Accumulator is developed to support an accumulation-then-summation dat",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "High-Precision Low-Complexity Method and Architecture for Computing Sigmoid and Tanh Functions",
+          "link": "http://ieeexplore.ieee.org/document/11649850",
+          "published": "2026-08-11T13:17:04.000Z",
+          "snippet": "The sigmoid and tanh activation functions are extensively used in gated recurrent neural networks for state updates and gating operations. Compared with inference, neural network training imposes much stricter requirements on the numerical precision of activation functions. Therefore, we present a radix-4 CORDIC-based architecture for the first time for computing the sigmoid and tanh activation functions. Compared with standard radix-2 CORDIC, the radix-4 CORDIC reduces the number of iterations by half, thereby improving computational speed while maintaining high precision. To extend the input range, we introduce an activation function base-change strategy that replaces the natural base with base 2. By requiring only high-precision exponential computation over a small input range, the proposed method is able to handle inputs of arbitrary magnitude, reducing the overall computational comp",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        },
+        {
+          "title": "IEEE Circuits and Systems Society Information",
+          "link": "http://ieeexplore.ieee.org/document/11755544",
+          "published": "2026-10-27T05:02:45.000Z",
+          "snippet": "null",
+          "source": "IEEE TCAS-I — Circuits and Systems I"
+        }
+      ],
+      "feedValid": true
+    },
+    {
+      "name": "ACM TACO — Architecture and Code Optimization",
+      "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=taco",
+      "type": "researchlike",
+      "default_subtopic": "dse",
+      "fetchedAt": "2026-11-12T05:14:18.574Z",
+      "status": 403,
+      "statusText": "Forbidden",
+      "ok": false,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=taco",
+      "error": "HTTP 403 Forbidden",
+      "blocked": true,
+      "blockReason": "cloudflare-403",
+      "itemCount": 0,
+      "items": [],
+      "feedValid": false
+    },
+    {
+      "name": "ACM CSUR — Computing Surveys",
+      "url": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=csur",
+      "type": "researchlike",
+      "default_subtopic": null,
+      "fetchedAt": "2026-11-12T05:14:18.612Z",
+      "status": 403,
+      "statusText": "Forbidden",
+      "ok": false,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://dl.acm.org/action/showFeed?type=etoc&feed=rss&jc=csur",
+      "error": "HTTP 403 Forbidden",
+      "blocked": true,
+      "blockReason": "cloudflare-403",
+      "itemCount": 0,
+      "items": [],
+      "feedValid": false
+    },
+    {
+      "name": "Communications of the ACM (CACM)",
+      "url": "https://cacm.acm.org/feed/",
+      "type": "newslike",
+      "default_subtopic": null,
+      "fetchedAt": "2026-11-12T05:14:18.651Z",
+      "status": 403,
+      "statusText": "Forbidden",
+      "ok": false,
+      "contentType": "text/html; charset=UTF-8",
+      "finalUrl": "https://cacm.acm.org/feed/",
+      "error": "HTTP 403 Forbidden",
+      "blocked": true,
+      "blockReason": "cloudflare-403",
+      "itemCount": 0,
+      "items": [],
+      "feedValid": false
+    },
+    {
+      "name": "ACM Queue",
+      "url": "https://acm-queue-rss.val.run/feed",
+      "type": "commentary",
+      "default_subtopic": "accel",
+      "fetchedAt": "2026-11-12T05:14:18.692Z",
+      "status": 200,
+      "statusText": "OK",
+      "ok": true,
+      "contentType": "application/rss+xml; charset=utf-8",
+      "finalUrl": "https://acm-queue-rss.val.run/feed",
+      "error": null,
+      "blocked": false,
+      "blockReason": null,
+      "itemCount": 14,
+      "items": [
+        {
+          "title": "A Valid Tool Call Can Still Be an Invalid Effect",
+          "link": "https://queue.acm.org/doi/full/10.1145/3839117",
+          "published": "2026-09-28T11:43:18.000Z",
+          "snippet": "Queue, Volume 24, Issue 5, August/September 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "CAFE(S): Your Agent Is Only As Good As Its Context",
+          "link": "https://queue.acm.org/doi/full/10.1145/3847288",
+          "published": "2026-09-24T01:19:47.000Z",
+          "snippet": "Queue, Volume 24, Issue 5, August/September 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Finding the Real Bottleneck in Large-Scale ML Training",
+          "link": "https://queue.acm.org/doi/full/10.1145/3839112",
+          "published": "2026-09-21T05:06:27.000Z",
+          "snippet": "Queue, Volume 24, Issue 5, August/September 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Signs of a Brewing Crisis",
+          "link": "https://queue.acm.org/doi/full/10.1145/3839115",
+          "published": "2026-09-17T02:07:43.000Z",
+          "snippet": "Queue, Volume 24, Issue 5, August/September 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "What’s in Your Software Repair Kit?",
+          "link": "https://queue.acm.org/doi/full/10.1145/3839114",
+          "published": "2026-09-14T01:56:20.000Z",
+          "snippet": "Queue, Volume 24, Issue 5, August/September 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Data Architectures in the Age of AI",
+          "link": "https://queue.acm.org/doi/full/10.1145/3844179",
+          "published": "2026-09-09T01:27:14.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "How CHERIoT Provides Strong and Usable Isolation Without an MMU",
+          "link": "https://queue.acm.org/doi/full/10.1145/3831361",
+          "published": "2026-09-09T01:27:03.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "When You Wish Upon a Prompt",
+          "link": "https://queue.acm.org/doi/full/10.1145/3842685",
+          "published": "2026-09-04T12:23:54.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Arithmetic Without Numbers",
+          "link": "https://queue.acm.org/doi/full/10.1145/3831357",
+          "published": "2026-08-24T01:25:29.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Too Many DevEx Metrics, Too Little Guidance",
+          "link": "https://queue.acm.org/doi/full/10.1145/3831360",
+          "published": "2026-08-17T01:21:01.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "The Challenge of Efficiency Versus Isolation",
+          "link": "https://queue.acm.org/doi/full/10.1145/3831358",
+          "published": "2026-08-13T08:28:55.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Unethical Ways to Manage Technical Debt",
+          "link": "https://queue.acm.org/doi/full/10.1145/3830399",
+          "published": "2026-08-10T04:23:31.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Where to Draw the Line",
+          "link": "https://queue.acm.org/doi/full/10.1145/3834784",
+          "published": "2026-08-05T07:00:00.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        },
+        {
+          "title": "Where Does the Foundation Come From?",
+          "link": "https://queue.acm.org/doi/full/10.1145/3831359",
+          "published": "2026-07-27T12:35:32.000Z",
+          "snippet": "Queue, Volume 24, Issue 4, July/August 2026. <br/>",
+          "source": "ACM Queue"
+        }
+      ],
+      "feedValid": true
+    }
+  ]
+}
