@@ -15,7 +15,7 @@ test.describe('statistics page', () => {
     await page.click('#sb-statistics', { force: true });
     await expect(page).toHaveURL(/\/statistics/);
     await page.waitForSelector('#stats-grid');
-    await expect(page.locator('.stat-card')).toHaveCount(4);
+    await expect(page.locator('.stat-card')).toHaveCount(5);
   });
 
   test('four cards are present, each with a Generate button', async ({ page }) => {
@@ -28,6 +28,7 @@ test.describe('statistics page', () => {
       ['pv_hist', 'p / V score histograms'],
       ['lr_metrics', 'LR model metrics'],
       ['pca_clusters', 'Clustering (UMAP)'],
+      ['clusters', 'Cluster members'],
     ];
     for (const [cardId, title] of cards) {
       const card = page.locator(`[data-card="${cardId}"]`);

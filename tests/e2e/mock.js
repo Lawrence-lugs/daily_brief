@@ -291,6 +291,11 @@ export class MockServer {
       let payload = {};
       if (cardId === 'lr_metrics') {
         payload = { cutoffDate: '2026-11-01', tags: [{ tag: 'leaf-mt:q8', prior: { auc: 0.5, logLoss: 0.69 }, keyword: { auc: 0.88, logLoss: 0.38 }, fitted: { auc: 0.70, logLoss: 0.37 } }] };
+      } else if (cardId === 'clusters') {
+        payload = { nClusters: 2, clusters: [
+          { cluster: 0, medoid: 'ps:1', medoidTitle: 'Sample paper', likedCount: 3, poolCount: 4, size: 7 },
+          { cluster: 1, medoid: 'item-abc', medoidTitle: 'A liked story', likedCount: 5, poolCount: 0, size: 5 },
+        ] };
       }
       return this.json(route, 200, {
         cardId,

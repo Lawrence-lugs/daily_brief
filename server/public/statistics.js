@@ -8,11 +8,51 @@ const RESTRICTED_PREFIX = '/api/restricted';
 // Mirrors client.js / list.js so the statistics page respects the app's dark/light mode.
 const THEME_KEY = 'db-theme';
 const root = document.documentElement;
+
+// Plotly colors follow the page theme at runtime (no generate-time template).
+const PLOT_THEMES = {
+  light: { font: '#3b362e', grid: '#e4dccd', line: '#cfc6b6', marker: '#000000' },
+  dark: { font: '#cbd5e1', grid: '#263344', line: '#334155', marker: '#f8fafc' },
+};
+const currentPlotTheme = () => PLOT_THEMES[root.classList.contains('dark') ? 'dark' : 'light'];
+
+function themedLayout(layout = {}) {
+  const t = currentPlotTheme();
+  const axis = { gridcolor: t.grid, linecolor: t.line, zerolinecolor: t.line };
+  return {
+    ...layout,
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: t.font },
+    xaxis: { ...axis, ...layout.xaxis },
+    yaxis: { ...axis, ...layout.yaxis },
+  };
+}
+
+function applyPlotTheme() {
+  if (typeof Plotly === 'undefined') return;
+  const t = currentPlotTheme();
+  document.querySelectorAll('.plotly-graph-div').forEach((div) => {
+    if (!div.data) return;
+    Plotly.relayout(div, {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      'font.color': t.font,
+      'xaxis.gridcolor': t.grid, 'yaxis.gridcolor': t.grid,
+      'xaxis.linecolor': t.line, 'yaxis.linecolor': t.line,
+      'xaxis.zerolinecolor': t.line, 'yaxis.zerolinecolor': t.line,
+    });
+    const idx = div.data.findIndex((tr) => tr.name === 'medoids');
+    if (idx >= 0) Plotly.restyle(div, { 'marker.color': t.marker }, [idx]);
+  });
+}
+
 const setTheme = (t) => {
   const c = root.classList;
   c.remove('dark', 'light'); c.add(t === 'dark' ? 'dark' : 'light');
   const tb = document.getElementById('btn-theme');
   if (tb) { tb.setAttribute('aria-pressed', String(t === 'dark')); tb.title = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'; }
+  applyPlotTheme();
 };
 const savedTheme = () => {
   try { const v = localStorage.getItem(THEME_KEY); return v === 'dark' || v === 'light' ? v : null; }
@@ -38,6 +78,7 @@ const RENDERERS = {
   pv_hist: renderPvHist,
   lr_metrics: renderLrMetrics,
   pca_clusters: renderPcaClusters,
+  clusters: renderClusters,
 };
 
 const escapeHtml = (s) => String(s ?? '')
@@ -163,7 +204,7 @@ function renderPvHist(body, payload) {
   Plotly.newPlot('plot-pv', [
     { x: p, type: 'histogram', name: 'p', opacity: 0.55, xbins: { start: 0, end: 1, size: 0.05 } },
     { x: V, type: 'histogram', name: 'V', opacity: 0.55, xbins: { start: 0, end: 1, size: 0.05 } },
-  ], { barmode: 'overlay', title: 'p / V score histograms', showlegend: true });
+  ], themedLayout({ barmode: 'overlay', title: 'p / V score histograms', showlegend: true }));
 }
 
 function renderLrMetrics(body, payload) {
@@ -187,11 +228,11 @@ function renderPcaClusters(body, payload) {
   const v2 = explainedVariance && explainedVariance[1] != null ? (explainedVariance[1] * 100).toFixed(1) : null;
   const xTitle = v1 != null ? `PC1 (${v1}%)` : 'UMAP1';
   const yTitle = v2 != null ? `PC2 (${v2}%)` : 'UMAP2';
-  body.innerHTML = `<div id="plot-umap" class="plotly-graph-div"></div><div class="caption" style="margin-top:0.5rem;font-size:0.85rem">k=${k} interest clusters (ranker medoids)</div>`;
+  body.innerHTML = `<div id="plot-umap" class="plotly-graph-div"></div><div class="caption" style="margin-top:0.5rem;font-size:0.85rem">k=${k} interest clusters (ranker medoids); grey = candidate pool items, assigned to nearest medoid</div>`;
 
-  const clusters = [...new Set(points.map((pt) => pt.cluster))];
+  const clusters = [...new Set(points.filter((pt) => pt.group !== 'pool').map((pt) => pt.cluster))];
   const traces = clusters.map((cid) => {
-    const pts = points.filter((pt) => pt.cluster === cid);
+    const pts = points.filter((pt) => pt.cluster === cid && pt.group !== 'pool');
     return {
       type: 'scatter', mode: 'markers', name: 'cluster ' + cid,
       x: pts.map((pt) => pt.x), y: pts.map((pt) => pt.y),
@@ -199,16 +240,34 @@ function renderPcaClusters(body, payload) {
       hoverinfo: 'text', marker: { size: 6 },
     };
   });
+  const poolPts = points.filter((pt) => pt.group === 'pool');
+  traces.unshift({
+    type: 'scatter', mode: 'markers', name: 'pool',
+    x: poolPts.map((pt) => pt.x), y: poolPts.map((pt) => pt.y),
+    text: poolPts.map((pt) => escapeHtml(pt.title) + ' (pool, cluster ' + pt.cluster + ')'),
+    hoverinfo: 'text', marker: { size: 5, color: '#9ca3af', opacity: 0.6 },
+  });
   traces.push({
     type: 'scatter', mode: 'markers+text', name: 'medoids',
     x: medoids.map((m) => m.x), y: medoids.map((m) => m.y),
     text: medoids.map((m) => 'C' + m.cluster), textposition: 'top center',
     hovertext: medoids.map((m) => escapeHtml(m.title) + ' (medoid, ' + m.size + ' items)'), hoverinfo: 'text',
-    marker: { symbol: 'x', size: 14, color: '#000' },
+    marker: { symbol: 'x', size: 14, color: currentPlotTheme().marker },
   });
-  Plotly.newPlot('plot-umap', traces, {
+  Plotly.newPlot('plot-umap', traces, themedLayout({
     margin: { l: 50, r: 16, t: 16, b: 46 },
     xaxis: { title: { text: xTitle, standoff: 8 } },
     yaxis: { title: { text: yTitle, standoff: 8 } },
-  });
+  }));
+}
+
+function renderClusters(body, payload) {
+  const { clusters } = payload;
+  if (!clusters || !clusters.length) { body.textContent = 'No clusters yet'; return; }
+  let html = `<div class="caption" style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--stat-muted)">"Liked members" = liked items in the cluster's interest set. "Pool members" = candidate_pool items assigned to the cluster by nearest medoid (as in the ranker).</div><table><thead><tr><th>Cluster</th><th>Medoid</th><th>Liked members</th><th>Pool members</th></tr></thead><tbody>`;
+  for (const c of clusters) {
+    html += `<tr><td>${escapeHtml(c.cluster)}</td><td>${escapeHtml(c.medoidTitle)}</td><td>${c.likedCount}</td><td>${c.poolCount}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
 }

@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { defaultDataDir } from '../../../user/datadir.js';
 import { loadConfig } from '../../../user/config.js';
 import { Store } from '../../../ranker/store.js';
-import { hydrateInterests } from '../../../ranker/interests.js';
+import { hydrateInterests, topDistances } from '../../../ranker/interests.js';
 import { resolvePsFile } from '../../../ranker/pipeline.js';
 import { UMAP } from 'umap-js';
 
@@ -33,7 +33,8 @@ function readPerfect(dataDir) {
 export async function sourceHash(dataDir = defaultDataDir()) {
   const store = openStore(dataDir);
   try {
-    const parts = [store.getState('fit_key') ?? '', store.getState('interests') ?? ''];
+    const pool = store.db.prepare('SELECT item_id FROM candidate_pool ORDER BY item_id').all().map((r) => r.item_id);
+    const parts = [store.getState('fit_key') ?? '', store.getState('interests') ?? '', pool.join(',')];
     return createHash('sha256').update(parts.join(':')).digest('hex');
   } finally {
     store.close();
@@ -71,10 +72,7 @@ export async function generate(dataDir = defaultDataDir()) {
         clusterOf.push(cluster.id);
       }
     }
-    if (ids.length < 3) throw new Error(`need at least 3 clustered items for UMAP, got ${ids.length}`);
-    const medoidIds = interests.clusters.map((c) => c.medoid);
-
-    // Deterministic PRNG so UMAP output is reproducible (mirrors Python random_state=42).
+    const seen = new Set(ids);
     const mulberry32 = (seed) => () => {
       seed = (seed + 0x6D2B79F5) | 0;
       let t = Math.imul(seed, seed ^ (seed >>> 15));
@@ -83,6 +81,31 @@ export async function generate(dataDir = defaultDataDir()) {
       t = (t + Math.imul(t ^ (t >>> 16), t >>> 15)) | 0;
       return (t >>> 0) / 4294967296;
     };
+    const poolCandidates = [];
+    for (const r of store.db.prepare('SELECT item_id, title FROM candidate_pool ORDER BY item_id').all()) {
+      if (seen.has(r.item_id)) continue;
+      const emb = store.getEmbedding(r.item_id);
+      if (!emb) continue;
+      poolCandidates.push({ id: r.item_id, title: r.title ?? r.item_id, vec: emb.vec });
+    }
+    const POOL_SAMPLE = 1024;
+    if (poolCandidates.length > POOL_SAMPLE) {
+      const rand = mulberry32(42);
+      for (let i = poolCandidates.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [poolCandidates[i], poolCandidates[j]] = [poolCandidates[j], poolCandidates[i]];
+      }
+      poolCandidates.length = POOL_SAMPLE;
+    }
+    for (const p of poolCandidates) {
+      ids.push(p.id);
+      groups.push('pool');
+      titles.push(p.title);
+      vectors.push(Array.from(p.vec));
+      clusterOf.push(topDistances(interests, p.vec, 1)[0].cid);
+    }
+    if (ids.length < 3) throw new Error(`need at least 3 clustered items for UMAP, got ${ids.length}`);
+    const medoidIds = interests.clusters.map((c) => c.medoid);
 
     const nNeighbors = Math.min(15, Math.max(2, ids.length - 1));
     const reducer = new UMAP({ nComponents: 2, nNeighbors, minDist: 0.1, random: mulberry32(42) });
@@ -102,7 +125,7 @@ export async function generate(dataDir = defaultDataDir()) {
         title: titles[i],
         x: Number(Z[i][0]),
         y: Number(Z[i][1]),
-        size: intCount(clusterOf, c),
+        size: intCount(clusterOf, c, groups),
       });
     }
 
@@ -124,4 +147,4 @@ export async function generate(dataDir = defaultDataDir()) {
   }
 }
 
-function intCount(arr, v) { let n = 0; for (const a of arr) if (a === v) n++; return n; }
+function intCount(arr, v, groups) { let n = 0; for (let i = 0; i < arr.length; i++) if (arr[i] === v && groups[i] !== 'pool') n++; return n; }
