@@ -106,13 +106,29 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     return renderStory(s, i === 0, cr);
   }).join('');
 
+  function briefPicker({ brief, briefs }) {
+    const stale = brief && brief.date !== localToday();
+    const options = briefs.map((b) => {
+      const t = new Date(b.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const engine = b.engine ? ` [${b.engine}]` : '';
+      const sel = brief && b.brief_id === brief.brief_id ? ' selected' : '';
+      return `<option value="${b.brief_id}"${sel}>${esc(b.date)} ${t}${engine}</option>`;
+    }).join('');
+    return {
+      brief_options: raw(options),
+      status: !brief ? 'No brief yet. Click Generate.'
+        : stale ? `Latest brief is from ${brief.date} (not today)` : `Brief for ${brief.date}`,
+      status_class: stale ? 'stale' : '',
+      generate_label: brief ? 'Regenerate' : 'Generate brief',
+    };
+  }
+
   /**
    * @param {{brief:object|null, desks:object|null, briefs:Array, embed:boolean, topN?:number}} o
    * brief/desks come from queries.getBrief (null => empty page with a Generate button).
    * topN: how many stories the carousel (embed) layout shows; the desk layout always shows all.
    */
   function page({ brief, desks, briefs, embed, topN = 5 }) {
-    const empty = { title: '', deck: '', stories: [] };
     const allDesks = desks ?? {};
     // Desks with no items are not shown and do not occupy a column.
     const nonEmptyDesks = Object.fromEntries(
@@ -125,15 +141,7 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     }
     const boot = JSON.stringify({ briefId: brief?.brief_id ?? null, date: brief?.date ?? null, embed, stories: storyState })
       .replace(/</g, '\\u003c');
-    const stale = brief && brief.date !== localToday();
-    const status = !brief ? 'No brief yet. Click Generate.'
-      : stale ? `Latest brief is from ${brief.date} (not today)` : `Brief for ${brief.date}`;
-    const options = briefs.map((b) => {
-      const t = new Date(b.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      const engine = b.engine ? ` [${b.engine}]` : '';
-      const sel = brief && b.brief_id === brief.brief_id ? ' selected' : '';
-      return `<option value="${b.brief_id}"${sel}>${esc(b.date)} ${t}${engine}</option>`;
-    }).join('');
+    const picker = briefPicker({ brief, briefs });
     const footer = brief
       ? `Edited by ${meta.model} (${meta.engine ?? 'keyword'}). ${meta.n_fresh} recent, ${meta.n_archive} from the archive. ` +
         `${meta.n_explore} explore picks (epsilon ${meta.epsilon}). Candidate pool: ${meta.pool} items. Sources: ${meta.sources}.`
@@ -191,8 +199,8 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
       date_long: brief ? dateLong(brief.date) : dateLong(localToday()),
       edition: brief ? `No. ${brief.edition}` : '',
       generated: brief ? new Date(brief.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
-      footer, boot: raw(boot), status, status_class: stale ? 'stale' : '',
-      brief_options: raw(options), generate_label: brief ? 'Regenerate' : 'Generate brief',
+      footer, boot: raw(boot), brief_options: picker.brief_options, status: picker.status,
+      status_class: picker.status_class, generate_label: picker.generate_label,
       basePath,
       hosted: raw(basePath ? '1' : ''),
       gen_hidden: raw(basePath ? ' style="display:none"' : ''),
@@ -201,5 +209,17 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     });
   }
 
-  return { page, renderStory };
+  function statisticsPage({ brief, briefs }) {
+    return fill(tpl('statistics.html'), {
+      css: raw(readFileSync(cssFile, 'utf8')),
+      paper_name: paperName,
+      basePath,
+      ...briefPicker({ brief, briefs }),
+      gen_hidden: raw(basePath ? ' style="display:none"' : ''),
+      repo_url: REPO_URL,
+      commit_html: raw(commitHtml()),
+    });
+  }
+
+  return { page, renderStory, statisticsPage };
 }

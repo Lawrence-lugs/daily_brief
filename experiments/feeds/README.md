@@ -25,12 +25,13 @@ is HTTP 200 + a parseable feed, extracts items on success, and writes a
 structured result per source to `results.json` plus a console summary table.
 
 `audit_feeds.mjs` audits **every** RSS feed listed in
-`user/defaults/sources.json` and prints a full summary table.
+`user/defaults/sources.json` and prints a full summary table. It has moved to
+`simulate/experiments/audit_feeds.mjs` (see the statistics page plan).
 
 Run:
 ```
 node experiments/feeds/feeds.mjs
-node experiments/feeds/audit_feeds.mjs
+node simulate/experiments/audit_feeds.mjs
 ```
 
 ## Sources under test (feeds.mjs subset)

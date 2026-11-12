@@ -1,0 +1,138 @@
+/* Statistics page cards. Custom CSS on purpose: tailwind.css is prebuilt.
+   Tokens mirror the paper scheme in tailwind.input.css (warm stone light, slate-950 dark). */
+:root {
+  --stat-card-bg: #fff;
+  --stat-card-fg: #3b362e;
+  --stat-card-line: #cfc6b6;
+  --stat-muted: #6f665b;
+  --stat-accent: #b45309;
+  --stat-btn-bg: #ece7dc;
+  --stat-btn-hover: #e0d8c8;
+}
+html.dark {
+  --stat-card-bg: #111923;
+  --stat-card-fg: #cbd5e1;
+  --stat-card-line: #263344;
+  --stat-muted: #94a3b8;
+  --stat-accent: #fbbf24;
+  --stat-btn-bg: #162033;
+  --stat-btn-hover: #1e293b;
+}
+
+.stats-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.stats-back {
+  font-size: 0.875rem;
+  color: var(--stat-muted);
+}
+.stats-back:hover { color: var(--stat-card-fg); }
+.stats-sub {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--stat-muted);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+}
+@media (max-width: 899px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--stat-card-line);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--stat-card-bg);
+  color: var(--stat-card-fg);
+  min-height: 300px;
+  max-height: 600px;
+}
+.stat-card header {
+  border-bottom: 1px solid var(--stat-card-line);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.stat-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+.stat-body {
+  flex: 1;
+  min-height: 0;
+  font-size: 0.9rem;
+  color: var(--stat-muted);
+  overflow: auto;
+}
+.stat-body.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.stat-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.stat-body th, .stat-body td {
+  border: 1px solid var(--stat-card-line);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+.stat-body th { background: var(--stat-btn-bg); color: var(--stat-card-fg); }
+.stat-body tr:nth-child(even) td { background: #faf9f6; }
+html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
+
+.stat-card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--stat-muted);
+  margin-top: auto;
+}
+.stat-meta { white-space: nowrap; }
+.stat-outdated {
+  color: var(--stat-accent);
+  font-weight: 600;
+}
+
+.stat-action {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+.stat-generate {
+  background: var(--stat-btn-bg);
+  color: var(--stat-card-fg);
+  border: 1px solid var(--stat-card-line);
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.stat-generate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.stat-generate:hover:not(:disabled) {
+  background: var(--stat-btn-hover);
+  border-color: var(--stat-accent);
+}
+.stat-generate:focus-visible { outline: 2px solid var(--stat-accent); }
+
+.plotly-graph-div { width: 100%; height: 300px; }
+.stat-card[data-card="pca_clusters"] { max-height: none; }
+#plot-pca { height: 400px; }

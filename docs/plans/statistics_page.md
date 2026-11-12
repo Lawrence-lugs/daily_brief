@@ -8,7 +8,7 @@ Audience: an executing agent. Follow steps in order. Each step lists the files t
 1. The new sidebar button opens a page at route `/statistics`.
 2. The page shows a 2x2 grid of four cards. Each card has a title, a body, a centred **Generate** button, and a footer.
 3. Card results persist to disk, so they survive a server restart.
-4. Feed audit code moves from `experiments/feeds/audit_feeds.mjs` to `simulate/experiments/audit_feeds.mjs`. The old folder is deleted after the move.
+4. Feed audit code moves from `simulate/experiments/audit_feeds.mjs` to `simulate/experiments/audit_feeds.mjs`. The old folder is deleted after the move.
 5. The clustering scatter is a **PCA** scatter (not "PCM"). It uses **all embedded items**: candidate pool, liked items, and perfect samples. Groups are hidden or shown via Plotly legend clicks, not via code.
 6. p and V are **not stored** in the DB for candidate items. They are only stored for chosen stories. The p/V card must recompute them from the ranker.
 7. **Auth boundary.** The statistics page is visible to every user, but generation is expensive and must be restricted. All generate calls live under the path prefix `/api/restricted/`. Traefik will force authentication on that prefix. The app must not add its own auth. Read-only calls (`GET`) stay public and live under `/api/stats/`.
@@ -39,7 +39,7 @@ Audience: an executing agent. Follow steps in order. Each step lists the files t
 | Ranker engine | `ranker/` (`pipeline.js`, `store.js`, `interests.js`, `model.js`, `embedder.js`) |
 | Sacred model-eval query | `simulate/experiments/sacred_runner.py` function `_load_model_eval(db_path, date)` |
 | Clustering reference | `C:\Users\lafqu\workspace\01_Projects\clustering\src\clustering\agglo_cluster.py` (read-only reference, do not edit) |
-| Feed audit script (to move) | `experiments/feeds/audit_feeds.mjs` |
+| Feed audit script (to move) | `simulate/experiments/audit_feeds.mjs` |
 | DB | `daily_brief.db` at project root |
 
 ## Phase 0: Discovery (no code changes)
@@ -60,13 +60,13 @@ Checks: the notes file lists an answer for A–H. No source changes yet.
 
 ## Phase 1: Move feed audit into simulate/experiments
 
-1. Create `simulate/experiments/audit_feeds.mjs` with the contents of `experiments/feeds/audit_feeds.mjs`.
+1. Create `simulate/experiments/audit_feeds.mjs` with the contents of `simulate/experiments/audit_feeds.mjs`.
 2. In the new file, change `const ROOT = join(import.meta.dirname, '..', '..');` to `const ROOT = join(import.meta.dirname, '..', '..');`. The depth is unchanged because both locations are two levels below the project root (`experiments/feeds/` and `simulate/experiments/`). Verify this: `simulate/experiments` is two levels deep. Keep the value as is, then confirm by running step 4.
 3. Refactor for reuse. Keep the CLI behaviour. Make these exports:
    - `export async function auditFeeds({ log = false } = {})` returns an array of result objects with fields: `name, url, type, default_subtopic, status, ok, feedValid, itemCount, blocked, blockReason, error`.
    - Move the existing `run()` body into `auditFeeds`, but make the `console.log` calls conditional on `log`. Keep `printTable` and `printVerdict` for the CLI path.
    - At the bottom: `if (import.meta.url === pathToFileURL(process.argv[1]).href) { run().catch(...) }` so running the file directly still prints the table. Import `pathToFileURL` from `node:url`.
-4. Delete `experiments/feeds/audit_feeds.mjs`. Delete `experiments/feeds/` if it is empty after that. Check for `feeds.mjs` in the same folder first. Do not delete other files. If other files are present, leave them and say so in the summary.
+4. Delete `simulate/experiments/audit_feeds.mjs`. Delete `experiments/feeds/` if it is empty after that. Check for `feeds.mjs` in the same folder first. Do not delete other files. If other files are present, leave them and say so in the summary.
 5. Check: `node simulate/experiments/audit_feeds.mjs` prints the table with the same totals as before the move.
 
 ## Phase 2: Persistence layer for cards
@@ -223,7 +223,7 @@ If the server cannot run Python at all (VERIFY FIRST G/H), port `compute` to Nod
 
 ## Phase 7: Cleanup and summary
 
-- Confirm `experiments/feeds/` no longer contains `audit_feeds.mjs`.
+- Confirm `experiments/feeds/audit_feeds.mjs` no longer exists (moved to `simulate/experiments/audit_feeds.mjs`).
 - Grep the repo for `experiments/feeds` and fix any references (docs, scripts, AGENTS.md mentions). Do not edit AGENTS.md contract text except to update the path.
 - Delete `docs/plans/statistics_page.notes.md` only after the summary is written.
 - Final summary must list: files created, files changed, files deleted, which VERIFY FIRST answers you found, any deviations from this plan and why, and the test results.
@@ -238,7 +238,7 @@ If the server cannot run Python at all (VERIFY FIRST G/H), port `compute` to Nod
 6. p/V card: one Plotly figure with two overlaid histograms, computed from the ranker, not read from the DB.
 7. LR card: AUC and logLoss for prior / keyword / fitted, from `model_eval`.
 8. PCA card: scatter coloured by cluster, one legend entry per cluster, centroids marked, groups distinguishable in hover text.
-9. `experiments/feeds/audit_feeds.mjs` no longer exists; the script works from `simulate/experiments/`.
+9. `simulate/experiments/audit_feeds.mjs` no longer exists; the script works from `simulate/experiments/`.
 10. All new tests pass; no existing tests newly fail.
 11. Every generate call goes to a path starting with `/api/restricted/`. No generate route exists under `/api/stats/`. Grep the server code for `/generate` and confirm each match uses `RESTRICTED_PREFIX`.
 12. The E2E test in Phase 6 intercepts the generate request and asserts its URL starts with `/api/restricted/`.

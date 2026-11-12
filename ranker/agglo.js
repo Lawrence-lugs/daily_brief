@@ -8,10 +8,9 @@ import { dot } from './vec.js';
  * @param {Set<number>}    representative indices of representative perfect samples (legacy blocking input)
  * @param {object} o
  * @param {'stop'|'constrained'} o.mode
- *    'stop'        stop at the first merge that would put two representative samples in one cluster
- *                  (only when deskOf is not given; legacy behaviour).
- *    'constrained' never merge two clusters that both contain a representative sample
- *                  (only when deskOf is not given; legacy behaviour).
+ *    'stop'        stop at the first merge that would put two representative samples in one cluster.
+ *    'constrained' never merge two clusters that both contain a representative sample.
+ *                  (Applies with or without deskOf.)
  * @param {number} o.minClusters      also stop when this many clusters remain
  * @param {number} o.maxHeight        also stop when the next merge height exceeds this
  * @param {function(number):string|undefined} o.deskOf  optional; returns the desk key of any
@@ -54,13 +53,11 @@ export function wardCut(X, representative, { mode = 'stop', minClusters = 1, max
       if (!active[i]) continue;
       for (let j = i + 1; j < n; j++) {
         if (!active[j]) continue;
-        let skip = false;
+        if (nRep[i] && nRep[j] && mode === 'constrained') continue;   // representative clusters never share a cluster
         if (hasDesk) {
           const d1s = deskSet[i], d2s = deskSet[j];
-          const has1 = d1s.size > 0, has2 = d2s.size > 0;
-          if (has1 && has2) {
-            // Both sides carry desk info (perfect samples with desks): skip cross-desk merges.
-            // Liked items (no desk) never contribute to deskSet, so they merge freely.
+          if (d1s.size > 0 && d2s.size > 0) {
+            // Cross-desk merges are skipped. Liked items (no desk) merge freely.
             let conflict = false;
             for (const d1 of d1s) {
               for (const d2 of d2s) {
@@ -68,25 +65,15 @@ export function wardCut(X, representative, { mode = 'stop', minClusters = 1, max
               }
               if (conflict) break;
             }
-            if (conflict) skip = true;
-          } else {
-            // At most one side carries desk info: no desk constraint (desk-less points merge
-            // freely). Fall back to legacy representative blocking when neither side has desk info.
-            if (!has1 && !has2 && nRep[i] && nRep[j] && mode === 'constrained') skip = true;
+            if (conflict) { skippedMerges++; continue; }
           }
-          if (skip) { skippedMerges++; continue; }
-        } else {
-          // Legacy behaviour (no deskOf): representative samples block merges.
-          if (nRep[i] && nRep[j] && mode === 'constrained') continue;
         }
         const d = D[i * n + j];
         if (d < best) { best = d; bi = i; bj = j; }
       }
     }
     if (bi < 0) break;                                      // every remaining pair is forbidden
-    const legacyStop = mode === 'stop' && nRep[bi] && nRep[bj] &&
-      (!hasDesk || (deskSet[bi].size === 0 && deskSet[bj].size === 0));
-    if (legacyStop) { stopHeight = best; break; }           // legacy stop
+    if (mode === 'stop' && nRep[bi] && nRep[bj]) { stopHeight = best; break; }   // representative clusters would merge: stop
     if (best > maxHeight) { stopHeight = best; break; }
     const ni = size[bi], nj = size[bj];
     for (let k = 0; k < n; k++) {

@@ -24,7 +24,7 @@ function loadConfigRanker() {
   const base = cfg ?? {};
   const ranker = base.ranker || {};
   // Resolve perfect_samples_file relative to the data dir so pipeline.js can read it directly.
-  if (ranker.perfect_samples_file && !path.isAbsolute(ranker.perfect_samples_file)) {
+  if (ranker.perfect_samples_file && !isAbsolute(ranker.perfect_samples_file)) {
     ranker.perfect_samples_file = resolve(DATA_DIR, ranker.perfect_samples_file);
   }
   return ranker;

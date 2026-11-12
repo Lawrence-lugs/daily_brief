@@ -1,7 +1,7 @@
 /**
  * @fileoverview Audit every RSS feed in user/defaults/sources.json.
  *
- * Scope (per AGENTS.md): experiment-specific code lives under experiments/feeds/.
+ * Scope (per AGENTS.md): experiment-specific code lives under simulate/experiments/.
  * This is the ONLY folder touched by this script. It reads (never writes)
  * user/defaults/sources.json and user/defaults/config.json.
  *
@@ -10,11 +10,12 @@
  * plus item counts. Mirrors the findings table from feeds.mjs but is driven
  * entirely by config so it stays in sync as sources are added/removed.
  *
- * Run: node experiments/feeds/audit_feeds.mjs
+ * Run: node simulate/experiments/audit_feeds.mjs
  */
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
@@ -44,10 +45,8 @@ async function loadRssSpecs() {
   for (const group of Object.values(data.feeds ?? {})) {
     if (!group || typeof group !== 'object') continue;
     if (Array.isArray(group)) {
-      // "rss": [...] — feeds listed directly
       collectList(group);
     } else {
-      // "api": { "<fetcher>": [...] } — nested under fetcher keys
       for (const list of Object.values(group)) collectList(list);
     }
   }
@@ -136,13 +135,20 @@ async function fetchFeed(url, ua) {
   return { res, body, err };
 }
 
-async function run() {
+/**
+ * Audit all RSS feeds. Returns an array of result objects with fields:
+ * name, url, type, default_subtopic, status, ok, feedValid, itemCount,
+ * blocked, blockReason, error.
+ * @param {{log?: boolean}} opts
+ */
+export async function auditFeeds({ log = false } = {}) {
+  const print = (...args) => { if (log) console.log(...args); };
   const ua = await loadUserAgent();
   const specs = await loadRssSpecs();
   const results = [];
 
-  console.log(`User-Agent: ${ua}\n`);
-  console.log(`Auditing ${specs.length} RSS feed(s) from user/defaults/sources.json\n`);
+  print(`User-Agent: ${ua}\n`);
+  print(`Auditing ${specs.length} RSS feed(s) from user/defaults/sources.json\n`);
 
   for (const spec of specs) {
     const result = {
@@ -196,8 +202,11 @@ async function run() {
     results.push(result);
   }
 
-  printTable(results);
-  printVerdict(results);
+  if (log) {
+    printTable(results);
+    printVerdict(results);
+  }
+  return results;
 }
 
 function printTable(results) {
@@ -239,4 +248,6 @@ function printVerdict(results) {
   }
 }
 
-run().catch((e) => { console.error('Audit failed:', e); process.exit(1); });
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  auditFeeds({ log: true }).catch((e) => { console.error('Audit failed:', e); process.exit(1); });
+}

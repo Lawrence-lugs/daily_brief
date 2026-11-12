@@ -19,10 +19,16 @@ export const foldOf = (id, K) => parseInt(createHash('sha1').update(String(id)).
 export function buildTrainingSet({ perfect, liked, rows, vecs, cfg }) {
   const K = cfg.crossFit.folds;
   const dim = embeddingOf(cfg).dim;
-  const full = buildInterests(perfect, liked, cfg.interests);
+  const interestsCfg = cfg.interests;
+  if (!interestsCfg || interestsCfg.mode === undefined) {
+    console.error('[buildTrainingSet] WARNING: cfg.interests or cfg.interests.mode is undefined — '
+      + 'wardCut will default to mode "stop" (early stop before two representatives share a cluster). '
+      + 'Set ranker.interests.mode in config.json (e.g. "constrained").');
+  }
+  const full = buildInterests(perfect, liked, cfg);
   const foldI = Array.from({ length: K }, (_, f) => {
     const sub = liked.filter((l) => foldOf(l.id, K) !== f);
-    return (perfect.length + sub.length) ? buildInterests(perfect, sub, cfg.interests) : full;
+    return (perfect.length + sub.length) ? buildInterests(perfect, sub, cfg) : full;
   });
   const examples = [];
   for (const r of rows) {

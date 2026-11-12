@@ -13,7 +13,7 @@ import { defaultDataDir } from '../user/datadir.js';
 
 const DATA_DIR = defaultDataDir();
 
-function resolvePsFile(cfg) {
+export function resolvePsFile(cfg) {
   const psFile = cfg.perfect_samples_file || 'perfect_samples.json';
   return psFile && !pathIsAbsolute(psFile) ? resolve(DATA_DIR, psFile) : psFile;
 }
@@ -24,7 +24,7 @@ function pathIsAbsolute(p) {
 const ENCODING_VERSION = 1; // bump when encode() schema changes
 
 /** Compute a YYYY-MM-DD cutoff date `days` days before now. */
-function cutoffDateDays(days) {
+export function cutoffDateDays(days) {
   if (!days || days <= 0) return null;
   const d = new Date(Date.now() - days * 86400000);
   return d.toISOString().slice(0, 10);

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{paper_name}} - Statistics</title>
+<base href="{{basePath}}/">
+<style>{{css}}</style>
+<link rel="stylesheet" href="static/app.css">
+<link rel="stylesheet" href="static/vendor/bootstrap-icons/bootstrap-icons.css">
+<link rel="stylesheet" href="static/sidebar.css">
+<link rel="stylesheet" href="static/statistics.css">
+<script src="https://cdn.plot.ly/plotly-3.6.0.min.js" integrity="sha256-QaOVwtVY0T02VaHrr6pnoHLCwayMJp4O5n4YyaE3rJk=" crossorigin="anonymous"></script>
+<script>
+// Set the sidebar state before first paint so the layout never jumps.
+(function () {
+  var d = document.documentElement, s = null;
+  try { s = localStorage.getItem('db-sidebar'); } catch (e) {}
+  var narrow = matchMedia('(max-width:719px)').matches;
+  d.dataset.sb = narrow ? 'collapsed' : (s === 'collapsed' || s === 'expanded') ? s : 'expanded';
+})();
+</script>
+<script src="static/sidebar.js" defer></script>
+<script src="static/statistics.js" defer></script>
+</head>
+<body class="bg-stone-100 font-paper text-stone-900 antialiased dark:bg-slate-950 dark:text-slate-200" data-base="{{basePath}}">
+<div id="titlebar"></div>
+
+<!-- Sidebar (same markup as page.html, plus the Statistics button). -->
+<aside id="sidebar" class="sb" aria-label="Brief controls">
+  <a id="sb-brand" class="sb-btn sb-brand" href="" title="Latest brief">
+    <i class="bi bi-newspaper" aria-hidden="true"></i><span class="sb-label">{{paper_name}}</span>
+  </a>
+
+  <div class="sb-group">
+    <div class="sb-picker">
+      <button id="sb-prev" type="button" class="sb-btn sb-step" title="Older brief" aria-label="Older brief"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button id="sb-brief" type="button" class="sb-btn sb-trigger" aria-haspopup="listbox" aria-expanded="false" title="Choose brief">
+        <i class="bi bi-clock-history" aria-hidden="true"></i><span class="sb-label" id="sb-brief-label">Briefs</span>
+      </button>
+      <button id="sb-next" type="button" class="sb-btn sb-step" title="Newer brief" aria-label="Newer brief"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <select id="brief-select" class="sb-vh" tabindex="-1" aria-hidden="true">{{brief_options}}</select>
+    <div class="sb-status">
+      <i class="bi bi-circle-fill sb-dot" id="sb-dot" data-state="ok" aria-hidden="true"></i>
+      <span class="sb-label"><span id="status" role="status" class="{{status_class}}">{{status}}</span></span>
+    </div>
+  </div>
+
+  <div class="sb-group"{{gen_hidden}}>
+    <div id="sb-engine-seg" class="sb-seg" role="group" aria-label="Selection engine"></div>
+    <button id="sb-engine" type="button" class="sb-btn" aria-haspopup="listbox" aria-expanded="false" title="Selection engine">
+      <i class="bi bi-cpu" aria-hidden="true"></i><span class="sb-label">Engine</span>
+    </button>
+    <select id="engine-select" class="sb-vh" tabindex="-1" aria-hidden="true">
+      <option value="keyword">Keyword</option>
+      <option value="lr">LR</option>
+      <option value="both">Both</option>
+    </select>
+    <button id="btn-generate" type="button" class="sb-btn sb-primary" title="{{generate_label}}">
+      <i class="bi bi-stars" id="sb-gen-icon" aria-hidden="true"></i><span class="sb-label">{{generate_label}}</span>
+    </button>
+  </div>
+
+  <div class="sb-group">
+    <button id="btn-archive" type="button" class="sb-btn" title="Archive">
+      <i class="bi bi-archive" aria-hidden="true"></i><span class="sb-label">Archive</span>
+    </button>
+  </div>
+
+  <div class="sb-group sb-foot">
+    <div class="sb-about">
+      <p class="sb-blurb">Newspaper generated with an LR model and clustering, edited by an AI editor-in-chief.</p>
+      <div class="sb-links">
+        <a class="sb-chip sb-chip--gh" href="{{repo_url}}" target="_blank" rel="noopener" title="View on GitHub"><i class="bi bi-github" aria-hidden="true"></i>GitHub</a>
+        {{commit_html}}
+      </div>
+      <p class="sb-legal">&copy; 2026 Lawrence Quizon</p>
+    </div>
+    <hr class="sb-hr">
+    <button id="btn-theme" type="button" class="sb-btn" aria-pressed="false" title="Switch to dark mode">
+      <span aria-hidden="true" class="theme-icon theme-icon--light"><i class="bi bi-moon"></i></span>
+      <span aria-hidden="true" class="theme-icon theme-icon--dark"><i class="bi bi-sun"></i></span>
+      <span class="sb-label">Theme</span>
+    </button>
+    <button id="btn-logs" type="button" class="sb-btn" title="Logs">
+      <i class="bi bi-terminal" aria-hidden="true"></i><span class="sb-label">Logs</span>
+    </button>
+    <a id="btn-settings" href="{{basePath}}/settings" class="sb-btn" title="Settings">
+      <i class="bi bi-gear" aria-hidden="true"></i><span class="sb-label">Settings</span>
+    </a>
+    <a id="btn-statistics" href="{{basePath}}/statistics" class="sb-btn" title="Statistics">
+      <i class="bi bi-bar-chart-line" aria-hidden="true"></i><span class="sb-label">Statistics</span>
+    </a>
+    <button id="sb-toggle" type="button" class="sb-btn" aria-expanded="true" aria-controls="sidebar" title="Collapse sidebar">
+      <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i><span class="sb-label">Collapse</span>
+    </button>
+  </div>
+</aside>
+<button id="sb-fab" type="button" class="sb-fab" aria-label="Open controls" aria-controls="sidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+<div id="sb-backdrop" class="sb-backdrop"></div>
+<div id="sb-toast" class="sb-toast" role="alert" hidden></div>
+
+<div class="sb-content">
+<div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+  <header class="stats-header">
+    <a href="{{basePath}}" class="stats-back">&larr; Back to brief</a>
+    <h1 class="mt-2 text-3xl font-black uppercase tracking-tight">Statistics</h1>
+    <div class="stats-sub">Card results persist to disk and survive a server restart.</div>
+  </header>
+
+  <div id="stats-grid" class="stats-grid">
+    <section class="stat-card" data-card="feeds">
+      <header><h2>Feed health</h2></header>
+      <div class="stat-body">Not generated yet</div>
+      <footer>
+        <span class="stat-meta"></span>
+        <span class="stat-outdated" hidden>Outdated</span>
+      </footer>
+      <div class="stat-action"><button type="button" class="stat-generate">Generate</button></div>
+    </section>
+    <section class="stat-card" data-card="pv_hist">
+      <header><h2>p / V score histograms</h2></header>
+      <div class="stat-body">Not generated yet</div>
+      <footer>
+        <span class="stat-meta"></span>
+        <span class="stat-outdated" hidden>Outdated</span>
+      </footer>
+      <div class="stat-action"><button type="button" class="stat-generate">Generate</button></div>
+    </section>
+    <section class="stat-card" data-card="lr_metrics">
+      <header><h2>LR model metrics</h2></header>
+      <div class="stat-body">Not generated yet</div>
+      <footer>
+        <span class="stat-meta"></span>
+        <span class="stat-outdated" hidden>Outdated</span>
+      </footer>
+      <div class="stat-action"><button type="button" class="stat-generate">Generate</button></div>
+    </section>
+    <section class="stat-card" data-card="pca_clusters">
+      <header><h2>Clustering (PCA)</h2></header>
+      <div class="stat-body">Not generated yet</div>
+      <footer>
+        <span class="stat-meta"></span>
+        <span class="stat-outdated" hidden>Outdated</span>
+      </footer>
+      <div class="stat-action"><button type="button" class="stat-generate">Generate</button></div>
+    </section>
+  </div>
+</div>
+</div>
+</body>
+</html>

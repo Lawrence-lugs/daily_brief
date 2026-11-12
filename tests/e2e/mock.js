@@ -116,6 +116,7 @@ export class MockServer {
     this.lastSessionId = '';     // session id from the last request
     this.generateCalls = [];     // [{engine, body}]
     this.storyCalls = [];        // [{params}] for /api/stories
+    this.statsGenerateCalls = []; // [{cardId}] for /api/restricted/stats/:cardId/generate
     this.jobId = 0;
     this.jobSteps = [];          // ordered responses for current job
     this.jobIdx = 0;
@@ -262,6 +263,43 @@ export class MockServer {
       return this.json(route, 202, { id: this.jobId });
     }
 
+    // ---- stats read: GET /api/stats/:cardId ----
+    const mStats = pathname.match(/^\/api\/stats\/([^/]+)$/);
+    if (mStats && method === 'GET') {
+      const cardId = mStats[1];
+      if (cardId === 'lr_metrics') {
+        return this.json(route, 200, {
+          card: {
+            cardId: 'lr_metrics',
+            generatedAt: '2026-11-12T10:00:00.000Z',
+            sourceHash: 'abc123',
+            payload: { cutoffDate: '2026-11-01', tags: [{ tag: 'leaf-mt:q8', prior: { auc: 0.5, logLoss: 0.69 }, keyword: { auc: 0.88, logLoss: 0.38 }, fitted: { auc: 0.70, logLoss: 0.37 } }] },
+          },
+          outdated: false,
+          currentSourceHash: 'abc123',
+        });
+      }
+      // Any other card: not generated yet.
+      return this.json(route, 200, { card: null, outdated: true, currentSourceHash: 'x' });
+    }
+
+    // ---- stats generate: POST /api/restricted/stats/:cardId/generate ----
+    const mStatsGen = pathname.match(/^\/api\/restricted\/stats\/([^/]+)\/generate$/);
+    if (mStatsGen && method === 'POST') {
+      const cardId = mStatsGen[1];
+      this.statsGenerateCalls.push({ cardId });
+      let payload = {};
+      if (cardId === 'lr_metrics') {
+        payload = { cutoffDate: '2026-11-01', tags: [{ tag: 'leaf-mt:q8', prior: { auc: 0.5, logLoss: 0.69 }, keyword: { auc: 0.88, logLoss: 0.38 }, fitted: { auc: 0.70, logLoss: 0.37 } }] };
+      }
+      return this.json(route, 200, {
+        cardId,
+        generatedAt: new Date().toISOString(),
+        sourceHash: 'newhash',
+        payload,
+      });
+    }
+
     // ---- shutdown ----
     if (pathname === '/api/shutdown' && method === 'POST') {
       return this.json(route, 200, { ok: true });
@@ -274,6 +312,15 @@ export class MockServer {
       return route.fulfill({
         status: 200,
         body: html,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      });
+    }
+
+    // ---- statistics page ----
+    if (pathname === '/statistics' && method === 'GET') {
+      return route.fulfill({
+        status: 200,
+        body: renderer.statisticsPage({ brief: BRIEF, briefs: BRIEFS }),
         headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
       });
     }

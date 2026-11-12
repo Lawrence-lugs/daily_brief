@@ -9,6 +9,7 @@ import { guard } from './lib/guard.js';
 import { handleConfigRoutes } from '../user/routes.js';
 import { seedDataDir, defaultDataDir } from '../user/datadir.js';
 import { loadConfig } from '../user/config.js';
+import { RESTRICTED_PREFIX, getStats, generateStats } from './stats/index.js';
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -164,6 +165,11 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           html = html.split('{{basePath}}').join(basePath);
           return send(res, 200, html, 'text/html; charset=utf-8');
         }
+        if (routePath === '/statistics') {
+          const latestId = q.latestBriefId(null);
+          const latest = latestId ? q.getBrief(latestId, sessionId)?.brief : null;
+          return send(res, 200, renderer.statisticsPage({ brief: latest ?? null, briefs: q.listBriefs(30) }), 'text/html; charset=utf-8');
+        }
         if (routePath === '/api/stories') return json(res, 200, q.listStories(url.searchParams));
         if (routePath === '/api/stories/facets') return json(res, 200, q.facets());
         if (routePath === '/api/briefs') return json(res, 200, q.listBriefs(Math.min(Number(url.searchParams.get('limit')) || 30, 200)));
@@ -181,6 +187,11 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           const lines = q.trainingRows().map((r) => JSON.stringify({ ...r, y_like: r.liked, y_save: r.saved }));
           return send(res, 200, lines.join('\n') + (lines.length ? '\n' : ''), 'application/x-ndjson; charset=utf-8');
         }
+        if ((m = routePath.match(/^\/api\/stats\/([^/]+)$/))) {
+          const result = await getStats(m[1], dbDir);
+          if (result === null) return json(res, 404, { error: 'no such stats card' });
+          return json(res, 200, result);
+        }
         if (routePath.startsWith('/static/')) return serveStatic(res, routePath.slice('/static/'.length));
       } else if (req.method === 'POST') {
         if ((m = routePath.match(/^\/api\/stories\/(\d+)\/feedback$/))) {
@@ -195,6 +206,14 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
           const body = await readJson(req);
           const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, engine: body.engine });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });
+        }
+        if ((m = routePath.match(/^\/api\/restricted\/stats\/([^/]+)\/generate$/))) {
+          try {
+            const stored = await generateStats(m[1], dbDir);
+            return json(res, 200, stored);
+          } catch (e) {
+            return json(res, e.status ?? 500, { error: e.message });
+          }
         }
         if (routePath === '/api/shutdown') {
           // Clean off-switch for the background server. Guarded like any other write (requires the

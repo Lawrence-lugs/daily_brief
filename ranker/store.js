@@ -58,20 +58,20 @@ export class Store {
     this.db.exec(readFileSync(SCHEMA_FILE, 'utf8'));
     // Migration v3→v4: copy stranded like/save data from stories columns to new likes/saves tables.
     const hasLikedCol = this.db.prepare("SELECT 1 FROM pragma_table_info('stories') WHERE name='liked'").get();
-    if (hasLikedCol) {
-      this.db.prepare(`
+    if (hasLikedCol && !this.db.prepare("SELECT 1 FROM ranker_state WHERE key='migrated_likes_v4'").get()) {
+      const likes = this.db.prepare(`
         INSERT OR IGNORE INTO likes (session_id, item_id, liked_at)
         SELECT 'legacy', s.item_id, COALESCE(s.liked_at, b.generated_at)
         FROM stories s JOIN briefs b ON b.brief_id = s.brief_id WHERE s.liked = 1
-      `).run();
-      this.db.prepare(`
+      `).run().changes;
+      const saves = this.db.prepare(`
         INSERT OR IGNORE INTO saves (session_id, item_id, saved_at)
         SELECT 'legacy', s.item_id, COALESCE(s.saved_at, b.generated_at)
         FROM stories s JOIN briefs b ON b.brief_id = s.brief_id WHERE s.saved = 1
-      `).run();
-      console.error('[migrate] copied stranded like/save data from stories to likes/saves tables');
+      `).run().changes;
+      if (likes + saves > 0) console.error('[migrate] copied stranded like/save data from stories to likes/saves tables');
+      this.db.prepare("INSERT INTO ranker_state (key, value, updated_at) VALUES ('migrated_likes_v4', '1', datetime('now'))").run();
     }
-    // Prepare statements
     this.stmts = {
       missingEmbeddings: this.db.prepare(SQL.missingEmbeddings),
       likedIds: this.db.prepare(SQL.likedIds),

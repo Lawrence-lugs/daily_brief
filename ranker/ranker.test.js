@@ -122,14 +122,22 @@ test('wardCut desk-aware: cross-desk representative merge is skipped (not stoppe
   assert.notEqual(cl0, cl6);
 });
 
-test('wardCut desk-aware: same-desk representative merge is allowed', () => {
+test('wardCut desk-aware: same-desk representative merge is blocked', () => {
   const X = [...A, ...B];                     // two tight blobs
   const representative = new Set([0, 6]);     // one rep in A, one rep in B
   const deskOf = () => 'primary';             // both reps same desk
-  const { clusters, skippedMerges } = wardCut(X, representative, { mode: 'stop', deskOf, minClusters: 1 });
-  // Same desk -> reps may merge -> all of A and B merge into 1 cluster
+  const { clusters, skippedMerges } = wardCut(X, representative, { mode: 'constrained', deskOf, minClusters: 1 });
+  // Same desk, but representatives must never share a cluster -> at least 2 clusters
+  assert.ok(clusters.length >= 2);
+  assert.notEqual(clusters.find((c) => c.includes(0)), clusters.find((c) => c.includes(6)));
+});
+
+test('wardCut desk-aware: same-desk non-representative points still merge', () => {
+  const X = [...A, ...B];
+  const representative = new Set([0]);        // only one rep overall
+  const deskOf = () => 'primary';
+  const { clusters } = wardCut(X, representative, { mode: 'constrained', deskOf, minClusters: 1 });
   assert.equal(clusters.length, 1);
-  assert.equal(skippedMerges, 0, 'no cross-desk conflict when all desks match');
 });
 
 test('buildInterests: cluster desk derives from perfect members, liked-only clusters are misc', () => {
