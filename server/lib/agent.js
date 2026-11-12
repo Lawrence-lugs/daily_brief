@@ -206,9 +206,10 @@ export function buildUserMessage(deskTitle, n, cands, today, keepCap = null) {
     title: String(c.title ?? '').slice(0, 220),
     snippet: String(c.snippet ?? '').slice(0, 600),
   }));
+  const cap = keepCap ?? n;
   return `Today is ${today}. Desk: ${deskTitle}.\n` +
-    `Keep any items that merit it, best first, and write them up per the schema. ` +
-    'It is fine to keep none; never pad. ' +
+    `Keep at least ${cap} of the candidates below, best first, and write them up per the schema. ` +
+    'Include at least one newslike candidate when one is available. ' +
     `Candidates are listed in the editor's suggested order but you may reorder by importance.\n\n` +
     `CANDIDATES:\n${JSON.stringify(slim, null, 1)}`;
 }
@@ -229,9 +230,10 @@ export function buildUserMessageMulti(desks, n, candsByDesk, today, keepCap = nu
     }));
     sections.push(`DESK: ${deskKey} — ${deskTitle}${deskDesc}\n${JSON.stringify(slim, null, 1)}`);
   }
+  const cap = keepCap ?? n;
   return `Today is ${today}. Desks: ${desks.map(d => `${d.key} (${d.title})${d.description ? `: ${d.description}` : ''}`).join(', ')}.\n` +
-    `Keep any items that merit it, best first per desk, and write them up per the schema. ` +
-    'It is fine to keep none for a desk; never pad. ' +
+    `Keep at least ${cap} items for EACH desk below, best first per desk, and write them up per the schema. ` +
+    "Include at least one newslike candidate when one is available on that desk. " +
     "Candidates are listed in the editor's suggested order but you may reorder by importance. " +
     'Never change an item\'s desk.\n\n' + sections.join('\n\n');
 }
@@ -279,6 +281,17 @@ export function applyEditorMulti(selectedByDesk, result, n) {
   const out = {};
   for (const [desk, cands] of Object.entries(selectedByDesk)) {
     const stories = perDesk[desk];
+    if (stories.length < n) {
+      const have = new Set(stories.map(s => s.id));
+      const rej = new Set(rejected[desk]);
+      for (const c of cands) {
+        if (stories.length >= n) break;
+        if (have.has(c.id) || rej.has(c.id)) continue;
+        stories.push({ ...c, headline: c.title.slice(0, 140),
+          blurb: (c.snippet ?? '').slice(0, 320) || 'No summary available.',
+          why_care: '', tags: [c.subtopic], significance: 1, summarized: false });
+      }
+    }
     stories.splice(n);
     const deckEntry = (typeof decks === 'object' && decks !== null) ? decks[desk] : undefined;
     const lead = (deckEntry && typeof deckEntry === 'object') ? String(deckEntry.lead_id ?? '') : '';
@@ -320,6 +333,17 @@ export function applyEditor(cands, result, n) {
         if (tags.length >= 3) break;
       }
       stories.push({ ...c, headline: head, blurb, why_care: clip(e.why_care, 170), tags, significance: sig, summarized: true });
+    }
+  }
+  if (stories.length < n) {
+    const have = new Set(stories.map(s => s.id));
+    const rej = new Set(rejected);
+    for (const c of cands) {
+      if (stories.length >= n) break;
+      if (have.has(c.id) || rej.has(c.id)) continue;
+      stories.push({ ...c, headline: c.title.slice(0, 140),
+        blurb: (c.snippet ?? '').slice(0, 320) || 'No summary available.',
+        why_care: '', tags: [c.subtopic], significance: 1, summarized: false });
     }
   }
   stories.splice(n);

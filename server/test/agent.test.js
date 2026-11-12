@@ -82,8 +82,7 @@ test('applyEditorMulti: per-desk split, fill-up from cands', () => {
 test('buildUserMessage: includes cap, today, candidates', () => {
   const msg = buildUserMessage('Primary Desk', 2, [c('a')], 'Tuesday, January 1, 2026');
   assert.ok(msg.includes('Primary Desk'));
-  assert.ok(msg.includes('Keep any items that merit it'));
-  assert.ok(msg.includes('never pad'));
+  assert.ok(msg.includes('Keep at least 2'));
   assert.ok(msg.includes('T a'));
   assert.ok(msg.includes('S a'));
 });

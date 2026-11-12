@@ -38,4 +38,4 @@ OUTPUT SCHEMA
     }
   ]
 }
-significance is an integer from 1 (minor) to 5 (important). Include an entry only for items you keep, in order of importance. For a candidate you reject, omit it or set keep=false. Keep only items that clear the bar; a desk may end with zero kept items; never pad.
+significance is an integer from 1 (minor) to 5 (important). Include an entry only for items you keep, in order of importance, at least {{max_agent_output_items_per_desk}} kept items per desk. For a candidate you reject, omit it or set keep=false. Each desk must end with at least {{max_agent_output_items_per_desk}} stories (backfill from raw candidates if you fall short).
