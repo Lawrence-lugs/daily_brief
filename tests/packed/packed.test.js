@@ -50,7 +50,9 @@ test('packed app launches, health endpoint answers, window loads', async () => {
   const app = await electron.launch({
     executablePath,
     env: { ...process.env, BRIEF_PORT: '4899' },
-    args: [],
+    // Chromium/Electron refuse to run as root without --no-sandbox on Linux CI;
+    // harmless on Windows/macOS.
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
   });
 
   try {
