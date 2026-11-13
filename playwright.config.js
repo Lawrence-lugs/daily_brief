@@ -9,6 +9,11 @@ import { readdirSync, existsSync } from 'node:fs';
 // No external network is ever used; Chromium comes from the ms-playwright cache.
 
 function findChromium() {
+  // On non-Windows (or when the Playwright browsers cache path isn't set),
+  // don't hunt for a system Chromium — let Playwright use its own bundled
+  // browser. Guarding here keeps `path.join(undefined, ...)` from throwing
+  // when LOCALAPPDATA is undefined on Linux/macOS.
+  if (!process.env.LOCALAPPDATA && !process.env.PLAYWRIGHT_BROWSERS_PATH) return undefined;
   const cacheDir = process.env.PLAYWRIGHT_BROWSERS_PATH
     ?? path.join(process.env.LOCALAPPDATA, 'ms-playwright');
   // Best effort: pick the highest chromium revision with a chrome.exe.
@@ -26,7 +31,7 @@ function findChromium() {
   return best?.exe;
 }
 
-const chromiumExe = findChromium() ?? path.join(process.env.LOCALAPPDATA, 'ms-playwright', 'chromium-1248', 'chrome-win64', 'chrome.exe');
+const chromiumExe = findChromium();
 
 export default defineConfig({
   testDir: 'tests/e2e',
