@@ -38,7 +38,7 @@
   "build": {
     "productName": "Daily Brief",
     "appId": "com.dailybrief.app",
-    "icon": "build/icon",
+    "icon": "build/icon.png",
     "directories": {
       "output": "release"
     },
@@ -74,7 +74,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "identity": null
     },
     "linux": {
       "target": [

@@ -25,8 +25,15 @@ for _p in (str(SRC), str(ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import brief  # noqa: E402
-import selection as sel  # noqa: E402
+# The Python ranking/fetch sources (brief.py, selection.py, agent.py, fetch.py)
+# were migrated to server/lib/*.js in commit 4b7f77b and no longer exist under
+# the project root or src/. These tests exercise that migrated-away Python code,
+# so they cannot run in this repo state. Per AGENTS.md §5 (pre-existing
+# failures), the suite is skipped rather than failing CI; each test module
+# carries its own module-level `pytestmark = pytest.mark.skipif(...)`; every
+# skip is recorded in the PR description.
+
+
 
 
 def _load_config() -> dict:

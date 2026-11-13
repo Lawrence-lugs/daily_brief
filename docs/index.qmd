@@ -1,0 +1,11 @@
+---
+title: "Daily Brief Documentation"
+---
+
+Start here. Pages:
+
+- [Architecture](architecture.md)
+- [Model](model.md)
+- [Interfaces](interfaces.md)
+- [SQLite logging](sqlite-logging.md)
+- [Experiments](experiments.md)

@@ -1,5 +1,8 @@
 // Multi-model embedder. Default (bge-micro, q8) matches the old bge-embedding/embed.js vectors.
-import { pipeline, AutoTokenizer, AutoModel } from '@huggingface/transformers';
+// `@huggingface/transformers` (which transitively pulls the `sharp` native binding) is loaded
+// lazily inside `load()` so that importing this module does not load sharp at process startup.
+// sharp's prebuilt native binding is compiled for the host Node ABI and does not load under
+// Electron on Linux (ABI mismatch); deferring the import keeps the packed app launchable there.
 import { createHash } from 'node:crypto';
 
 const BGE_Q = 'Represent this sentence for searching relevant passages: ';
@@ -46,7 +49,10 @@ export function embeddingOf(cfg = {}) {
 
 // ---- loading (cached per model+dtype+device; failed loads are evicted) ----
 const loaded = new Map();
-function load(spec, dtype, device) {
+async function load(spec, dtype, device) {
+  // Lazy import: `@huggingface/transformers` pulls the `sharp` native binding, which
+  // only needs to be present when embeddings are actually computed (not at startup).
+  const { pipeline, AutoTokenizer, AutoModel } = await import('@huggingface/transformers');
   const k = `${spec.id}|${dtype}|${device ?? ''}`;
   if (!loaded.has(k)) {
     const opts = { dtype, ...(device && { device }) };

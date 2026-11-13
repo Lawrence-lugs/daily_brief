@@ -71,7 +71,14 @@ function log(...args) {
 function fatalError(title, err) {
   const message = err && err.stack ? err.stack : String(err ?? err);
   log('FATAL:', title, '->', message);
-  try { dialog.showErrorBox(title, message); } catch {}
+  // In headless / CI environments a modal dialog would block the launch with
+  // no one to dismiss it. Log the error to stderr instead and quit cleanly.
+  const headless = process.env.CI || process.env.BRIEF_HEADLESS || process.env.NO_ELECTRON_DIALOG;
+  if (!headless) {
+    try { dialog.showErrorBox(title, message); } catch {}
+  } else {
+    console.error(`FATAL: ${title} -> ${message}`);
+  }
   // Never linger with no window: shut down so the process doesn't haunt Task Manager.
   try { if (server) server.close(); } catch {}
   app.quit();
