@@ -29,17 +29,29 @@ function packedExecutablePath() {
 
   // linux: productName "Daily Brief" -> executable typically "daily-brief"
   // (derived from package.json "name"). Confirm against `ls release/linux-unpacked`
-  // on the first pack run; fall back to scanning the dir if the name ever changes.
+  // on the first pack run. Try common names, then fall back to scanning the dir
+  // for an executable that isn't a known helper binary (e.g. chrome-sandbox).
   const linuxDir = path.join('release', 'linux-unpacked');
-  const defaultExe = path.join(linuxDir, 'daily-brief');
-  if (fs.existsSync(defaultExe)) return path.resolve(defaultExe);
+  const candidates = [
+    path.join(linuxDir, 'daily-brief'),
+    path.join(linuxDir, 'Daily-Brief'),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return path.resolve(candidate);
+  }
+  const NON_ELECTRON = new Set(['chrome-sandbox', 'xdg-utils', 'chrome-wrapper']);
   const entries = fs.readdirSync(linuxDir, { withFileTypes: true }).filter((e) => e.isFile());
   const execs = entries.filter((e) => {
     const name = e.name;
+    if (NON_ELECTRON.has(name)) return false;
     return !name.startsWith('.') && !name.endsWith('.pak') && !name.endsWith('.dll')
       && !name.endsWith('.so') && !name.endsWith('.json') && !name.endsWith('.txt')
-      && !name.endsWith('.html') && !name.endsWith('.md');
+      && !name.endsWith('.html') && !name.endsWith('.md') && !name.endsWith('.dat')
+      && !name.endsWith('.bin');
   });
+  // Prefer an entry whose name matches the package name.
+  const preferred = execs.find((e) => e.name === 'daily-brief' || e.name === 'Daily-Brief');
+  if (preferred) return path.join(linuxDir, preferred.name);
   if (execs.length > 0) return path.join(linuxDir, execs[0].name);
   throw new Error(`Packed Linux executable not found in ${linuxDir}`);
 }
