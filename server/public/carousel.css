@@ -10,6 +10,9 @@ html.cr .sb-content > div { max-width: none; height: 100%; padding: 0; display: 
 
 html.cr [data-desks] { display: flex; flex: 1; min-height: 0; margin-top: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 html.cr [data-desks]::-webkit-scrollbar { display: none; }
+
+/* Dragging the track with the mouse: grab cursor, no text selection. */
+html.cr [data-desks].dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 html.cr [data-desks] > section, html.cr [data-desk-stories] { display: contents; }
 html.cr [data-desks] > section > h2, html.cr [data-desks] > section > p { display: none; }
 
@@ -46,6 +49,16 @@ html.cr .carousel-dots {
     opacity 200ms ease,
     transform 200ms ease,
     background-color 200ms ease;
+}
+
+/* Too many slides: dots farther than DOT_WINDOW from the active slide fade out
+   and collapse so the nav stays compact. They remain in the DOM (and clickable)
+   so every article is still reachable; they fade back in as you scroll near them. */
+.carousel-dot.fade {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }
 
 .carousel-dot.active {

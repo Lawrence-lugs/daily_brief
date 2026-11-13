@@ -39,10 +39,10 @@ test('carousel order interleaves desks round-robin', () => {
   assert.deepEqual([1, 4, 2, 5, 3].map((id) => orderOf(html, id)), [0, 1, 2, 3, 4]);
 });
 
-test('stories past topN are flagged data-cr-out; the rest are not', () => {
+test('carousel renders every story (no top-N cutoff)', () => {
   const html = render(3);
-  const outIds = [...html.matchAll(/data-cr-out[^>]*>(?:(?!<\/article>)[\s\S])*?data-story-id="(\d+)"/g)].map((m) => Number(m[1]));
-  assert.deepEqual(outIds.sort(), [3, 5]);
+  for (const id of [1, 2, 3, 4, 5]) assert.ok(html.includes(`data-story-id="${id}"`), `story ${id} missing`);
+  assert.ok(!html.includes('data-cr-out'), 'no story should be flagged cr-out');
 });
 
 test('desk layout still renders every story in both desks', () => {
@@ -127,6 +127,28 @@ test('carousel marks active dot by scroll position', () => {
   assert.ok(dots.every((d, j) => d.getAttribute('aria-current') === (j === 2 ? 'true' : 'false')));
 });
 
+test('carousel fades dots outside the active window when there are too many', () => {
+  const { w } = buildCarousel({ visible: 10 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const nav = w.document.getElementById('cr-dots');
+  const dots = [...nav.querySelectorAll('.carousel-dot')];
+  assert.equal(dots.length, 10, 'one dot per story');
+  // one dot per story and none are removed from the DOM
+  assert.ok(dots.every((d) => d instanceof w.HTMLButtonElement && d.type === 'button'));
+
+  track.scrollLeft = 400; // active slide index 4
+  track.dispatchEvent(new w.Event('scroll'));
+
+  assert.ok(dots[4].classList.contains('active'), 'active dot marked');
+  assert.ok(!dots[4].classList.contains('fade'), 'active dot is never faded');
+  // dots within DOT_WINDOW of the active stay opaque
+  [2, 3, 4, 5, 6].forEach((j) => assert.ok(!dots[j].classList.contains('fade'), `dot ${j} near active`));
+  // dots far from the active fade out (and collapse)
+  [0, 1, 7, 8, 9].forEach((j) => assert.ok(dots[j].classList.contains('fade'), `dot ${j} faded`));
+});
+
 test('dot click scrolls to that slide and re-marks the active dot', () => {
   const { w } = buildCarousel({ visible: 4 });
   evalCarousel(w);
@@ -142,6 +164,54 @@ test('dot click scrolls to that slide and re-marks the active dot', () => {
   assert.equal(track.scrollLeft, 200);
   assert.equal(dots[2].getAttribute('aria-current'), 'true');
   assert.ok(dots[2].classList.contains('active'));
+});
+
+test('pointer drag scrolls the track and snaps to the nearest slide on release', () => {
+  const { w } = buildCarousel({ visible: 4 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { scrolls } = spyTimers(w, track);
+  track.dispatchEvent(new w.PointerEvent('pointerdown', { clientX: 0 }));
+  track.dispatchEvent(new w.PointerEvent('pointermove', { clientX: -120 })); // drag left 120px
+  assert.equal(track.scrollLeft, 120, 'track followed the drag');
+  w.window.dispatchEvent(new w.PointerEvent('pointerup', { clientX: -120 }));
+  assert.equal(scrolls.length, 1, 'released once');
+  assert.equal(scrolls[0].left, 100, 'snapped to nearest slide (index 1)');
+  assert.equal(scrolls[0].behavior, 'smooth');
+});
+
+test('pointerdown on a link does not start a drag', () => {
+  const { w } = buildCarousel({ visible: 4 });
+  evalCarousel(w);
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const first = track.querySelector('article');
+  const a = w.document.createElement('a');
+  a.href = 'https://example.com/1';
+  first.appendChild(a);
+  // drag-start on the link: carousel must bail and leave the link alone
+  a.dispatchEvent(new w.PointerEvent('pointerdown', { clientX: 0 }));
+  track.dispatchEvent(new w.PointerEvent('pointermove', { clientX: -200 }));
+  assert.equal(track.scrollLeft, 0, 'did not scroll when drag began on a link');
+});
+
+test('drag stops autoplay permanently', () => {
+  const { w } = buildCarousel({ search: '?carousel=1&autoplay=1', visible: 4 });
+  const track = w.document.querySelector('[data-desks]');
+  Object.defineProperty(track, 'clientWidth', { value: 100, configurable: true });
+  const { intervals, clears } = spyTimers(w, track);
+  evalCarousel(w);
+  assert.equal(intervals.length, 1, 'autoplay started');
+
+  track.dispatchEvent(new w.PointerEvent('pointerdown', { clientX: 0 }));
+  track.dispatchEvent(new w.PointerEvent('pointermove', { clientX: -50 }));
+  w.window.dispatchEvent(new w.PointerEvent('pointerup', { clientX: -50 }));
+
+  assert.equal(clears.length, 1, 'drag cleared timer');
+  // pointerleave should NOT restart because userStopped is now true
+  track.dispatchEvent(new w.Event('pointerleave'));
+  assert.equal(intervals.length, 1, 'did not restart after drag');
 });
 
 test('autoplay starts only when carousel is active AND ?autoplay=1 AND not reduced-motion', () => {
