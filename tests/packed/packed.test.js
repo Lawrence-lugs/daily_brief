@@ -56,16 +56,31 @@ function packedExecutablePath() {
   throw new Error(`Packed Linux executable not found in ${linuxDir}`);
 }
 
+// Run a promise with a hard timeout so a hung Electron launch / close cannot
+// block the whole test (the in-process HTTP server keeps the Node event loop
+// alive, so `app.close()` may never resolve on headless Linux CI).
+function withTimeout(promise, ms, msg) {
+  let timer;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(msg)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 test('packed app launches, health endpoint answers, window loads', async () => {
   const executablePath = packedExecutablePath();
 
-  const app = await electron.launch({
-    executablePath,
-    env: { ...process.env, BRIEF_PORT: '4899' },
-    // Chromium/Electron refuse to run as root without --no-sandbox on Linux CI;
-    // harmless on Windows/macOS.
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
-  });
+  const app = await withTimeout(
+    electron.launch({
+      executablePath,
+      env: { ...process.env, BRIEF_PORT: '4899' },
+      // Chromium/Electron refuse to run as root without --no-sandbox on Linux CI;
+      // harmless on Windows/macOS.
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    }),
+    30000,
+    'electron.launch timed out',
+  );
 
   try {
     // Poll the health endpoint until the in-process server answers.
@@ -92,6 +107,10 @@ test('packed app launches, health endpoint answers, window loads', async () => {
     expect(await win.locator('body').count()).toBeGreaterThan(0);
     expect(await win.locator('body').innerText()).not.toBe('');
   } finally {
-    await app.close().catch(() => {});
+    // Best-effort close: never let a hung shutdown fail the test. The assertions
+    // above already validated launch + health + window load. The in-process HTTP
+    // server keeps the Node event loop alive, so `app.close()` may never resolve
+    // on headless Linux CI.
+    await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
   }
 });
