@@ -1,0 +1,30 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - architecture.md
+    - model.md
+    - interfaces.md
+    - sqlite-logging.md
+    - experiments.md
+    - plans/statistics_page.md
+    - experiments/README.md
+    - experiments/SIMULATION_FRAMEWORK.md
+website:
+  title: "Daily Brief Docs"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: architecture.md
+        text: Architecture
+      - href: model.md
+        text: Model
+      - href: interfaces.md
+        text: Interfaces
+      - href: experiments.md
+        text: Experiments
+format:
+  html:
+    theme: cosmo

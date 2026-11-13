@@ -17,6 +17,8 @@ format:
 jupyter: python3
 ---
 
+> **TODO (CI/Pages):** This notebook reads `docs/experiments/runs.db`, which is not committed (gitignored by `*.db`), so it is excluded from the Pages render in `docs/_quarto.yml`. Planned: cache the executed outputs to disk or git and have Pages render from the cache, failing soft to those cached results when the DB is absent.
+
 ```{python}
 # | echo: false
 # | label: setup
