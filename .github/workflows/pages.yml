@@ -27,7 +27,7 @@ jobs:
           version: 1.11.9
 
       - name: Render docs site
-        run: quarto render docs --output-dir docs/_site
+        run: quarto render docs
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
