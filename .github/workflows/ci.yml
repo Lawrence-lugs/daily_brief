@@ -56,9 +56,11 @@ jobs:
       - name: Pack app
         run: npm run pack
         env:
+          # Electron-builder attempts code signing whenever CSC_LINK is set.
+          # On push builds an empty CSC_LINK resolves to the project dir and
+          # fails with "... not a file". Do not set CSC_LINK/CSC_KEY_PASSWORD
+          # so signing is skipped entirely on every event type.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          CSC_LINK: ''
-          CSC_KEY_PASSWORD: ''
 
       - name: Install Xvfb (Linux)
         if: runner.os == 'Linux'
@@ -68,6 +70,11 @@ jobs:
         shell: bash
         env:
           BRIEF_PORT: '4899'
+          # Surface Electron/Playwright launch diagnostics when the app fails to
+          # start headless (especially on Linux CI where a modal dialog would
+          # otherwise hang the launch).
+          ELECTRON_ENABLE_LOGGING: '1'
+          DEBUG: 'pw:electron'
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             xvfb-run -a npx playwright test -c playwright.packed.config.js
