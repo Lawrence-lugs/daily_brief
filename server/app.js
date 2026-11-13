@@ -105,7 +105,6 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
     const html = renderer.page({
       brief: data?.brief ?? null, desks: data?.desks ?? null,
       briefs: q.listBriefs(30), embed: url.searchParams.get('embed') === '1',
-      topN: Math.min(20, Math.max(1, Number.parseInt(url.searchParams.get('n') ?? '', 10) || 5)),
     });
     send(res, 200, html, 'text/html; charset=utf-8');
   }

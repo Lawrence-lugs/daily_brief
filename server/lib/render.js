@@ -100,9 +100,9 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     return ranks;
   }
 
-  const renderDesk = (stories, ranks, topN) => stories.map((s, i) => {
+  const renderDesk = (stories, ranks) => stories.map((s, i) => {
     const k = ranks.get(s.story_id);
-    const cr = ` style="order:${k}"${k >= topN ? ' data-cr-out' : ''}`;
+    const cr = ` style="order:${k}"`;
     return renderStory(s, i === 0, cr);
   }).join('');
 
@@ -124,11 +124,11 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
   }
 
   /**
-   * @param {{brief:object|null, desks:object|null, briefs:Array, embed:boolean, topN?:number}} o
+   * @param {{brief:object|null, desks:object|null, briefs:Array, embed:boolean}} o
    * brief/desks come from queries.getBrief (null => empty page with a Generate button).
-   * topN: how many stories the carousel (embed) layout shows; the desk layout always shows all.
+   * The carousel (embed) layout shows every story; the desk layout always shows all.
    */
-  function page({ brief, desks, briefs, embed, topN = 5 }) {
+  function page({ brief, desks, briefs, embed }) {
     const allDesks = desks ?? {};
     // Desks with no items are not shown and do not occupy a column.
     const nonEmptyDesks = Object.fromEntries(
@@ -151,7 +151,7 @@ export function makeRenderer({ templatesDir, cssFile, paperName, basePath = '' }
     // stories are dropped entirely so they don't show up or occupy a column.
     const ranks = carouselRanks(nonEmptyDesks);
     const deskSections = Object.entries(nonEmptyDesks).map(([key, d]) => {
-      const storiesHtml = raw(renderDesk(d.stories ?? [], ranks, topN));
+      const storiesHtml = raw(renderDesk(d.stories ?? [], ranks));
       return fill(tpl('desk-section.html'), {
         key,
         title: d.title ?? key,
