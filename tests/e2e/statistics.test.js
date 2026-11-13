@@ -81,7 +81,8 @@ test.describe('statistics page', () => {
   // modified by this change. Per AGENTS.md §5, skip rather than fail CI;
   // documented in the PR description. Re-enable when the card-persistence issue
   // is fixed.
-  test.skip('reload keeps the generated card and makes no new POST', async (t) => {
-    t.skip('pre-existing failure; see PR description');
+  test.skip('reload keeps the generated card and makes no new POST', async ({ page }) => {
+    // Skipped: pre-existing failure (stale-card date mismatch on macOS/windows),
+    // unrelated to CI wiring. Per AGENTS.md §5; documented in PR description.
   });
 });
