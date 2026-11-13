@@ -29,15 +29,11 @@ for _p in (str(SRC), str(ROOT)):
 # were migrated to server/lib/*.js in commit 4b7f77b and no longer exist under
 # the project root or src/. These tests exercise that migrated-away Python code,
 # so they cannot run in this repo state. Per AGENTS.md §5 (pre-existing
-# failures), skip the whole Python suite rather than failing CI; every skip is
-# recorded in the PR description.
-# The Python ranking/fetch sources (brief.py, selection.py, agent.py, fetch.py)
-# were migrated to server/lib/*.js in commit 4b7f77b and no longer exist under
-# the project root or src/. These tests exercise that migrated-away Python code,
-# so they cannot run in this repo state. Per AGENTS.md §5 (pre-existing
-# failures), each test module carries a module-level
-# `pytestmark = pytest.mark.skipif(...)` so the suite is skipped rather than
-# failing CI; every skip is recorded in the PR description.
+# failures), the suite is skipped rather than failing CI; each test module
+# carries its own module-level `pytestmark = pytest.mark.skipif(...)`; every
+# skip is recorded in the PR description.
+
+
 
 
 def _load_config() -> dict:

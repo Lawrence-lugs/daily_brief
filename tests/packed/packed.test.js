@@ -27,10 +27,21 @@ function packedExecutablePath() {
     return path.join(macosDir, bins[0]);
   }
 
-  // linux: productName "Daily Brief" -> executable "daily-brief"
-  const exe = path.join('release', 'linux-unpacked', 'daily-brief');
-  if (fs.existsSync(exe)) return path.resolve(exe);
-  throw new Error(`Packed Linux executable not found at ${exe}`);
+  // linux: productName "Daily Brief" -> executable typically "daily-brief"
+  // (derived from package.json "name"). Confirm against `ls release/linux-unpacked`
+  // on the first pack run; fall back to scanning the dir if the name ever changes.
+  const linuxDir = path.join('release', 'linux-unpacked');
+  const defaultExe = path.join(linuxDir, 'daily-brief');
+  if (fs.existsSync(defaultExe)) return path.resolve(defaultExe);
+  const entries = fs.readdirSync(linuxDir, { withFileTypes: true }).filter((e) => e.isFile());
+  const execs = entries.filter((e) => {
+    const name = e.name;
+    return !name.startsWith('.') && !name.endsWith('.pak') && !name.endsWith('.dll')
+      && !name.endsWith('.so') && !name.endsWith('.json') && !name.endsWith('.txt')
+      && !name.endsWith('.html') && !name.endsWith('.md');
+  });
+  if (execs.length > 0) return path.join(linuxDir, execs[0].name);
+  throw new Error(`Packed Linux executable not found in ${linuxDir}`);
 }
 
 test('packed app launches, health endpoint answers, window loads', async () => {
