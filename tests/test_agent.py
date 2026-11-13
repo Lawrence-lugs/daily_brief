@@ -4,7 +4,17 @@ agent.py functions are pure (no I/O unless logging), so these need no network mo
 """
 from __future__ import annotations
 
-import agent as A
+try:
+    import agent as A
+except ModuleNotFoundError:  # pragma: no cover - migrated to JS
+    A = None
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    A is None,
+    reason="agent module was migrated to JS and is not present; Python tests cannot run.",
+)
 
 
 def _item(iid: str, desk: str, subtopic: str, mode: str = "greedy", kind: str = "fresh",
