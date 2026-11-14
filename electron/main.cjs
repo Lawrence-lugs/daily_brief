@@ -9,7 +9,7 @@ const PORT = Number(process.env.BRIEF_PORT || 4873);
 const ROOT = path.resolve(__dirname, '..');
 // Writable per-user app data, shared by `npm run app` and packaged builds so both
 // read the same DB and editable config. Pinned before anything reads userData.
-app.setPath('userData', path.join(app.getPath('appData'), 'daily-brief'));
+app.setPath('userData', process.env.BRIEF_USER_DATA || path.join(app.getPath('appData'), 'daily-brief'));
 const DATA_DIR = app.getPath('userData');
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 let server = null;

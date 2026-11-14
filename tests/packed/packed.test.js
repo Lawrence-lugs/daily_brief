@@ -1,6 +1,7 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import http from 'node:http';
 
 // Resolve the packed binary path for the current platform. The first real CI
@@ -68,6 +69,19 @@ function withTimeout(promise, ms, msg) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+function freshUserData() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-brief-packed-'));
+  // Seed the throwaway data dir with the real pool so selection has items.
+  // dryRun: true (P2) means nothing is written back; real DB is read-only.
+  try {
+    fs.copyFileSync(
+      path.join(process.env.APPDATA, 'daily-brief', 'daily_brief.db'),
+      path.join(dir, 'daily_brief.db'),
+    );
+  } catch {}
+  return dir;
+}
+
 // Small Node http client for polling the in-process server of the packed app.
 // The test file runs in Node (not the browser), so we can hit the server directly.
 function request(port, pathname, method = 'GET', body) {
@@ -95,10 +109,13 @@ function request(port, pathname, method = 'GET', body) {
 test('packed app launches, health endpoint answers, window loads', async () => {
   const executablePath = packedExecutablePath();
 
+  const busy = await fetch('http://127.0.0.1:4899/api/health').then(() => true, () => false);
+  if (busy) throw new Error('port 4899 is already in use; close the running daily-brief before running packed tests');
+
   const app = await withTimeout(
     electron.launch({
       executablePath,
-      env: { ...process.env, BRIEF_PORT: '4899' },
+      env: { ...process.env, BRIEF_PORT: '4899', BRIEF_USER_DATA: freshUserData() },
       // Chromium/Electron refuse to run as root without --no-sandbox on Linux CI;
       // harmless on Windows/macOS.
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -143,10 +160,13 @@ test('packed app launches, health endpoint answers, window loads', async () => {
 test('packed app generation completes: /api/restricted/generate returns status done', async () => {
   const executablePath = packedExecutablePath();
 
+  const busy = await fetch('http://127.0.0.1:4899/api/health').then(() => true, () => false);
+  if (busy) throw new Error('port 4899 is already in use; close the running daily-brief before running packed tests');
+
   const app = await withTimeout(
     electron.launch({
       executablePath,
-      env: { ...process.env, BRIEF_PORT: '4899' },
+      env: { ...process.env, BRIEF_PORT: '4899', BRIEF_USER_DATA: freshUserData() },
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
     }),
     30000,
