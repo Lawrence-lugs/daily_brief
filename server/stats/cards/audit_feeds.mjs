@@ -248,6 +248,6 @@ function printVerdict(results) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   auditFeeds({ log: true }).catch((e) => { console.error('Audit failed:', e); process.exit(1); });
 }
