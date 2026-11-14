@@ -204,7 +204,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
         }
         if (routePath === `${RESTRICTED_PREFIX}/generate`) {
           const body = await readJson(req);
-          const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, engine: body.engine });
+          const r = jobs.start({ noLlm: body.noLlm === true, noFetch: body.noFetch === true, dryRun: body.dryRun === true, engine: body.engine });
           return r.ok ? json(res, 202, { id: r.id }) : json(res, 409, { error: 'a generation is already running' });
         }
         if ((m = routePath.match(/^\/api\/restricted\/stats\/([^/]+)\/generate$/))) {
