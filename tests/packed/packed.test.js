@@ -1,6 +1,7 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
+import http from 'node:http';
 
 // Resolve the packed binary path for the current platform. The first real CI
 // run will reveal the exact binary name; the helper is adjusted from the
@@ -67,6 +68,30 @@ function withTimeout(promise, ms, msg) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+// Small Node http client for polling the in-process server of the packed app.
+// The test file runs in Node (not the browser), so we can hit the server directly.
+function request(port, pathname, method = 'GET', body) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: '127.0.0.1',
+        port,
+        path: pathname,
+        method,
+        headers: { 'content-type': 'application/json', 'x-brief-client': '1' },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (c) => (data += c));
+        res.on('end', () => resolve({ status: res.statusCode, json: data ? JSON.parse(data) : null }));
+      },
+    );
+    req.on('error', reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
 test('packed app launches, health endpoint answers, window loads', async () => {
   const executablePath = packedExecutablePath();
 
@@ -111,6 +136,59 @@ test('packed app launches, health endpoint answers, window loads', async () => {
     // above already validated launch + health + window load. The in-process HTTP
     // server keeps the Node event loop alive, so `app.close()` may never resolve
     // on headless Linux CI.
+    await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+  }
+});
+
+test('packed app generation completes: /api/restricted/generate returns status done', async () => {
+  const executablePath = packedExecutablePath();
+
+  const app = await withTimeout(
+    electron.launch({
+      executablePath,
+      env: { ...process.env, BRIEF_PORT: '4899' },
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    }),
+    30000,
+    'electron.launch timed out',
+  );
+
+  try {
+    // Wait for the in-process HTTP server to answer.
+    const healthDeadline = Date.now() + 60000;
+    while (Date.now() < healthDeadline) {
+      try {
+        const res = await fetch('http://127.0.0.1:4899/api/health');
+        if (res.ok) break;
+      } catch {
+        // server not up yet
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // Start a real generation job: no fetch, dry run, no LLM (fast, no network).
+    const gen = await request(4899, '/api/restricted/generate', 'POST', {
+      noFetch: true,
+      dryRun: true,
+      noLlm: true,
+    });
+    expect(gen.status).toBe(202);
+    const jobId = gen.json.id;
+    expect(typeof jobId).toBe('number');
+
+    // Poll /api/job until the job leaves the running state.
+    const deadline = Date.now() + 120000;
+    let job;
+    while (Date.now() < deadline) {
+      job = await request(4899, `/api/job?id=${jobId}`);
+      if (!job.json || job.json.status !== 'running') break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    expect(job).toBeDefined();
+    expect(job.json.status).toBe('done');
+    expect(job.json.exitCode).toBe(0);
+  } finally {
     await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
   }
 });
