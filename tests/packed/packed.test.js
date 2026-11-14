@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import http from 'node:http';
+import { execSync } from 'node:child_process';
 
 // Resolve the packed binary path for the current platform. The first real CI
 // run will reveal the exact binary name; the helper is adjusted from the
@@ -82,6 +83,23 @@ function freshUserData() {
   return dir;
 }
 
+async function closeOrKill(app) {
+  const proc = app.process();
+  const exited = new Promise((resolve) => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return resolve(true);
+    proc.once('exit', () => resolve(true));
+  });
+  await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+  const done = await withTimeout(exited, 10000, 'exit wait').catch(() => false);
+  if (done) return;
+  if (proc.pid && process.platform === 'win32') {
+    execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
+  } else if (proc.pid) {
+    process.kill(proc.pid, 'SIGKILL');
+  }
+  throw new Error(`packed app did not exit after close; force-killed pid ${proc.pid}`);
+}
+
 // Small Node http client for polling the in-process server of the packed app.
 // The test file runs in Node (not the browser), so we can hit the server directly.
 function request(port, pathname, method = 'GET', body) {
@@ -153,7 +171,7 @@ test('packed app launches, health endpoint answers, window loads', async () => {
     // above already validated launch + health + window load. The in-process HTTP
     // server keeps the Node event loop alive, so `app.close()` may never resolve
     // on headless Linux CI.
-    await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+    await closeOrKill(app);
   }
 });
 
@@ -174,17 +192,18 @@ test('packed app generation completes: /api/restricted/generate returns status d
   );
 
   try {
-    // Wait for the in-process HTTP server to answer.
     const healthDeadline = Date.now() + 60000;
+    let healthy = false;
     while (Date.now() < healthDeadline) {
       try {
         const res = await fetch('http://127.0.0.1:4899/api/health');
-        if (res.ok) break;
+        if (res.ok) { healthy = true; break; }
       } catch {
         // server not up yet
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
+    expect(healthy).toBe(true);
 
     // Start a real generation job: no fetch, dry run, no LLM (fast, no network).
     const gen = await request(4899, '/api/restricted/generate', 'POST', {
@@ -209,6 +228,6 @@ test('packed app generation completes: /api/restricted/generate returns status d
     expect(job.json.status).toBe('done');
     expect(job.json.exitCode).toBe(0);
   } finally {
-    await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+    await closeOrKill(app);
   }
 });
