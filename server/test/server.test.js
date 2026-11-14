@@ -154,6 +154,7 @@ test('prefix: shutdown endpoint is not exposed when hosted', async () => {
 test('hosted: restricted generate reachable; raw generate + shutdown blocked; likes/saves enabled', async () => {
   const restricted = await call2('POST', '/dailydie/api/restricted/generate', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"engine":"lr"}' });
   assert.ok([202, 409].includes(restricted.status), `restricted/generate expected 202/409, got ${restricted.status}`);
+  assert.equal(typeof JSON.parse(restricted.body).id, restricted.status === 202 ? 'number' : 'undefined');
 
   const raw = await call2('POST', '/dailydie/api/generate', { headers: { 'X-Brief-Client': '1', 'Content-Type': 'application/json' }, body: '{"engine":"lr"}' });
   assert.equal(raw.status, 404, 'raw /api/generate must be 404 on hosted path');

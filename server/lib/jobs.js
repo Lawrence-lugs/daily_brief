@@ -16,7 +16,11 @@ const BRIEF_CHILD = path.join(path.dirname(fileURLToPath(import.meta.url)), 'bri
  *  (the client polls /api/job during a run; a blocked loop makes polls time out -> "lost contact"). */
 export function forkRunBrief(script = BRIEF_CHILD) {
   return (flags) => new Promise((resolve, reject) => {
-    const child = fork(script, [], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    // In the packaged Electron app process.execPath is the app binary, not node: ELECTRON_RUN_AS_NODE makes it run the script as plain Node (no-op under node).
+    const child = fork(script, [], {
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    });
     let settled = false;
     child.on('message', (msg) => {
       settled = true;

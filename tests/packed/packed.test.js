@@ -1,6 +1,9 @@
 import { test, expect, _electron as electron } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
+import http from 'node:http';
+import { execSync } from 'node:child_process';
 
 // Resolve the packed binary path for the current platform. The first real CI
 // run will reveal the exact binary name; the helper is adjusted from the
@@ -67,13 +70,70 @@ function withTimeout(promise, ms, msg) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+function freshUserData() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-brief-packed-'));
+  // Seed the throwaway data dir with the real pool so selection has items.
+  // dryRun: true means nothing is written back; the source DB is read-only.
+  try {
+    fs.copyFileSync(
+      path.join(process.env.APPDATA, 'daily-brief', 'daily_brief.db'),
+      path.join(dir, 'daily_brief.db'),
+    );
+  } catch {}
+  return dir;
+}
+
+async function closeOrKill(app) {
+  const proc = app.process();
+  const exited = new Promise((resolve) => {
+    if (proc.exitCode !== null || proc.signalCode !== null) return resolve(true);
+    proc.once('exit', () => resolve(true));
+  });
+  await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+  const done = await withTimeout(exited, 10000, 'exit wait').catch(() => false);
+  if (done) return;
+  if (proc.pid && process.platform === 'win32') {
+    execSync(`taskkill /PID ${proc.pid} /T /F`, { stdio: 'ignore' });
+  } else if (proc.pid) {
+    process.kill(proc.pid, 'SIGKILL');
+  }
+  throw new Error(`packed app did not exit after close; force-killed pid ${proc.pid}`);
+}
+
+// Small Node http client for polling the in-process server of the packed app.
+// The test file runs in Node (not the browser), so we can hit the server directly.
+function request(port, pathname, method = 'GET', body) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: '127.0.0.1',
+        port,
+        path: pathname,
+        method,
+        headers: { 'content-type': 'application/json', 'x-brief-client': '1' },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (c) => (data += c));
+        res.on('end', () => resolve({ status: res.statusCode, json: data ? JSON.parse(data) : null }));
+      },
+    );
+    req.on('error', reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
 test('packed app launches, health endpoint answers, window loads', async () => {
   const executablePath = packedExecutablePath();
+
+  const busy = await fetch('http://127.0.0.1:4899/api/health').then(() => true, () => false);
+  if (busy) throw new Error('port 4899 is already in use; close the running daily-brief before running packed tests');
 
   const app = await withTimeout(
     electron.launch({
       executablePath,
-      env: { ...process.env, BRIEF_PORT: '4899' },
+      env: { ...process.env, BRIEF_PORT: '4899', BRIEF_USER_DATA: freshUserData() },
       // Chromium/Electron refuse to run as root without --no-sandbox on Linux CI;
       // harmless on Windows/macOS.
       args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -111,6 +171,63 @@ test('packed app launches, health endpoint answers, window loads', async () => {
     // above already validated launch + health + window load. The in-process HTTP
     // server keeps the Node event loop alive, so `app.close()` may never resolve
     // on headless Linux CI.
-    await withTimeout(app.close().catch(() => {}), 15000, 'app.close timed out').catch(() => {});
+    await closeOrKill(app);
+  }
+});
+
+test('packed app generation completes: /api/restricted/generate returns status done', async () => {
+  const executablePath = packedExecutablePath();
+
+  const busy = await fetch('http://127.0.0.1:4899/api/health').then(() => true, () => false);
+  if (busy) throw new Error('port 4899 is already in use; close the running daily-brief before running packed tests');
+
+  const app = await withTimeout(
+    electron.launch({
+      executablePath,
+      env: { ...process.env, BRIEF_PORT: '4899', BRIEF_USER_DATA: freshUserData() },
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    }),
+    30000,
+    'electron.launch timed out',
+  );
+
+  try {
+    const healthDeadline = Date.now() + 60000;
+    let healthy = false;
+    while (Date.now() < healthDeadline) {
+      try {
+        const res = await fetch('http://127.0.0.1:4899/api/health');
+        if (res.ok) { healthy = true; break; }
+      } catch {
+        // server not up yet
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    expect(healthy).toBe(true);
+
+    // Start a real generation job: no fetch, dry run, no LLM (fast, no network).
+    const gen = await request(4899, '/api/restricted/generate', 'POST', {
+      noFetch: true,
+      dryRun: true,
+      noLlm: true,
+    });
+    expect(gen.status).toBe(202);
+    const jobId = gen.json.id;
+    expect(typeof jobId).toBe('number');
+
+    // Poll /api/job until the job leaves the running state.
+    const deadline = Date.now() + 120000;
+    let job;
+    while (Date.now() < deadline) {
+      job = await request(4899, `/api/job?id=${jobId}`);
+      if (!job.json || job.json.status !== 'running') break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    expect(job).toBeDefined();
+    expect(job.json.status).toBe('done');
+    expect(job.json.exitCode).toBe(0);
+  } finally {
+    await closeOrKill(app);
   }
 });
