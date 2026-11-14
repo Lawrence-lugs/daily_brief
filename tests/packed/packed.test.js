@@ -73,7 +73,7 @@ function withTimeout(promise, ms, msg) {
 function freshUserData() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-brief-packed-'));
   // Seed the throwaway data dir with the real pool so selection has items.
-  // dryRun: true (P2) means nothing is written back; real DB is read-only.
+  // dryRun: true means nothing is written back; the source DB is read-only.
   try {
     fs.copyFileSync(
       path.join(process.env.APPDATA, 'daily-brief', 'daily_brief.db'),
