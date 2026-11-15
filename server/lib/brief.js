@@ -17,7 +17,8 @@ import { Progress } from './progress.js';
 import { log, warn, setLogFile, LOG_FILE } from './util.js';
 import { loadDesksConfig } from './config.js';
 import { loadConfig } from '../../user/config.js';
-import { fetchAll, refreshApiFeeds, setCacheResolver } from './fetch/fetcher.js';
+import { fetchAll, refreshApiFeeds, setCacheResolver , iterFeedSpecs } from './fetch/fetcher.js';
+import { startApiRefreshWorker } from './api_refresh.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
 import './fetch/ieeexplore.js'; // side-effect: registers IEEE Xplore API fetcher
 import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
@@ -257,7 +258,16 @@ export async function main(flags = {}) {
   if (noFetch) {
     log('skipping fetch; using persisted pool');
   } else {
-    const raw = await fetchAll(cfg, src, true);
+    if (!dryRun) {
+      const worker = startApiRefreshWorker({
+        projectRoot: PROJECT_ROOT,
+        dataDir: dataDir(),
+        specs: [...iterFeedSpecs(src.feeds ?? {})],
+        onError: e => warn(`[api-refresh] worker could not start: ${e.message}`),
+      });
+      if (worker) log(`[api-refresh] started background worker for ${worker.count} API feeds`);
+    }
+    const raw = await fetchAll(cfg, src);
     const seen = {};
     const dropped = new Set();
     for (const it of raw) {

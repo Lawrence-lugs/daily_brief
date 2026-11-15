@@ -214,7 +214,7 @@ export async function refreshApiFeeds(cfg, src) {
   return items;
 }
 
-export async function fetchAll(cfg, src, refreshApi = true) {
+export async function fetchAll(cfg, src) {
   const f = new Fetcher(cfg.fetch);
   const items = [];
   const stats = {};
@@ -225,14 +225,6 @@ export async function fetchAll(cfg, src, refreshApi = true) {
       return [label, got, null];
     } catch (e) {
       return [label, [], `${e.constructor.name}: ${e.message}`];
-    }
-  }
-
-  if (refreshApi) {
-    const apiCount = [...iterFeedSpecs(src.feeds ?? {})].filter(s => s.kind === 'api').length;
-    if (apiCount) {
-      console.log(`API background refresh started (${apiCount} queries)`);
-      refreshApiFeeds(cfg, src).catch(e => console.warn(`API refresh error: ${e}`));
     }
   }
 
