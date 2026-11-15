@@ -14,7 +14,7 @@ test('config loader: DESKS list includes primary, science, misc in declared orde
     { key: 'misc', title: 'Misc.', description: '' },
   ]);
   assert.deepEqual(subtopicToDesk, {
-    dse: 'primary', accel: 'primary', fab: 'primary',
+    dse: 'primary', accel: 'primary', fab: 'primary', ams: 'primary',
     gr: 'science', qft: 'science', condmat: 'science', neuro: 'science',
   });
   assert.equal(warnings.length, 0);
