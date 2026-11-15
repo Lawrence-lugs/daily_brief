@@ -13,73 +13,24 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "weight",
-                "type",
-                "kind",
-                "fetcher"
-              ],
+              "required": ["name", "weight", "type", "kind", "fetcher"],
               "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "query": {
-                  "type": "string"
-                },
-                "subtopic": {
-                  "type": "string"
-                },
-                "weight": {
-                  "type": "number",
-                  "minimum": 0
-                },
-                "type": {
-                  "type": "string"
-                },
-                "limit": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "kind": {
-                  "type": "string"
-                },
-                "fetcher": {
-                  "type": "string"
-                },
-                "default_subtopic": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "publication_number": {
-                  "type": "string"
-                },
-                "publication_title": {
-                  "type": "string"
-                },
-                "content_type": {
-                  "type": "string"
-                },
-                "api_key_env": {
-                  "type": "string"
-                },
-                "lookback_days": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 365
-                },
-                "max_records": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 200
-                },
-                "max_pages": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 10
-                }
+                "name": { "type": "string" },
+                "query": { "type": "string" },
+                "subtopic": { "type": "string" },
+                "weight": { "type": "number", "minimum": 0 },
+                "type": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1 },
+                "kind": { "type": "string" },
+                                "fetcher": { "type": "string" },
+                "default_subtopic": { "type": ["string", "null"] },
+                "publication_number": { "type": "string" },
+                "publication_title": { "type": "string" },
+                "content_type": { "type": "string" },
+                "api_key_env": { "type": "string" },
+                "lookback_days": { "type": "integer", "minimum": 1, "maximum": 365 },
+                "max_records": { "type": "integer", "minimum": 1, "maximum": 200 },
+                "max_pages": { "type": "integer", "minimum": 1, "maximum": 10 }
               }
             }
           }
@@ -88,37 +39,14 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name",
-              "url",
-              "weight",
-              "type",
-              "kind"
-            ],
+            "required": ["name", "url", "weight", "type", "kind"],
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "url": {
-                "type": "string",
-                "format": "uri"
-              },
-              "weight": {
-                "type": "number",
-                "minimum": 0
-              },
-              "type": {
-                "type": "string"
-              },
-              "default_subtopic": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "kind": {
-                "type": "string"
-              }
+              "name": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "weight": { "type": "number", "minimum": 0 },
+              "type": { "type": "string" },
+              "default_subtopic": { "type": ["string", "null"] },
+              "kind": { "type": "string" }
             }
           }
         }
