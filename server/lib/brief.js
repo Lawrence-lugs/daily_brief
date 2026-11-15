@@ -19,6 +19,7 @@ import { loadDesksConfig } from './config.js';
 import { loadConfig } from '../../user/config.js';
 import { fetchAll, refreshApiFeeds, setCacheResolver } from './fetch/fetcher.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
+import './fetch/ieeexplore.js'; // side-effect: registers IEEE Xplore API fetcher
 import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
 
 // Ranker (LR engine) imports — called in-process instead of spawning node ranker/cli.js

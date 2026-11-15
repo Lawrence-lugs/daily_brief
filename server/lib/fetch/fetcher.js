@@ -193,6 +193,10 @@ export async function refreshApiFeeds(cfg, src) {
   for (const spec of iterFeedSpecs(src.feeds ?? {})) {
     if (spec.kind !== 'api') continue;
     const key = spec.fetcher || String(spec.source ?? '').toLowerCase().replace(/\s+/g, '_');
+    if (spec.api_key_env && !process.env[spec.api_key_env]) {
+      console.log('API skipped ' + spec.name + ': set ' + spec.api_key_env + ' to enable');
+      continue;
+    }
     const fn = API_FETCHERS[key];
     if (!fn) {
       console.warn(`no api fetcher registered for ${key}; skipping ${spec.name}`);
