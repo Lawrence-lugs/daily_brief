@@ -6,13 +6,13 @@
   "stories_per_desk": 5,
   "reserve_per_desk": 25,
   "max_agent_output_items_per_desk": 5,
-  "reader": "a computer-architecture and EDA researcher",
-  "prefer": "Primary results, new architectures reported with numbers, tool or artifact releases, surprising negative results, and anything that changes how a hardware designer would work. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it.",
+  "reader": "an IC design, computer-architecture, and EDA researcher",
+  "prefer": "Primary results, new architectures reported with numbers, tool or artifact releases, surprising negative results, and anything that changes how a hardware designer would work. Deprioritize press-release fluff, funding and stock news, incremental benchmark bumps, and hype without data. Within a desk, keep a spread across subtopics where the candidates allow it. For analog/mixed-signal IC work, prioritize measured circuit implementations (ADCs/DACs, amplifiers, PLLs/VCOs, SerDes/high-speed I/O, RFIC and data converters) over signal-processing algorithms that merely use circuit terminology.",
   "desks": {
     "primary": {
       "title": "Silicon & Architecture Desk",
-      "description": "Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.",
-      "keyword-model-subtopics": ["dse", "accel", "fab"]
+      "description": "Semiconductor design and fabrication, analog/mixed-signal IC design, EDA tools, chip architecture, accelerators, and the hardware stack that runs AI workloads.",
+      "keyword-model-subtopics": ["dse", "accel", "fab", "ams"]
     },
     "science": {
       "title": "Science Desk",
@@ -28,6 +28,7 @@
     "dse": ["design space exploration", "design-space exploration", "dse", "timeloop", "accelergy", "maestro", "zigzag", "dosa", "archagent", "dataflow mapping", "mapping space", "mapper", "loop nest", "tiling", "scheduling search", "llm-based design", "llm agent", "agentic", "architecture search", "co-design", "co-optimization", "bayesian optimization", "analytical model", "cost model", "simulator", "astra-sim", "placement", "dreamplace", "eda"],
     "accel": ["accelerator", "npu", "tpu", "gpu architecture", "in-memory comput", "compute-in-memory", "computing-in-memory", "cim", "imc", "analog in-memory", "crossbar", "systolic", "dataflow", "llm inference", "kv cache", "transformer accelerator", "sparsity", "quantization", "hbm", "near-memory", "processing-in-memory", "pim", "3d stack", "3d-stack", "chiplet", "tensor core", "inference chip", "inference hardware", "memory wall"],
     "fab": ["semiconductor", "foundry", "tsmc", "samsung foundry", "intel foundry", "intel 18a", "imec", "gaa", "gate-all-around", "nanosheet", "backside power", "euv", "high-na", "lithography", "hybrid bonding", "advanced packaging", "cowos", "hot chips", "hotchips", "isscc", "vlsi symposium", "iedm", "2nm", "3nm", "a14", "n2", "yield", "wafer", "tsv", "glass substrate", "co-packaged optics", "process node"],
+    "ams": ["analog integrated circuit","analog IC","analog circuit","mixed-signal","mixed signal","analog-to-digital","digital-to-analog","data converter","ADC","DAC","successive approximation","SAR ADC","pipeline ADC","delta-sigma","sigma-delta","time-interleaved ADC","amplifier","operational amplifier","op amp","OTA","transconductance amplifier","low-noise amplifier","LNA","transimpedance amplifier","TIA","comparator","bandgap reference","voltage reference","LDO","low-dropout regulator","PLL","phase-locked loop","phase locked loop","VCO","voltage-controlled oscillator","SerDes","serializer","deserializer","wireline transceiver","high-speed transceiver","clock and data recovery","clock-data recovery","CDR","equalizer","clock generation","clocking circuit","phase noise","jitter","RFIC","mixer","CMOS analog","analog front-end","analog front end","circuit design"],
     "gr": ["general relativity", "numerical relativity", "gravitational wave", "gravitational-wave", "black hole", "binary merger", "ligo", "lisa", "einstein equations", "spacetime", "cosmolog", "post-newtonian", "gr simulation", "bssn", "event horizon", "neutron star"],
     "qft": ["quantum field theory", "qft", "lattice qcd", "lattice gauge", "scattering amplitude", "renormalization", "conformal field theory", "cft", "gauge theory", "yang-mills", "holograph", "ads/cft", "effective field theory", "bootstrap", "anomal", "topological field", "quantum gravity", "string theory", "hep-th"],
     "condmat": ["condensed matter", "memristor", "magnetic", "ferroelectric", "2d material", "coupled", "coupling",  "topological insulator", "superconduct", "spintronic", "magnetic tunnel", "mram", "reram", "phase-change", "twisted bilayer", "oxide electronics", "neuromorphic device", "analog switching", "ferroelectric transistor", "fefet", "heterostructure", "transistor"],

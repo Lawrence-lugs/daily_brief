@@ -2,6 +2,7 @@ import { test, expect, _electron as electron } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
+import { DatabaseSync } from 'node:sqlite';
 import http from 'node:http';
 import { execSync } from 'node:child_process';
 
@@ -72,14 +73,33 @@ function withTimeout(promise, ms, msg) {
 
 function freshUserData() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daily-brief-packed-'));
-  // Seed the throwaway data dir with the real pool so selection has items.
-  // dryRun: true means nothing is written back; the source DB is read-only.
+  // Build a small, deterministic database fixture. CI runners must not depend
+  // on a developer's APPDATA directory or a pre-existing local candidate pool.
+  const db = new DatabaseSync(path.join(dir, 'daily_brief.db'));
   try {
-    fs.copyFileSync(
-      path.join(process.env.APPDATA, 'daily-brief', 'daily_brief.db'),
-      path.join(dir, 'daily_brief.db'),
+    db.exec(fs.readFileSync(new URL('../../schema.sql', import.meta.url), 'utf8'));
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO candidate_pool
+        (item_id, url, title, snippet, published, source, source_type,
+         subtopic, desk, rel, first_seen)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'ci-packed-seed',
+      'https://example.com/ci-packed-seed',
+      'Packed CI seed candidate',
+      'A deterministic local candidate for the packaged app smoke test.',
+      now,
+      'CI fixture',
+      'researchlike',
+      'dse',
+      'primary',
+      1,
+      now,
     );
-  } catch {}
+  } finally {
+    db.close();
+  }
   return dir;
 }
 
@@ -210,6 +230,7 @@ test('packed app generation completes: /api/restricted/generate returns status d
       noFetch: true,
       dryRun: true,
       noLlm: true,
+      engine: 'keyword',
     });
     expect(gen.status).toBe(202);
     const jobId = gen.json.id;
@@ -225,7 +246,7 @@ test('packed app generation completes: /api/restricted/generate returns status d
     }
 
     expect(job).toBeDefined();
-    expect(job.json.status).toBe('done');
+    expect(job.json.status, `job details: ${JSON.stringify(job.json)}`).toBe('done');
     expect(job.json.exitCode).toBe(0);
   } finally {
     await closeOrKill(app);

@@ -193,6 +193,10 @@ export async function refreshApiFeeds(cfg, src) {
   for (const spec of iterFeedSpecs(src.feeds ?? {})) {
     if (spec.kind !== 'api') continue;
     const key = spec.fetcher || String(spec.source ?? '').toLowerCase().replace(/\s+/g, '_');
+    if (spec.api_key_env && !process.env[spec.api_key_env]) {
+      console.log('API skipped ' + spec.name + ': set ' + spec.api_key_env + ' to enable');
+      continue;
+    }
     const fn = API_FETCHERS[key];
     if (!fn) {
       console.warn(`no api fetcher registered for ${key}; skipping ${spec.name}`);
@@ -210,7 +214,7 @@ export async function refreshApiFeeds(cfg, src) {
   return items;
 }
 
-export async function fetchAll(cfg, src, refreshApi = true) {
+export async function fetchAll(cfg, src) {
   const f = new Fetcher(cfg.fetch);
   const items = [];
   const stats = {};
@@ -221,14 +225,6 @@ export async function fetchAll(cfg, src, refreshApi = true) {
       return [label, got, null];
     } catch (e) {
       return [label, [], `${e.constructor.name}: ${e.message}`];
-    }
-  }
-
-  if (refreshApi) {
-    const apiCount = [...iterFeedSpecs(src.feeds ?? {})].filter(s => s.kind === 'api').length;
-    if (apiCount) {
-      console.log(`API background refresh started (${apiCount} queries)`);
-      refreshApiFeeds(cfg, src).catch(e => console.warn(`API refresh error: ${e}`));
     }
   }
 
