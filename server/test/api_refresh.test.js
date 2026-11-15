@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { join } from 'node:path';
 import { startApiRefreshWorker } from '../lib/api_refresh.js';
 
 test('starts detached CLI worker for enabled API feeds and passes shared data directory', () => {
@@ -21,7 +22,7 @@ test('starts detached CLI worker for enabled API feeds and passes shared data di
   });
   assert.equal(result.count, 2);
   assert.equal(call[0], '/runtime/node');
-  assert.deepEqual(call[1], ['/app/scripts/run_brief.js', '--refresh-api-feeds']);
+  assert.deepEqual(call[1], [join('/app', 'scripts', 'run_brief.js'), '--refresh-api-feeds']);
   assert.equal(call[2].cwd, '/app');
   assert.equal(call[2].detached, true);
   assert.equal(call[2].stdio, 'ignore');

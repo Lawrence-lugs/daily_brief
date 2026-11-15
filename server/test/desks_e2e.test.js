@@ -43,9 +43,9 @@ test('desks e2e: config contract loads real desks/keywords, sources.json clean',
   assert.equal(DESKS[1].title, 'Science Desk');
   assert.equal(DESKS[2].title, 'Misc.');
 
-  // All 10 subtopics mapped to a desk.
+  // All 8 subtopics mapped to a desk.
   const expected = {
-    dse: 'primary', accel: 'primary', fab: 'primary',
+    dse: 'primary', accel: 'primary', fab: 'primary', ams: 'primary',
     gr: 'science', qft: 'science', condmat: 'science', neuro: 'science',
   };
   assert.deepEqual(subtopicToDesk, expected);

@@ -9,7 +9,7 @@ test('config loader: DESKS list includes primary, science, misc in declared orde
   const { DESKS, subtopicToDesk, warnings } = loadDesksConfig('user/defaults');
   assert.equal(DESKS.length, 3);
   assert.deepEqual(DESKS, [
-    { key: 'primary', title: 'Silicon & Architecture Desk', description: 'Semiconductor design, EDA tools, chip architecture, accelerators, fabrication, and the hardware stack that runs AI workloads.' },
+    { key: 'primary', title: 'Silicon & Architecture Desk', description: 'Semiconductor design and fabrication, analog/mixed-signal IC design, EDA tools, chip architecture, accelerators, and the hardware stack that runs AI workloads.' },
     { key: 'science', title: 'Science Desk', description: 'Physical sciences: general relativity, quantum field theory, condensed matter, neuroscience, and related fundamental research.' },
     { key: 'misc', title: 'Misc.', description: '' },
   ]);
