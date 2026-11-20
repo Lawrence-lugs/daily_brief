@@ -93,7 +93,7 @@ export function mapOpenAlexWork(work, spec) {
   const snippet = [
     topics.length ? 'OpenAlex topics: ' + topics.join('; ') : '',
     abstract,
-  ].filter(Boolean).join('\\n\\n');
+  ].filter(Boolean).join('\n\n');
   const sourceName = work.primary_location?.source?.display_name || spec.name;
   const published = parseDate(work.publication_date);
   const item = makeItem(
