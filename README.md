@@ -40,7 +40,7 @@ daily_brief/
     config.json      every tunable (db_file, reader, prefer, desks.*.description, ranker.*, selection.*, llm.*, fetch.*, pool.*)
     sources.json     arXiv queries, RSS feeds, subtopic keyword lists
     perfect_samples.json  human-curated anchor items (one `desk` per sample)
-  user/schema/       JSON Schema for each config file (jedison editor)
+  user/schema/       JSON Schema for each config file (jedison form editor + raw JSON view)
   prompt_system.md   the editor prompt (desks + rules + JSON schema; {{reader}}, {{prefer}}, {{desk_sections}} filled from config)
   tailwind.input.css Tailwind entry file   tailwind.css  compiled output (committed)
   build_css.ps1      one-off Tailwind build (scans server/templates + server/public/client.js)

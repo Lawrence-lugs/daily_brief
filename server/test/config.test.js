@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadDesksConfig } from '../lib/config.js';
-import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { resetConfig } from '../../user/save.js';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -107,6 +108,37 @@ test('config loader: no warning when misc lacks a description', () => {
     }));
     const { warnings } = loadDesksConfig(dir);
     assert.ok(!warnings.some((w) => w.includes('misc') && w.includes('no description')));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('resetConfig: replaces the file with shipped defaults and backs up the old contents', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'config-reset-test-'));
+  try {
+    const current = { paper_name: 'Custom paper', stories_per_desk: 9 };
+    writeFileSync(join(dir, 'config.json'), JSON.stringify(current));
+
+    const result = resetConfig(dir, 'config.json');
+    assert.equal(result.ok, true);
+    assert.equal(result.path, join(dir, 'config.json'));
+    assert.ok(result.backup && existsSync(result.backup), 'the previous file should be backed up');
+
+    const written = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'));
+    const defaults = JSON.parse(readFileSync('user/defaults/config.json', 'utf8'));
+    assert.deepEqual(written, defaults);
+    assert.notDeepEqual(written, current);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('resetConfig: rejects unknown config files', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'config-reset-test-'));
+  try {
+    const result = resetConfig(dir, 'nope.json');
+    assert.equal(result.ok, false);
+    assert.match(result.errors[0].message, /unknown config file/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

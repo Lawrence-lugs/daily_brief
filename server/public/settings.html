@@ -459,14 +459,14 @@
     z-index: 2;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
     padding: 12px 22px;
     border-top: 1px solid var(--settings-line);
     background: color-mix(in srgb, var(--settings-surface) 94%, transparent);
     backdrop-filter: blur(10px);
   }
-  .save-hint { color: var(--settings-muted); font-size: .75rem; }
+  .save-hint { margin-right: auto; color: var(--settings-muted); font-size: .75rem; }
   .btn-save {
     flex: 0 0 auto;
     min-height: 36px;
@@ -481,6 +481,159 @@
   }
   .btn-save:hover:not(:disabled) { filter: brightness(1.06); }
   .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-reset {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 7px 12px;
+    border: 1px solid var(--settings-line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--settings-muted);
+    cursor: pointer;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+  .btn-reset:hover:not(:disabled) {
+    border-color: var(--settings-error);
+    background: color-mix(in srgb, var(--settings-error) 8%, transparent);
+    color: var(--settings-error);
+  }
+  .btn-reset:disabled { opacity: .5; cursor: not-allowed; }
+  .view-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    padding: 2px;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-bg);
+  }
+  .view-toggle button {
+    min-height: 30px;
+    padding: 4px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--settings-muted);
+    cursor: pointer;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+  .view-toggle button.active {
+    background: var(--settings-surface-raised);
+    color: var(--settings-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+  }
+  .view-toggle button:disabled { opacity: .5; cursor: not-allowed; }
+  .json-wrap { min-width: 0; }
+  .json-wrap[hidden] { display: none; }
+  .json-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .json-hint { color: var(--settings-muted); font-size: .75rem; }
+  .btn-format {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 4px 10px;
+    border: 1px solid var(--settings-line);
+    border-radius: 5px;
+    background: var(--settings-surface-raised);
+    color: var(--settings-fg);
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 600;
+  }
+  .btn-format:hover { background: var(--settings-hover); }
+  .json-editor {
+    display: block;
+    width: 100%;
+    min-height: 28rem;
+    padding: 12px 14px;
+    border: 1px solid var(--settings-line);
+    border-radius: 7px;
+    background: var(--settings-surface-raised);
+    color: var(--settings-fg);
+    resize: vertical;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+    font: .78rem/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  }
+  .json-editor[aria-invalid="true"] { border-color: var(--settings-error); }
+  .json-error {
+    margin: 8px 0 0;
+    color: var(--settings-error);
+    font-size: .8rem;
+    white-space: pre-wrap;
+  }
+  .json-error[hidden] { display: none; }
+  .settings-dialog {
+    width: min(38rem, calc(100vw - 32px));
+    max-width: none;
+    padding: 0;
+    border: 1px solid var(--settings-line);
+    border-radius: 10px;
+    background: var(--settings-surface);
+    color: var(--settings-fg);
+    box-shadow: var(--settings-shadow);
+  }
+  .settings-dialog::backdrop {
+    background: rgba(20, 18, 14, .55);
+    backdrop-filter: blur(2px);
+  }
+  .dialog-card { padding: 22px 24px 18px; }
+  .dialog-card h2 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+    line-height: 1.3;
+  }
+  .dialog-body p {
+    margin: 0 0 10px;
+    color: var(--settings-fg);
+    font-size: .86rem;
+  }
+  .dialog-body p:last-child { margin-bottom: 0; }
+  .dialog-error {
+    margin: 12px 0 0;
+    padding: 9px 11px;
+    border: 1px solid var(--settings-error);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--settings-error) 8%, transparent);
+    color: var(--settings-error);
+    font-size: .8rem;
+    white-space: pre-wrap;
+  }
+  .dialog-error[hidden] { display: none; }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .dialog-actions button {
+    min-height: 36px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  .dialog-actions .btn-secondary {
+    border: 1px solid var(--settings-line);
+    background: transparent;
+    color: var(--settings-fg);
+  }
+  .dialog-actions .btn-secondary:hover { background: var(--settings-hover); }
+  .dialog-actions .btn-danger {
+    border: 1px solid var(--settings-error);
+    background: var(--settings-error);
+    color: var(--settings-on-accent);
+  }
+  .dialog-actions .btn-danger:hover:not(:disabled) { filter: brightness(1.06); }
+  .dialog-actions button:disabled { opacity: .55; cursor: not-allowed; }
   .loading { padding: 12px 0; color: var(--settings-muted); }
   .note { margin: 0 0 10px; color: var(--settings-muted); font-size: .8rem; }
   pre.error-json {
@@ -540,8 +693,11 @@
     .back { font-size: .8rem; }
     .page-heading h1 { font-size: 1.15rem; }
     .file-kind { display: none; }
-    .file-actions { align-items: flex-start; flex-direction: column; }
-    .btn-save { width: 100%; }
+    .file-actions { align-items: stretch; flex-direction: column; }
+    .save-hint { margin-right: 0; }
+    .btn-save, .btn-reset, .view-toggle { width: 100%; }
+    .view-toggle { justify-content: center; }
+    .view-toggle button { flex: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
     .settings-editor .jedi-array-actions-slot { transition: none; }
@@ -599,6 +755,15 @@
 </div>
 <div id="toast" class="toast saved" role="status" aria-live="polite" hidden></div>
 
+<dialog id="reset-dialog" class="settings-dialog" aria-labelledby="reset-dialog-title">
+  <div class="dialog-card">
+    <h2 id="reset-dialog-title"></h2>
+    <div id="reset-dialog-body" class="dialog-body"></div>
+    <p id="reset-dialog-error" class="dialog-error" role="alert" hidden></p>
+    <div id="reset-dialog-actions" class="dialog-actions"></div>
+  </div>
+</dialog>
+
 <script src="static/vendor/jedison.umd.js"></script>
 <script>
 const base = document.body.dataset.base || '';
@@ -609,6 +774,20 @@ const panelsEl = document.getElementById('panels');
 const toast = document.getElementById('toast');
 const jedison = window.Jedison;
 const instances = Object.create(null);
+
+const resetDialog = document.getElementById('reset-dialog');
+const resetTitle = document.getElementById('reset-dialog-title');
+const resetBody = document.getElementById('reset-dialog-body');
+const resetError = document.getElementById('reset-dialog-error');
+const resetActions = document.getElementById('reset-dialog-actions');
+
+// Per-file wording for the first confirmation screen. Kept explicit so the
+// user sees exactly which kind of customization the reset will discard.
+const RESET_SUMMARY = {
+  'config.json': 'This replaces every setting in config.json — paper name, desks, keywords, reader/prefer prompts, selection, pool, fetch, LLM, and ranker settings — with the version shipped with Daily Brief. Any customizations you have made will be removed from this file.',
+  'sources.json': 'This replaces the entire feed list in sources.json — RSS feeds, API sources, and their settings — with the version shipped with Daily Brief. Any feeds you have added or edited will be removed from this file.',
+  'perfect_samples.json': 'This replaces the entire perfect-samples list in perfect_samples.json — every sample, its snippet, type, core/representative flags, and desk assignment — with the version shipped with Daily Brief. Any samples you have added or edited will be removed from this file.',
+};
 
 // Jedison's base theme ignores the isActive flag for nav panes, so every section
 // stays visible in the right column. Hide the inactive ones here.
@@ -636,6 +815,240 @@ function showToast(message, kind = 'saved') {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+// ---- reset-to-defaults dialog ---------------------------------------------
+let resetState = null;
+
+function setResetError(message) {
+  resetError.textContent = message;
+  resetError.hidden = !message;
+}
+
+function isResetBusy() {
+  return Array.from(resetActions.querySelectorAll('button'))
+    .some((button) => button.disabled);
+}
+
+function actionButton(label, action, className) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.dataset.action = action;
+  button.textContent = label;
+  button.addEventListener('click', () => handleResetAction(action));
+  return button;
+}
+
+function renderResetStep() {
+  const { fileName, step } = resetState;
+  resetTitle.textContent = step === 1
+    ? 'Reset ' + fileName + ' to defaults?'
+    : 'Confirm reset of ' + fileName;
+  resetBody.replaceChildren();
+  resetActions.replaceChildren();
+  setResetError('');
+
+  const addParagraph = (text) => {
+    const p = document.createElement('p');
+    p.textContent = text;
+    resetBody.append(p);
+  };
+
+  if (step === 1) {
+    addParagraph(RESET_SUMMARY[fileName]);
+    addParagraph('A timestamped backup of the current file is written to the backups/ folder in your Daily Brief data directory before anything is replaced.');
+    addParagraph('The reset takes effect the next time a brief is generated. You can review the result in the editor before saving any further changes.');
+    resetActions.append(
+      actionButton('Cancel', 'cancel', 'btn-secondary'),
+      actionButton('Continue', 'continue', 'btn-danger')
+    );
+    resetActions.firstElementChild.focus();
+  } else {
+    addParagraph('You are about to overwrite the current ' + fileName + ' in your Daily Brief data directory with the shipped default version.');
+    addParagraph('Only the timestamped backup in the backups/ folder will remain of your current settings. The app has no built-in restore button, so if you need the current values, cancel now and copy them somewhere safe.');
+    addParagraph('This cannot be undone from the settings page. Reset ' + fileName + ' and discard the current contents?');
+    resetActions.append(
+      actionButton('Cancel', 'cancel', 'btn-secondary'),
+      actionButton('Yes, reset ' + fileName, 'confirm', 'btn-danger')
+    );
+    resetActions.firstElementChild.focus();
+  }
+}
+
+function openResetDialog(fileName, ui) {
+  resetState = { fileName, ui, step: 1 };
+  renderResetStep();
+  resetDialog.showModal();
+  resetActions.firstElementChild?.focus();
+}
+
+function closeResetDialog() {
+  if (resetDialog.open) resetDialog.close();
+  resetState = null;
+}
+
+function setResetButtonsDisabled(disabled) {
+  for (const button of resetActions.querySelectorAll('button')) button.disabled = disabled;
+}
+
+async function handleResetAction(action) {
+  if (!resetState) return;
+  if (action === 'cancel') return closeResetDialog();
+  if (action === 'continue') {
+    resetState.step = 2;
+    renderResetStep();
+    return;
+  }
+  if (action === 'confirm') await performReset();
+}
+
+async function performReset() {
+  if (!resetState) return;
+  const { fileName, ui } = resetState;
+  const confirm = resetActions.querySelector('[data-action="confirm"]');
+  setResetButtonsDisabled(true);
+  if (confirm) confirm.textContent = 'Resetting…';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(base + '/api/config/' + encodeURIComponent(fileName) + '/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Brief-Client': '1' },
+      signal: controller.signal,
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      const detail = (result.details || []).slice(0, 3)
+        .map((entry) => entry.path + ': ' + entry.message).join('; ');
+      throw new Error((result.error || 'reset failed') + (detail ? ' — ' + detail : ''));
+    }
+    applyResetResult(fileName, ui, result.data);
+    closeResetDialog();
+    showToast(fileName + ' reset to defaults.' +
+      (result.backup ? ' Backup: ' + result.backup : ''));
+  } catch (error) {
+    setResetError(error.name === 'AbortError'
+      ? 'Reset timed out. The Daily Brief server may be out of date — restart the app and try again.'
+      : 'Reset failed: ' + error.message);
+    setResetButtonsDisabled(false);
+    if (confirm) confirm.textContent = 'Yes, reset ' + fileName;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function applyResetResult(fileName, ui, data) {
+  ui.data = data;
+  if (instances[fileName]) instances[fileName].setValue(data, false);
+  if (ui.json) {
+    ui.json.value = JSON.stringify(data, null, 2);
+    clearJsonError(ui);
+  }
+}
+
+resetDialog.addEventListener('click', (event) => {
+  if (event.target !== resetDialog || isResetBusy()) return;
+  closeResetDialog();
+});
+resetDialog.addEventListener('cancel', (event) => {
+  if (isResetBusy()) {
+    event.preventDefault();
+    return;
+  }
+  resetState = null;
+});
+resetDialog.addEventListener('close', () => { resetState = null; });
+
+// ---- form / raw-JSON view --------------------------------------------------
+function clearJsonError(ui) {
+  ui.jsonError.hidden = true;
+  ui.jsonError.textContent = '';
+  ui.json.removeAttribute('aria-invalid');
+}
+
+function showJsonError(ui, error) {
+  ui.jsonError.textContent = 'Invalid JSON: ' + error.message;
+  ui.jsonError.hidden = false;
+  ui.json.setAttribute('aria-invalid', 'true');
+  ui.json.focus();
+}
+
+function formatJson(ui) {
+  try {
+    ui.json.value = JSON.stringify(JSON.parse(ui.json.value), null, 2);
+    clearJsonError(ui);
+  } catch (error) {
+    showJsonError(ui, error);
+  }
+}
+
+function updateViewToggle(ui, mode) {
+  for (const button of ui.viewToggle.querySelectorAll('button[data-view]')) {
+    const active = button.dataset.view === mode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+}
+
+function setMode(ui, fileName, mode) {
+  if (mode === ui.mode) return;
+
+  if (mode === 'json') {
+    const value = instances[fileName] ? instances[fileName].getValue() : ui.data;
+    ui.json.value = JSON.stringify(value, null, 2);
+    clearJsonError(ui);
+    ui.root.hidden = true;
+    ui.jsonWrap.hidden = false;
+    ui.mode = 'json';
+    updateViewToggle(ui, 'json');
+    ui.json.focus();
+    ui.json.setSelectionRange(0, 0);
+    ui.json.scrollTop = 0;
+    return;
+  }
+
+  // JSON -> Form: reject invalid JSON rather than silently discarding edits.
+  let value;
+  try {
+    value = JSON.parse(ui.json.value);
+  } catch (error) {
+    showJsonError(ui, error);
+    return;
+  }
+
+  try {
+    if (instances[fileName]) instances[fileName].setValue(value, false);
+  } catch (error) {
+    ui.jsonError.textContent = 'Cannot switch to the form view: ' + error.message;
+    ui.jsonError.hidden = false;
+    ui.json.setAttribute('aria-invalid', 'true');
+    ui.json.focus();
+    return;
+  }
+
+  ui.data = value;
+  clearJsonError(ui);
+  ui.root.hidden = false;
+  ui.jsonWrap.hidden = true;
+  ui.mode = 'form';
+  updateViewToggle(ui, 'form');
+}
+
+function getEditorValue(ui, fileName) {
+  if (ui.mode === 'json') {
+    try {
+      const value = JSON.parse(ui.json.value);
+      clearJsonError(ui);
+      return { ok: true, value };
+    } catch (error) {
+      showJsonError(ui, error);
+      return { ok: false };
+    }
+  }
+  if (!instances[fileName]) return { ok: false };
+  return { ok: true, value: instances[fileName].getValue() };
 }
 
 function schemaType(schema) {
@@ -1041,7 +1454,35 @@ function createPanel(fileName, index) {
   const root = document.createElement('div');
   root.className = 'settings-editor';
   root.id = 'jedison-' + fileName;
-  content.append(root);
+
+  // Raw JSON view: a plain textarea keeps this dependency-free and works
+  // everywhere the rest of the settings page works (including packaged builds).
+  const jsonWrap = document.createElement('div');
+  jsonWrap.className = 'json-wrap';
+  jsonWrap.hidden = true;
+  const jsonToolbar = document.createElement('div');
+  jsonToolbar.className = 'json-toolbar';
+  const jsonHint = document.createElement('span');
+  jsonHint.className = 'json-hint';
+  jsonHint.textContent = 'Edit the raw JSON for this file. Invalid JSON cannot be saved or switched back to the form view.';
+  const format = document.createElement('button');
+  format.type = 'button';
+  format.className = 'btn-format';
+  format.textContent = 'Format';
+  jsonToolbar.append(jsonHint, format);
+  const json = document.createElement('textarea');
+  json.className = 'json-editor';
+  json.spellcheck = false;
+  json.autocapitalize = 'off';
+  json.autocomplete = 'off';
+  json.setAttribute('wrap', 'off');
+  json.setAttribute('aria-label', fileName + ' raw JSON');
+  const jsonError = document.createElement('p');
+  jsonError.className = 'json-error';
+  jsonError.hidden = true;
+  jsonError.setAttribute('role', 'alert');
+  jsonWrap.append(jsonToolbar, json, jsonError);
+  content.append(root, jsonWrap);
 
   const status = document.createElement('div');
   status.id = 'status-' + fileName;
@@ -1051,14 +1492,41 @@ function createPanel(fileName, index) {
   const hint = document.createElement('span');
   hint.className = 'save-hint';
   hint.textContent = 'Changes take effect the next time a brief is generated.';
+
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'btn-reset';
+  reset.textContent = 'Reset to defaults';
+  reset.title = 'Replace this file with the shipped default version';
+  reset.disabled = true;
+
+  const viewToggle = document.createElement('div');
+  viewToggle.className = 'view-toggle';
+  viewToggle.setAttribute('role', 'group');
+  viewToggle.setAttribute('aria-label', 'Editor view for ' + fileName);
+  for (const mode of ['form', 'json']) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.view = mode;
+    button.textContent = mode === 'form' ? 'Form' : 'JSON';
+    button.className = mode === 'form' ? 'active' : '';
+    button.setAttribute('aria-pressed', String(mode === 'form'));
+    button.disabled = true;
+    viewToggle.append(button);
+  }
+
   const save = document.createElement('button');
   save.type = 'button';
   save.className = 'btn-save';
   save.textContent = 'Save ' + fileName;
-  actions.append(hint, save);
+  actions.append(hint, reset, viewToggle, save);
 
   panel.append(header, loading, content, status, actions);
-  return { panel, loading, root, name, desc, status, save };
+  return {
+    panel, loading, root, name, desc, status, save,
+    reset, viewToggle, jsonWrap, json, jsonError, format,
+    data: null, mode: 'form',
+  };
 }
 
 async function loadFile(fileName, index) {
@@ -1066,16 +1534,27 @@ async function loadFile(fileName, index) {
   panelsEl.append(ui.panel);
 
   ui.save.disabled = true;
+  ui.reset.addEventListener('click', () => openResetDialog(fileName, ui));
+  ui.viewToggle.addEventListener('click', (event) => {
+    const button = event.target.closest?.('button[data-view]');
+    if (!button) return;
+    setMode(ui, fileName, button.dataset.view);
+  });
+  ui.format.addEventListener('click', () => formatJson(ui));
+  ui.json.addEventListener('input', () => clearJsonError(ui));
+
   ui.save.addEventListener('click', async () => {
-    if (!instances[fileName]) return;
+    const parsed = getEditorValue(ui, fileName);
+    if (!parsed.ok) return;
+    const value = parsed.value;
+
     ui.save.disabled = true;
     ui.save.textContent = 'Saving…';
     try {
-      const value = instances[fileName].getValue();
-
       // Desk order is semantically meaningful: server/lib/config.js uses
       // Object.entries(config.desks), which preserves this insertion order.
-      if (fileName === 'config.json' && value?.desks) {
+      // The raw JSON view is authoritative, so only reorder when using the form.
+      if (fileName === 'config.json' && ui.mode === 'form' && value?.desks) {
         value.desks = reorderObjectProperties(
           value.desks,
           getDeskOrder(ui.root)
@@ -1089,6 +1568,14 @@ async function loadFile(fileName, index) {
       });
       const result = await response.json();
       if (response.ok) {
+        ui.data = value;
+        // Keep both views in sync after a successful save.
+        if (ui.mode === 'json' && instances[fileName]) {
+          instances[fileName].setValue(value, false);
+        }
+        if (ui.mode === 'form') {
+          ui.json.value = JSON.stringify(value, null, 2);
+        }
         showToast(fileName + ' saved. Applies on next brief generation.');
         ui.save.textContent = 'Saved';
         setTimeout(() => {
@@ -1126,6 +1613,10 @@ async function loadFile(fileName, index) {
       ui.status.append(error);
       return;
     }
+
+    ui.data = data;
+    ui.reset.disabled = false;
+    for (const button of ui.viewToggle.querySelectorAll('button')) button.disabled = false;
 
     if (schema && jedison) {
       ui.name.textContent = schema.title || fileName;

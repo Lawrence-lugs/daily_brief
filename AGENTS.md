@@ -17,7 +17,7 @@ daily_brief/                      # project root
 │   ├── datadir.js                # defaultDataDir, seedDataDir (moved from server/lib/datadir.js)
 │   ├── validate.js               # lightweight JSON Schema validator
 │   ├── save.js                   # validate -> backup -> atomic write -> invalidate cache
-│   └── routes.js                 # GET/PUT /api/config/:file + /schema
+│   └── routes.js                 # GET/PUT /api/config/:file + /schema + POST /reset
 ├── daily_brief.db                # SQLite DB (candidate_pool, stories, embeddings, model_eval, ranker_state)
 ├── ranker/                       # Node.js ranking engine (ESM)
 │   ├── cli.js                    # CLI: select, refit, eval, inspect, pool, simulate
@@ -47,6 +47,11 @@ daily_brief/                      # project root
     ├── runs.db                   # Sacred SQL observer store
     └── clustering_ablation.qmd   # NEW: standalone quarto report notebook
 ```
+
+## Settings editor (`user/` + `server/public/settings.html`)
+
+- Each config file has a **Form** view (jedison) and a **JSON** view backed by a plain `<textarea>` (no editor dependency). Invalid JSON blocks switching back to Form and blocks Save; a **Format** button pretty-prints. The JSON view is per file.
+- `POST /api/config/:file/reset` restores `user/defaults/<file>` through `saveConfig()` (validate → backup → atomic write → cache invalidation). The UI requires a two-step, verbose confirmation and refreshes the editor from the returned default data.
 
 ## Contract: where experiment-specific code lives
 
@@ -120,3 +125,4 @@ These two boolean fields on perfect samples (`user/defaults/perfect_samples.json
 - `sacred` 0.8.7 with a `pkgutil.find_loader` shim (already applied in each experiment file)
 - Sacred runs persist to `docs/experiments/runs.db`; the `run` table joins `experiment` on `experiment_id` (not `experiment.name` directly)
 - `daily_brief.db` must exist at project root; embeddings/model must be fitted (the helper calls `ensureEmbeddings`/`ensureFitted`)
+- The Electron app and `npm run app` reuse an existing daily-brief server on `BRIEF_PORT` (default 4873) instead of restarting it. After changing route code under `server/` or `user/`, run `npm run stop` and relaunch; otherwise the old server keeps serving old routes while reading the new `settings.html`/static files from disk. (A stale server caused the reset dialog to hang until the client-side 15s timeout was added.)

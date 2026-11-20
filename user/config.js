@@ -60,6 +60,14 @@ export function invalidateCache(dataDir, fileName = 'config.json') {
   configCache.delete(resolve(dataDir, fileName));
 }
 
+/** Read a shipped default template from user/defaults/. Returns null if missing. */
+export function loadDefaults(fileName) {
+  if (!EDITABLE_FILES.includes(fileName)) return null;
+  const file = join(DEFAULTS_DIR, fileName);
+  if (!existsSync(file)) return null;
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+
 /** Load a JSON Schema for a config file, cached. Returns null if missing. */
 export function loadSchema(fileName) {
   const cached = schemaCache.get(fileName);

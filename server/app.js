@@ -147,8 +147,12 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
       // so they stay enabled. Generation now lives under RESTRICTED_PREFIX and is gated by the host, not by this app.
       if (basePath && req.method === 'POST' && routePath === '/api/shutdown') return json(res, 404, { error: 'not found' });
 
-      // Config editor API (GET + PUT). Handled before the method split so PUT works too.
-      if (routePath.startsWith('/api/config/')) return handleConfigRoutes(req, res, routePath, dbDir);
+      // Config editor API (GET + PUT + reset). Handled before the method split so PUT/POST work too.
+      // Only stop routing when the handler actually handled it; otherwise fall through to the
+      // normal 404 path. Returning unconditionally here left unknown /api/config/* requests open.
+      if (routePath.startsWith('/api/config/')) {
+        if (handleConfigRoutes(req, res, routePath, dbDir) || res.headersSent) return;
+      }
 
       if (req.method === 'GET') {
         if (routePath === '/' ) return servePage(res, url, null, sessionId);
@@ -226,6 +230,7 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
       }
       return json(res, 404, { error: 'not found' });
     } catch (e) {
+      if (res.headersSent) return;
       return json(res, e.status ?? 500, { error: e.message ?? String(e) });
     }
   }

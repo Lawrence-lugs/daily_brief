@@ -73,6 +73,13 @@ test('page renders escaped content, safe urls, boot state', async () => {
   assert.ok(r.body.includes('data-story-id="1"'));
   assert.ok(r.body.includes('From the archive'));
 });
+test('unknown /api/config subpath returns 404 instead of leaving the request open', async () => {
+  const res = await fetch(`http://127.0.0.1:${PORT}/api/config/config.json/nope`, {
+    signal: AbortSignal.timeout(2000),
+  });
+  assert.equal(res.status, 404);
+  assert.match(await res.text(), /not found/);
+});
 test('guard: bad host, missing header, bad origin', async () => {
   assert.equal((await call('GET', '/', { headers: { Host: 'evil.com' } })).status, 403);
   assert.equal((await call('POST', '/api/stories/1/feedback', { headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 403);

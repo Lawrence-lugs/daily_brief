@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import http from 'node:http';
 import path from 'node:path';
 import os from 'node:os';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, readdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../../server/app.js';
 import { seedDataDir } from '../../user/datadir.js';
@@ -70,4 +70,51 @@ test('settings page: save writes the config file to the data dir', async ({ page
 test('config API: mutating request without X-Brief-Client is rejected', async ({ request }) => {
   const resp = await request.put(`${base}/api/config/config.json`, { data: {} });
   expect(resp.status()).toBe(403);
+  const reset = await request.post(`${base}/api/config/config.json/reset`);
+  expect(reset.status()).toBe(403);
+});
+
+test('settings page: reset restores the shipped default and backs up the old file', async ({ page }) => {
+  await page.goto(`${base}/settings`);
+  await expect.poll(() => page.evaluate(() => typeof window.Jedison)).toBe('object');
+
+  // Make the live config different from the shipped default so the reset is observable.
+  const configPath = path.join(dataDir, 'config.json');
+  const original = JSON.parse(readFileSync(configPath, 'utf8'));
+  writeFileSync(configPath, JSON.stringify({ ...original, paper_name: 'Custom Name' }, null, 2) + '\n');
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => typeof window.Jedison)).toBe('object');
+
+  await page.locator('[id="panel-config.json"] .btn-reset').click();
+  await expect(page.locator('#reset-dialog-title')).toHaveText('Reset config.json to defaults?');
+  await page.locator('#reset-dialog [data-action="continue"]').click();
+  await expect(page.locator('#reset-dialog-title')).toHaveText('Confirm reset of config.json');
+  await page.locator('#reset-dialog [data-action="confirm"]').click();
+
+  await expect(page.locator('#toast')).toHaveText(/config\.json reset to defaults/);
+  await expect(page.locator('#reset-dialog')).toBeHidden();
+
+  const written = JSON.parse(readFileSync(configPath, 'utf8'));
+  const defaults = JSON.parse(readFileSync(path.join(root, 'user', 'defaults', 'config.json'), 'utf8'));
+  expect(written).toEqual(defaults);
+
+  const backups = readdirSync(path.join(dataDir, 'backups'))
+    .filter((name) => name.startsWith('config.json.'));
+  expect(backups.length).toBeGreaterThan(0);
+});
+
+test('settings page: raw JSON view saves through the real PUT path', async ({ page }) => {
+  await page.goto(`${base}/settings`);
+  await expect.poll(() => page.evaluate(() => typeof window.Jedison)).toBe('object');
+
+  await page.locator('[id="panel-config.json"] .view-toggle button[data-view="json"]').click();
+  const editor = page.locator('[id="panel-config.json"] .json-editor');
+  const value = JSON.parse(await editor.inputValue());
+  value.paper_name = 'Raw JSON Paper';
+  await editor.fill(JSON.stringify(value, null, 2));
+  await page.locator('[id="panel-config.json"] .btn-save').click();
+
+  await expect(page.locator('#toast')).toHaveText(/config\.json saved/);
+  const written = JSON.parse(readFileSync(path.join(dataDir, 'config.json'), 'utf8'));
+  expect(written.paper_name).toBe('Raw JSON Paper');
 });

@@ -3,7 +3,7 @@
 import { writeFileSync, renameSync, existsSync, readdirSync, statSync, unlinkSync, copyFileSync, mkdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { validate } from './validate.js';
-import { loadConfig, loadSchema, invalidateCache, EDITABLE_FILES } from './config.js';
+import { loadConfig, loadSchema, loadDefaults, invalidateCache, EDITABLE_FILES } from './config.js';
 
 const MAX_BACKUPS = 20;
 
@@ -51,6 +51,38 @@ export function saveConfig(dataDir, fileName, newData) {
 
   invalidateCache(dataDir, fileName);
   return { ok: true, backup: backupPath };
+}
+
+/** Restore fileName from the shipped user/defaults template.
+ * Uses the normal save path so the current file is validated, backed up and
+ * replaced atomically; the old contents remain available under backups/.
+ * @param {string} dataDir   per-user data directory
+ * @param {string} fileName  one of EDITABLE_FILES
+ * @returns {{ok: boolean, errors?: Array, backup?: string|null, data?: object, path?: string, noDefaults?: boolean}}
+ */
+export function resetConfig(dataDir, fileName) {
+  if (!EDITABLE_FILES.includes(fileName)) {
+    return { ok: false, errors: [{ path: '(root)', message: `unknown config file "${fileName}"` }] };
+  }
+
+  const defaults = loadDefaults(fileName);
+  if (defaults === null) {
+    return {
+      ok: false,
+      noDefaults: true,
+      errors: [{ path: '(root)', message: `defaults for "${fileName}" not found` }],
+    };
+  }
+
+  const result = saveConfig(dataDir, fileName, defaults);
+  if (!result.ok) return result;
+
+  return {
+    ok: true,
+    backup: result.backup ?? null,
+    data: defaults,
+    path: resolve(dataDir, fileName),
+  };
 }
 
 function mkdirSyncRecursive(dir) {

@@ -129,9 +129,13 @@ export class MockServer {
     // Config editor mock state.
     this.configCalls = [];                      // [{file, method}]
     this.configSaves = [];                      // [{file, body}]
+    this.configResets = [];                     // [{file}]
     this._configSaveFails = false;              // when set, PUT returns 400
     this._configSaveFailCode = 400;
     this._configSaveFailMessage = 'validation failed';
+    this._configResetFails = false;             // when set, POST /reset returns 500
+    this._configResetFailCode = 500;
+    this._configResetFailMessage = 'defaults not found';
 
     // Fixture config data served by GET /api/config/:file.
     this.configData = {
@@ -146,6 +150,23 @@ export class MockServer {
       },
       'perfect_samples.json': [
         { id: '1', title: 'Sample paper', snippet: 'A sample snippet.', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+      ],
+    };
+
+    // Shipped defaults returned by POST /api/config/:file/reset. Deliberately
+    // different from configData so tests can prove the editor was refreshed.
+    this.configDefaults = {
+      'config.json': {
+        paper_name: 'The Daily Die',
+        stories_per_desk: 3,
+        selection: { epsilon: 0.1, archive_after_days: 14 },
+        ranker: { engine: 'keyword' },
+      },
+      'sources.json': {
+        feeds: { api: { semanticscholar: ['default'] }, rss: ['https://default.example/rss'] },
+      },
+      'perfect_samples.json': [
+        { id: 'default', title: 'Default sample', snippet: 'The shipped sample.', type: 'paperlike', core: true, representative: false, desk: 'primary' },
       ],
     };
 
@@ -330,20 +351,22 @@ export class MockServer {
       });
     }
 
-    // ---- config editor API (GET + PUT + schema) ----
-    const mCfg = pathname.match(/^\/api\/config\/([^/]+)(\/schema)?$/);
-    if (mCfg && (method === 'GET' || method === 'PUT')) {
+    // ---- config editor API (GET + PUT + schema + reset) ----
+    const mCfg = pathname.match(/^\/api\/config\/([^/]+)(\/schema|\/reset)?$/);
+    if (mCfg && (method === 'GET' || method === 'PUT' || method === 'POST')) {
       const fileName = mCfg[1];
-      const isSchema = !!mCfg[2];
-      this.configCalls.push({ file: fileName, method, schema: isSchema });
+      const action = mCfg[2] ?? null;
+      const isSchema = action === '/schema';
+      const isReset = action === '/reset';
+      this.configCalls.push({ file: fileName, method, schema: isSchema, reset: isReset });
 
       if (isSchema && method === 'GET') {
         return this.json(route, 200, this.configSchemas[fileName] || {});
       }
-      if (!isSchema && method === 'GET') {
+      if (!action && method === 'GET') {
         return this.json(route, 200, this.configData[fileName] || {});
       }
-      if (!isSchema && method === 'PUT') {
+      if (!action && method === 'PUT') {
         const body = await this.readBody(request);
         this.configSaves.push({ file: fileName, body });
         if (this._configSaveFails) {
@@ -359,6 +382,23 @@ export class MockServer {
           note: 'saved; applies on next run',
         });
       }
+      if (isReset && method === 'POST') {
+        this.configResets.push({ file: fileName });
+        if (this._configResetFails) {
+          return this.json(route, this._configResetFailCode, {
+            error: this._configResetFailMessage,
+            details: [{ path: '(root)', message: this._configResetFailMessage }],
+          });
+        }
+        return this.json(route, 200, {
+          ok: true,
+          backup: `backups/${fileName}.2026-11-11T00-00-00Z.json`,
+          path: `C:/Users/test/daily-brief/${fileName}`,
+          data: this.configDefaults[fileName] ?? {},
+          note: 'reset to defaults; applies on next run',
+        });
+      }
+      return this.json(route, 405, { error: 'method not allowed' });
     }
 
     // ---- LLM API stub (openrouter) ----
@@ -519,6 +559,16 @@ export class MockServer {
   }
   allowConfigSave() {
     this._configSaveFails = false;
+  }
+
+  // Make the next config reset fail. Call with null to restore.
+  setConfigResetFails(exitCode = 500, message = 'defaults not found') {
+    this._configResetFails = true;
+    this._configResetFailCode = exitCode;
+    this._configResetFailMessage = message;
+  }
+  allowConfigReset() {
+    this._configResetFails = false;
   }
 
   // Seed a job with id=0 that is already running, so the page's attach fetch

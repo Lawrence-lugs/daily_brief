@@ -177,6 +177,154 @@ test.describe('settings page — save (PUT)', () => {
   });
 });
 
+test.describe('settings page — reset to defaults', () => {
+  test('each file has a reset button that requires two confirmations', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    // All three panels have a reset button; only the active one is visible.
+    await expect(page.locator('.btn-reset')).toHaveCount(3);
+    await expect(page.locator(`${panel('config.json')} .btn-reset`)).toBeVisible();
+    await expect(page.locator(`${panel('sources.json')} .btn-reset`)).toBeHidden();
+
+    await page.locator(`${panel('config.json')} .btn-reset`).click();
+    await expect(page.locator('#reset-dialog')).toBeVisible();
+    await expect(page.locator('#reset-dialog-title')).toHaveText('Reset config.json to defaults?');
+    await expect(page.locator('#reset-dialog-body')).toContainText('desks');
+    expect(mock.configResets).toHaveLength(0);
+
+    // First Cancel: no request.
+    await page.locator('#reset-dialog [data-action="cancel"]').click();
+    await expect(page.locator('#reset-dialog')).toBeHidden();
+    expect(mock.configResets).toHaveLength(0);
+
+    // Continue to step two, then cancel again.
+    await page.locator(`${panel('config.json')} .btn-reset`).click();
+    await page.locator('#reset-dialog [data-action="continue"]').click();
+    await expect(page.locator('#reset-dialog-title')).toHaveText('Confirm reset of config.json');
+    await expect(page.locator('#reset-dialog-body')).toContainText('no built-in restore button');
+    expect(mock.configResets).toHaveLength(0);
+    await page.locator('#reset-dialog [data-action="cancel"]').click();
+    expect(mock.configResets).toHaveLength(0);
+  });
+
+  test('confirming reset POSTs once and refreshes both views', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .btn-reset`).click();
+    await page.locator('#reset-dialog [data-action="continue"]').click();
+    await page.locator('#reset-dialog [data-action="confirm"]').click();
+
+    await waitFor(() => mock.configResets.length === 1);
+    expect(mock.configResets[0].file).toBe('config.json');
+    await expect(page.locator('#toast')).toHaveText(/config\.json reset to defaults/);
+    await expect(page.locator('#reset-dialog')).toBeHidden();
+
+    // The form reflects the defaults; switching to JSON shows them too.
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="json"]`).click();
+    const jsonText = await page.locator(`${panel('config.json')} .json-editor`).inputValue();
+    expect(jsonText).toContain('"paper_name": "The Daily Die"');
+    expect(jsonText).toContain('"stories_per_desk": 3');
+  });
+
+  test('a failed reset keeps the dialog open and shows the server error', async ({ page }) => {
+    const mock = new MockServer(page);
+    mock.setConfigResetFails(500, 'defaults not found');
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .btn-reset`).click();
+    await page.locator('#reset-dialog [data-action="continue"]').click();
+    await page.locator('#reset-dialog [data-action="confirm"]').click();
+
+    await waitFor(() => mock.configResets.length === 1);
+    await expect(page.locator('#reset-dialog-error')).toBeVisible();
+    await expect(page.locator('#reset-dialog-error')).toHaveText(/Reset failed.*defaults not found/);
+    await expect(page.locator('#reset-dialog')).toBeVisible();
+    await expect(page.locator('#reset-dialog [data-action="confirm"]')).toBeEnabled();
+  });
+});
+
+test.describe('settings page — raw JSON view', () => {
+  test('toggling to JSON shows pretty-printed data and Format reformats edits', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="json"]`).click();
+    const editor = page.locator(`${panel('config.json')} .json-editor`);
+    await expect(editor).toBeVisible();
+    await expect(page.locator('[id="jedison-config.json"]')).toBeHidden();
+    await expect(editor).toHaveValue(/"paper_name": "The Daily Die"/);
+
+    // Invalid JSON is reported and keeps the JSON view active.
+    await editor.fill('{ "paper_name": ');
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="form"]`).click();
+    await expect(page.locator(`${panel('config.json')} .json-error`)).toBeVisible();
+    await expect(page.locator(`${panel('config.json')} .json-error`)).toHaveText(/Invalid JSON/);
+    await expect(editor).toBeVisible();
+
+    // Fix and format.
+    await editor.fill('{"paper_name":"Edited","stories_per_desk":4}');
+    await page.locator(`${panel('config.json')} .btn-format`).click();
+    await expect(editor).toHaveValue(/"paper_name": "Edited"/);
+    await expect(page.locator(`${panel('config.json')} .json-error`)).toBeHidden();
+  });
+
+  test('saving from the JSON view PUTs the edited object', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="json"]`).click();
+    const editor = page.locator(`${panel('config.json')} .json-editor`);
+    await editor.fill(JSON.stringify({ paper_name: 'Edited Paper', stories_per_desk: 4 }, null, 2));
+    await page.locator(`${panel('config.json')} .btn-save`).click();
+
+    await waitFor(() => mock.configSaves.length === 1);
+    expect(mock.configSaves[0].file).toBe('config.json');
+    expect(mock.configSaves[0].body).toEqual({ paper_name: 'Edited Paper', stories_per_desk: 4 });
+    await expect(page.locator('#toast')).toHaveText(/config\.json saved/);
+  });
+
+  test('invalid JSON blocks save and shows an inline error', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="json"]`).click();
+    await page.locator(`${panel('config.json')} .json-editor`).fill('{ nope');
+    await page.locator(`${panel('config.json')} .btn-save`).click();
+
+    await expect(page.locator(`${panel('config.json')} .json-error`)).toHaveText(/Invalid JSON/);
+    expect(mock.configSaves).toHaveLength(0);
+    await expect(page.locator(`${panel('config.json')} .btn-save`)).toBeEnabled();
+  });
+
+  test('the JSON toggle is per file and keeps edits across tab switches', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/settings`);
+    await page.waitForSelector(saveBtn('config.json'));
+
+    await page.locator(`${panel('config.json')} .view-toggle button[data-view="json"]`).click();
+    const configEditor = page.locator(`${panel('config.json')} .json-editor`);
+    await configEditor.fill('{"paper_name":"Kept"}');
+
+    // sources.json is still in Form view.
+    await page.locator('.tab').filter({ hasText: 'sources.json' }).click({ force: true });
+    await expect(page.locator(`${panel('sources.json')} .json-editor`)).toBeHidden();
+    await expect(page.locator(`${panel('sources.json')} .view-toggle button[data-view="form"]`)).toHaveClass(/active/);
+
+    // Back to config.json: the edited JSON is still there.
+    await page.locator('.tab').filter({ hasText: 'config.json' }).click({ force: true });
+    await expect(configEditor).toBeVisible();
+    await expect(configEditor).toHaveValue('{"paper_name":"Kept"}');
+  });
+});
+
 test.describe('settings page — navigation', () => {
   test('settings link from the sidebar navigates to /settings', async ({ page }) => {
     const mock = new MockServer(page);
