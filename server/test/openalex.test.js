@@ -30,6 +30,8 @@ const work = (n, overrides = {}) => ({
     { author: { display_name: 'Ada Lovelace' } },
     { author: { display_name: 'Alan Turing' } },
   ],
+  primary_topic: { display_name: 'Radio Frequency Integrated Circuit Design' },
+  topics: [{ display_name: 'Analog and Mixed-Signal Circuit Design' }],
   ...overrides,
 });
 
@@ -54,6 +56,7 @@ test('buildOpenAlexQueryUrl uses source-scoped publication dates and supports ke
   assert.equal(url.searchParams.get('filter'),
     'primary_location.source.id:S83637746,from_publication_date:2026-08-17,to_publication_date:2026-11-15');
   assert.equal(url.searchParams.get('sort'), 'publication_date:desc');
+  assert.match(url.searchParams.get('select'), /topics,primary_topic/);
   assert.equal(url.searchParams.get('per_page'), '100');
   assert.equal(url.searchParams.get('page'), '2');
   assert.equal(url.searchParams.has('api_key'), false);
@@ -79,6 +82,8 @@ test('mapOpenAlexWork maps DOI, title, abstract, source, authors, hint, and inde
   assert.equal(item.hint, 'ams');
   assert.equal(item.source_type, 'researchlike');
   assert.match(item.snippet, /12-bit pipeline ADC/);
+  assert.match(item.snippet, /Analog and Mixed-Signal Circuit Design/);
+  assert.match(item.snippet, /Radio Frequency Integrated Circuit Design/);
   assert.equal(item.openalex_id, 'https://openalex.org/W123');
   assert.equal(item.openalex_created_date, '2026-11-12T00:00:00');
   assert.equal(item.venue_source_id, 'S83637746');

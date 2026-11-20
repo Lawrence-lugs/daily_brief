@@ -13,7 +13,7 @@ const DEFAULT_LOOKBACK_DAYS = 90;
 const DEFAULT_MAX_PAGES = 1;
 const SELECT_FIELDS = [
   'id', 'doi', 'title', 'publication_date', 'created_date', 'publication_year',
-  'authorships', 'abstract_inverted_index', 'primary_location',
+  'authorships', 'abstract_inverted_index', 'primary_location', 'topics', 'primary_topic',
 ].join(',');
 
 function ymd(date) {
@@ -63,6 +63,14 @@ export function buildOpenAlexQueryUrl({
   return API_URL + '?' + params.toString();
 }
 
+function topicNames(work) {
+  const names = [
+    work?.primary_topic?.display_name,
+    ...(Array.isArray(work?.topics) ? work.topics.map(topic => topic?.display_name) : []),
+  ].filter(Boolean);
+  return [...new Set(names.map(name => String(name).trim()).filter(Boolean))].slice(0, 6);
+}
+
 function authorNames(authorships) {
   if (!Array.isArray(authorships)) return [];
   return authorships.map(row =>
@@ -81,12 +89,17 @@ export function mapOpenAlexWork(work, spec) {
   if (!url) return null;
 
   const abstract = reconstructAbstract(work.abstract_inverted_index);
+  const topics = topicNames(work);
+  const snippet = [
+    topics.length ? 'OpenAlex topics: ' + topics.join('; ') : '',
+    abstract,
+  ].filter(Boolean).join('\\n\\n');
   const sourceName = work.primary_location?.source?.display_name || spec.name;
   const published = parseDate(work.publication_date);
   const item = makeItem(
     url,
     title,
-    abstract,
+    snippet,
     published,
     sourceName,
     spec.default_subtopic ?? spec.subtopic ?? null,
