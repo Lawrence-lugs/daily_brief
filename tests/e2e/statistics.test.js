@@ -24,7 +24,7 @@ test.describe('statistics page', () => {
     await page.waitForSelector('#stats-grid');
 
     const cards = [
-      ['feeds', 'Feed health'],
+      ['feeds', 'RSS feed health'],
       ['api_feeds', 'API feed health'],
       ['pv_hist', 'p / V score histograms'],
       ['lr_metrics', 'LR model metrics'],
