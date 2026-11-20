@@ -57,6 +57,20 @@ export function recordApiFeedRun(dataDir, results, {
       ok: Boolean(r.ok),
       skipped: Boolean(r.skipped),
       itemCount: Number(r.itemCount) || 0,
+      age: r.age ? {
+        dated: Number(r.age.dated) || 0,
+        undated: Number(r.age.undated) || 0,
+        min: Number.isFinite(r.age.min) ? r.age.min : null,
+        median: Number.isFinite(r.age.median) ? r.age.median : null,
+        p90: Number.isFinite(r.age.p90) ? r.age.p90 : null,
+        max: Number.isFinite(r.age.max) ? r.age.max : null,
+        buckets: {
+          d0_7: Number(r.age.buckets?.d0_7) || 0,
+          d7_30: Number(r.age.buckets?.d7_30) || 0,
+          d30_90: Number(r.age.buckets?.d30_90) || 0,
+          d90_plus: Number(r.age.buckets?.d90_plus) || 0,
+        },
+      } : null,
       error: trimErrorMessage(r.error),
       ms: Number(r.ms) || 0,
     };
@@ -91,6 +105,8 @@ function providerRank(key) {
   return index < 0 ? API_PROVIDER_ORDER.length : index;
 }
 
+
+
 /**
  * Build the payload consumed by the statistics card:
  * per-day provider totals plus the latest per-feed detail.
@@ -118,10 +134,27 @@ export function buildApiFeedPayload(dataDir, { days = API_HISTORY_DISPLAY_DAYS }
     const run = history.runs[date] ?? {};
     const feeds = Array.isArray(run.feeds) ? run.feeds : [];
     const providerCounts = {};
-    for (const provider of providers) providerCounts[provider.key] = 0;
-    for (const feed of feeds) {
-      const key = feed.fetcher || feed.provider;
-      if (key in providerCounts) providerCounts[key] += Number(feed.itemCount) || 0;
+    const providerAge = {};
+    for (const provider of providers) {
+      providerCounts[provider.key] = 0;
+      let weightedAge = 0;
+      let ageWeight = 0;
+      for (const feed of feeds) {
+        const key = feed.fetcher || feed.provider;
+        if (key === provider.key) {
+          providerCounts[provider.key] += Number(feed.itemCount) || 0;
+        }
+        if (key !== provider.key || feed.age?.median == null) continue;
+        // Item-weighted average of the exact per-feed medians. Unlike bucket
+        // interpolation this keeps very old feeds (e.g. 688d) visible.
+        const weight = Number(feed.age.dated) || Number(feed.itemCount) || 0;
+        if (!weight) continue;
+        weightedAge += Number(feed.age.median) * weight;
+        ageWeight += weight;
+      }
+      providerAge[provider.key] = ageWeight
+        ? Math.round((weightedAge / ageWeight) * 10) / 10
+        : null;
     }
     return {
       date,
@@ -129,6 +162,7 @@ export function buildApiFeedPayload(dataDir, { days = API_HISTORY_DISPLAY_DAYS }
       at: run.at ?? null,
       durationMs: Number(run.durationMs) || 0,
       providerCounts,
+      providerAge,
       totalItems: feeds.reduce((sum, feed) => sum + (Number(feed.itemCount) || 0), 0),
       ok: feeds.filter((feed) => feed.ok && !feed.skipped).length,
       failed: feeds.filter((feed) => !feed.ok && !feed.skipped).length,

@@ -70,6 +70,9 @@ test.describe('statistics page', () => {
     await expect(card.locator('.stat-body')).toContainText('OpenAlex — IEEE JSSC');
     await expect(card.locator('.stat-body')).toContainText('missing IEEE_XPLORE_API_KEY');
     await expect(card.locator('.stat-body')).toContainText('HTTP 500');
+    await expect(card.locator('.stat-body')).toContainText('median 12.4d');
+    await expect(card.locator('.stat-body')).toContainText('≤7d 21');
+    await expect(card.locator('.stat-body')).toContainText('Median item age by provider');
   });
 
   test('API feed card Generate refreshes history; Test APIs now sends live=1', async ({ page }) => {

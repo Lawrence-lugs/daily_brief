@@ -90,6 +90,8 @@ html.dark {
   text-align: left;
 }
 .stat-body td { overflow-wrap: anywhere; }
+.api-age { white-space: nowrap; font-size: 0.85em; }
+.api-age-sub { font-size: 0.85em; color: var(--stat-muted); }
 .stat-body th { background: var(--stat-btn-bg); color: var(--stat-card-fg); }
 .stat-body tr:nth-child(even) td { background: #faf9f6; }
 html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
@@ -142,4 +144,4 @@ html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
 .stat-card[data-card="pca_clusters"] { max-height: none; }
 .stat-card[data-card="api_feeds"] { max-height: none; }
 #plot-pca { height: 400px; }
-#plot-api-feeds { height: 240px; }
+#plot-api-feeds, #plot-api-age { height: 240px; }

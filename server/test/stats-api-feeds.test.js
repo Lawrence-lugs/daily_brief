@@ -9,6 +9,10 @@ import { recordApiFeedRun } from '../lib/api_feed_history.js';
 const openalex = {
   name: 'OpenAlex — IEEE JSSC', fetcher: 'openalex', provider: 'OpenAlex',
   ok: true, skipped: false, itemCount: 12, items: [{}],
+  age: {
+    dated: 3, undated: 0, min: 1, median: 12.4, p90: 30, max: 60,
+    buckets: { d0_7: 1, d7_30: 1, d30_90: 1, d90_plus: 0 },
+  },
   error: null, errorName: null, envVar: null, ms: 100,
 };
 
@@ -27,8 +31,10 @@ test('generate builds the card from recorded history', async () => {
     assert.deepEqual(payload.days.map((day) => day.date), ['2026-11-19', '2026-11-20']);
     assert.equal(payload.days[0].providerCounts.openalex, 5);
     assert.equal(payload.days[1].providerCounts.openalex, 9);
+    assert.equal(payload.days[1].providerAge.openalex, 12.4);
     assert.equal(payload.latest.source, 'live');
     assert.equal(payload.latest.feeds[0].itemCount, 9);
+    assert.equal(payload.latest.feeds[0].age.median, 12.4);
   } finally {
     rmSync(dataDir, { recursive: true, force: true });
   }

@@ -57,7 +57,7 @@ daily_brief/                      # project root
 
 - Card: `server/stats/cards/api_feeds.js`; renderer: `renderApiFeeds` in `server/public/statistics.js`; template card in `server/templates/statistics.html`.
 - History: `<dataDir>/stats/api_feeds_history.json`, one snapshot per UTC day (last 60 days, last-writer-wins). Written by the brief's detached `--refresh-api-feeds` worker (`server/lib/brief.js` → `refreshApiFeeds(..., { onResults })` → `recordApiFeedRun`) and by the card's **Test APIs now** action (`source: "live"`).
-- The chart groups item counts by API provider (`openalex`, `semanticscholar`, `ieeexplore`). The latest-run table shows per-feed ok / failed / skipped (e.g. missing `IEEE_XPLORE_API_KEY`). Live tests only count results; they do not upsert into `candidate_pool`.
+- The first chart groups item counts by API provider (`openalex`, `semanticscholar`, `ieeexplore`). The second chart shows median item age per provider (item-weighted average of per-feed medians) with a 7-day fresh reference line. The latest-run table shows per-feed ok / failed / skipped plus exact age median, ≤7d / ≤30d counts, max age, and undated count. Live tests only count results; they do not upsert into `candidate_pool`.
 
 ## Contract: where experiment-specific code lives
 

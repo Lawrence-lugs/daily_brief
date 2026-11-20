@@ -198,9 +198,9 @@ export class MockServer {
   apiFeedsPayload() {
     return {
       days: [
-        { date: '2026-11-18', source: 'brief', at: '2026-11-18T08:00:00Z', durationMs: 61000, providerCounts: { openalex: 80, semanticscholar: 12, ieeexplore: 0 }, totalItems: 92, ok: 5, failed: 1, skipped: 1 },
-        { date: '2026-11-19', source: 'brief', at: '2026-11-19T08:00:00Z', durationMs: 58000, providerCounts: { openalex: 95, semanticscholar: 10, ieeexplore: 0 }, totalItems: 105, ok: 5, failed: 1, skipped: 1 },
-        { date: '2026-11-20', source: 'live', at: '2026-11-20T10:00:00Z', durationMs: 54000, providerCounts: { openalex: 87, semanticscholar: 11, ieeexplore: 0 }, totalItems: 98, ok: 5, failed: 1, skipped: 1 },
+        { date: '2026-11-18', source: 'brief', at: '2026-11-18T08:00:00Z', durationMs: 61000, providerCounts: { openalex: 80, semanticscholar: 12, ieeexplore: 0 }, providerAge: { openalex: 14.2, semanticscholar: 8.4, ieeexplore: null }, totalItems: 92, ok: 5, failed: 1, skipped: 1 },
+        { date: '2026-11-19', source: 'brief', at: '2026-11-19T08:00:00Z', durationMs: 58000, providerCounts: { openalex: 95, semanticscholar: 10, ieeexplore: 0 }, providerAge: { openalex: 13.1, semanticscholar: 7.9, ieeexplore: null }, totalItems: 105, ok: 5, failed: 1, skipped: 1 },
+        { date: '2026-11-20', source: 'live', at: '2026-11-20T10:00:00Z', durationMs: 54000, providerCounts: { openalex: 87, semanticscholar: 11, ieeexplore: 0 }, providerAge: { openalex: 12.4, semanticscholar: 8.1, ieeexplore: null }, totalItems: 98, ok: 5, failed: 1, skipped: 1 },
       ],
       providers: [
         { key: 'openalex', name: 'OpenAlex' },
@@ -210,9 +210,16 @@ export class MockServer {
       latest: {
         date: '2026-11-20', source: 'live', at: '2026-11-20T10:00:00Z', durationMs: 54000,
         feeds: [
-          { name: 'OpenAlex — IEEE JSSC', fetcher: 'openalex', provider: 'OpenAlex', ok: true, skipped: false, itemCount: 87, error: null, ms: 1200 },
-          { name: 'IEEE Xplore — JSSC Early Access', fetcher: 'ieeexplore', provider: 'IEEE Xplore', ok: false, skipped: true, itemCount: 0, error: 'missing IEEE_XPLORE_API_KEY', ms: 0 },
-          { name: 'OpenAlex — CICC', fetcher: 'openalex', provider: 'OpenAlex', ok: false, skipped: false, itemCount: 0, error: 'HTTP 500', ms: 800 },
+          {
+            name: 'OpenAlex — IEEE JSSC', fetcher: 'openalex', provider: 'OpenAlex',
+            ok: true, skipped: false, itemCount: 87, error: null, ms: 1200,
+            age: {
+              dated: 87, undated: 0, min: 1.2, median: 12.4, p90: 40, max: 84,
+              buckets: { d0_7: 21, d7_30: 33, d30_90: 30, d90_plus: 3 },
+            },
+          },
+          { name: 'IEEE Xplore — JSSC Early Access', fetcher: 'ieeexplore', provider: 'IEEE Xplore', ok: false, skipped: true, itemCount: 0, age: null, error: 'missing IEEE_XPLORE_API_KEY', ms: 0 },
+          { name: 'OpenAlex — CICC', fetcher: 'openalex', provider: 'OpenAlex', ok: false, skipped: false, itemCount: 0, age: null, error: 'HTTP 500', ms: 800 },
         ],
         ok: 1, failed: 1, skipped: 1,
       },

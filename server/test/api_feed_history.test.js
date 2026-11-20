@@ -11,6 +11,10 @@ const results = [
   {
     name: 'OpenAlex — IEEE JSSC', fetcher: 'openalex', provider: 'OpenAlex',
     ok: true, skipped: false, itemCount: 10, items: [{ title: 'not persisted' }],
+    age: {
+      dated: 10, undated: 0, min: 1, median: 12.4, p90: 40, max: 84,
+      buckets: { d0_7: 2, d7_30: 5, d30_90: 3, d90_plus: 0 },
+    },
     error: null, errorName: null, envVar: null, ms: 100,
   },
   {
@@ -35,8 +39,10 @@ test('recordApiFeedRun persists one snapshot per day without the fetched items',
     assert.equal(snapshot.feeds.length, 3);
     assert.equal(snapshot.durationMs, 150);
     assert.equal(snapshot.feeds[0].itemCount, 10);
+    assert.equal(snapshot.feeds[0].age.median, 12.4);
+    assert.equal(snapshot.feeds[0].age.buckets.d7_30, 5);
+    assert.equal(snapshot.feeds[1].age, null);
     assert.ok(!('items' in snapshot.feeds[0]), 'items are not persisted');
-    assert.equal(snapshot.feeds[1].skipped, true);
     assert.equal(snapshot.feeds[2].error, 'HTTP 500');
 
     const onDisk = JSON.parse(readFileSync(apiFeedHistoryPath(dataDir), 'utf8'));
@@ -62,6 +68,9 @@ test('buildApiFeedPayload aggregates provider counts and latest run', () => {
       'openalex', 'semanticscholar', 'ieeexplore',
     ]);
     assert.equal(payload.days[0].providerCounts.openalex, 10);
+    assert.equal(payload.days[0].providerAge.openalex, 12.4);
+    assert.equal(payload.days[1].providerAge.openalex, 12.4);
+    assert.equal(payload.latest.feeds[0].age.median, 12.4);
     assert.equal(payload.days[1].providerCounts.openalex, 20);
     assert.equal(payload.days[1].providerCounts.semanticscholar, 5);
     assert.equal(payload.days[1].providerCounts.ieeexplore, 0);

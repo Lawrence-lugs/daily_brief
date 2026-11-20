@@ -213,6 +213,28 @@ function renderFeeds(body, payload) {
   body.innerHTML = html;
 }
 
+function formatAge(value, digits = 1) {
+  return value == null ? '—' : Number(value).toFixed(digits) + 'd';
+}
+
+function ageCellHtml(age) {
+  if (!age) return '—';
+  const buckets = age.buckets ?? {};
+  const fresh7 = Number(buckets.d0_7) || 0;
+  const fresh30 = fresh7 + (Number(buckets.d7_30) || 0);
+  const lines = [`<div>${age.median == null ? '—' : 'median ' + formatAge(age.median)}</div>`];
+  if (age.dated) {
+    lines.push(`<div class="api-age-sub">≤7d ${fresh7} · ≤30d ${fresh30}</div>`);
+  }
+  if (age.max != null) {
+    lines.push(`<div class="api-age-sub">max ${formatAge(age.max, 0)}</div>`);
+  }
+  if (age.undated) {
+    lines.push(`<div class="api-age-sub">${age.undated} undated</div>`);
+  }
+  return `<div class="api-age">${lines.join('')}</div>`;
+}
+
 function renderApiFeeds(body, payload) {
   const days = payload?.days ?? [];
   const providers = payload?.providers ?? [];
@@ -231,25 +253,28 @@ function renderApiFeeds(body, payload) {
   const dates = days.map((day) => day.date.slice(5));
   let html = '<div id="plot-api-feeds" class="plotly-graph-div"></div>';
   html += `<div class="caption" style="margin-top:0.35rem;font-size:0.8rem">Items returned per provider per recorded run (sum across feeds). Showing ${days.length} recorded day${days.length === 1 ? '' : 's'}.</div>`;
+  html += '<div id="plot-api-age" class="plotly-graph-div"></div>';
+  html += '<div class="caption" style="margin-top:0.35rem;font-size:0.8rem">Median item age by provider (item-weighted average of per-feed medians). Dashed line = 7-day fresh threshold.</div>';
 
   const feeds = [...(latest.feeds ?? [])].sort((a, b) => {
     const rank = (feed) => (feed.ok && !feed.skipped ? 0 : feed.skipped ? 1 : 2);
     return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
   });
   html += `<div class="caption" style="margin-top:0.75rem;font-size:0.85rem;color:var(--stat-muted)">Latest run: ${escapeHtml(latest.date)} (${escapeHtml(latest.source)}) — ${latest.ok} ok, ${latest.failed} failed, ${latest.skipped} skipped.</div>`;
-  html += '<table><thead><tr><th>Status</th><th>Items</th><th>Feed</th><th>Note</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>Status</th><th>Items</th><th>Age</th><th>Feed</th><th>Note</th></tr></thead><tbody>';
   for (const feed of feeds) {
     const flag = feed.ok && !feed.skipped ? '✅' : feed.skipped ? '⚠️' : '❌';
     const note = feed.error ? escapeHtml(feed.error) : '';
-    html += `<tr><td>${flag}</td><td>${feed.itemCount ?? 0}</td><td>${escapeHtml(feed.name)}</td><td>${note}</td></tr>`;
+    html += `<tr><td>${flag}</td><td>${feed.itemCount ?? 0}</td><td>${ageCellHtml(feed.age)}</td><td>${escapeHtml(feed.name)}</td><td>${note}</td></tr>`;
   }
   html += '</tbody></table>';
 
   body.innerHTML = html;
 
   if (typeof Plotly === 'undefined') {
-    const plot = body.querySelector('#plot-api-feeds');
-    if (plot) plot.textContent = 'Chart library unavailable.';
+    body.querySelectorAll('.plotly-graph-div').forEach((plot) => {
+      plot.textContent = 'Chart library unavailable.';
+    });
     return;
   }
 
@@ -268,6 +293,41 @@ function renderApiFeeds(body, payload) {
     xaxis: { type: 'category', tickangle: -45 },
     yaxis: { title: { text: 'Items returned' }, rangemode: 'tozero' },
     legend: { orientation: 'h', y: -0.3 },
+  }), { displayModeBar: false });
+
+  const hasAge = days.some((day) =>
+    Object.values(day.providerAge ?? {}).some((value) => value != null));
+  const agePlot = body.querySelector('#plot-api-age');
+  if (!hasAge) {
+    if (agePlot) agePlot.textContent = 'No age data recorded yet. Run a brief or click Test APIs now.';
+    return;
+  }
+
+  const theme = currentPlotTheme();
+  const ageTraces = providers.map((provider) => ({
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: provider.name,
+    x: dates,
+    y: days.map((day) => day.providerAge?.[provider.key] ?? null),
+    customdata: days.map((day) => day.date),
+    connectgaps: false,
+    hovertemplate: '%{customdata}<br>' + escapeHtml(provider.name) + ': %{y:.1f} days<extra></extra>',
+  }));
+
+  Plotly.newPlot('plot-api-age', ageTraces, themedLayout({
+    margin: { l: 44, r: 12, t: 8, b: 48 },
+    xaxis: { type: 'category', tickangle: -45 },
+    yaxis: { title: { text: 'Median age (days)' }, rangemode: 'tozero' },
+    legend: { orientation: 'h', y: -0.3 },
+    shapes: [{
+      type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 7, y1: 7,
+      line: { color: theme.line, dash: 'dot', width: 1 },
+    }],
+    annotations: [{
+      xref: 'paper', x: 1, y: 7, text: '7d fresh', showarrow: false,
+      xanchor: 'right', yanchor: 'bottom', font: { size: 10, color: theme.font },
+    }],
   }), { displayModeBar: false });
 }
 

@@ -204,6 +204,48 @@ function apiFetcherKey(spec) {
 }
 
 /**
+ * Summarize the publication ages of the items an API feed actually returned.
+ * Items with no usable published date are counted separately: the brief falls
+ * back to first_seen for those, so they would otherwise look artificially fresh.
+ */
+export function summarizeItemAges(items, now = new Date()) {
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  const ages = [];
+  let undated = 0;
+
+  for (const item of items ?? []) {
+    if (!item?.published) { undated += 1; continue; }
+    const published = item.published instanceof Date
+      ? item.published
+      : new Date(item.published);
+    if (Number.isNaN(published.getTime())) { undated += 1; continue; }
+    ages.push(Math.max(0, (nowMs - published.getTime()) / 86400000));
+  }
+
+  ages.sort((a, b) => a - b);
+  const at = (fraction) => ages.length
+    ? ages[Math.min(ages.length - 1, Math.floor(fraction * ages.length))]
+    : null;
+  const round = (value) => (value == null ? null : Math.round(value * 10) / 10);
+  const buckets = {
+    d0_7: ages.filter((age) => age <= 7).length,
+    d7_30: ages.filter((age) => age > 7 && age <= 30).length,
+    d30_90: ages.filter((age) => age > 30 && age <= 90).length,
+    d90_plus: ages.filter((age) => age > 90).length,
+  };
+
+  return {
+    dated: ages.length,
+    undated,
+    min: round(ages[0] ?? null),
+    median: round(at(0.5)),
+    p90: round(at(0.9)),
+    max: round(ages[ages.length - 1] ?? null),
+    buckets,
+  };
+}
+
+/**
  * Fetch every configured API feed, keeping one result per spec.
  *
  * Unlike refreshApiFeeds(), this does not throw on individual feed failures and
@@ -234,6 +276,7 @@ export async function fetchApiFeedsDetailed(cfg, src, {
       skipped: false,
       itemCount: 0,
       items: [],
+      age: null,
       error: null,
       errorName: null,
       envVar: spec.api_key_env ?? null,
@@ -261,6 +304,7 @@ export async function fetchApiFeedsDetailed(cfg, src, {
       result.ok = true;
       result.itemCount = got.length;
       result.items = got;
+      result.age = summarizeItemAges(got, now);
     } catch (e) {
       result.error = e?.message ?? String(e);
       result.errorName = e?.constructor?.name ?? 'Error';
