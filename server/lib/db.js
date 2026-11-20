@@ -36,6 +36,7 @@ export function connect(dbPath) {
     ['cluster_size', 'ALTER TABLE stories ADD COLUMN cluster_size INTEGER'],
     ['cluster_pool', 'ALTER TABLE stories ADD COLUMN cluster_pool INTEGER'],
     ['medoid_id', 'ALTER TABLE stories ADD COLUMN medoid_id TEXT'],
+    ['feed', 'ALTER TABLE candidate_pool ADD COLUMN feed TEXT'],
   ]) {
     try { conn.exec(ddl); } catch (e) {
       if (!String(e).includes('duplicate column name')) throw e;
@@ -117,17 +118,18 @@ export function upsertPool(conn, fresh, now) {
       if (!existing.has(it.id)) { added += 1; existing.add(it.id); }
       conn.prepare(`
         INSERT INTO candidate_pool
-          (item_id, url, title, snippet, published, source, source_type, subtopic, desk, rel, first_seen)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (item_id, url, title, snippet, published, source, feed, source_type, subtopic, desk, rel, first_seen)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(item_id) DO UPDATE SET
           rel = excluded.rel,
           subtopic = excluded.subtopic,
           desk = excluded.desk,
           source_type = excluded.source_type,
+          feed = COALESCE(candidate_pool.feed, excluded.feed),
           snippet = CASE WHEN candidate_pool.snippet = '' THEN excluded.snippet ELSE candidate_pool.snippet END
       `).run(
         it.id, it.url, it.title, it.snippet ?? '', it.published ?? null,
-        it.source, it.source_type ?? 'commentary', it.subtopic, it.desk,
+        it.source, it.feed ?? null, it.source_type ?? 'commentary', it.subtopic, it.desk,
         it.rel, now.toISOString(),
       );
       // Upsert authors into item_meta

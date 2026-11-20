@@ -13,6 +13,7 @@ import { fromBlob } from './vec.js';
 import { makeBackside, poolCountsByCluster } from './backside.js';
 import { loadConfig, EDITABLE_FILES, getDefaultsDir } from '../user/config.js';
 import { defaultDataDir } from '../user/datadir.js';
+import { cadenceMapFromSources } from './age.js';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const DB_FILE = resolve(__dirname, '..', 'daily_brief.db');
@@ -30,8 +31,21 @@ function loadConfigRanker() {
   return ranker;
 }
 
+let cadenceCache;
+/** Feed name -> cadence_days from <DATA_DIR>/sources.json; empty when unavailable. */
+function cadenceByFeed() {
+  if (cadenceCache === undefined) {
+    try {
+      cadenceCache = cadenceMapFromSources(loadConfig(DATA_DIR, 'sources.json'));
+    } catch {
+      cadenceCache = null;
+    }
+  }
+  return cadenceCache;
+}
+
+// overrides: ['a.b=c', 'x.y=2']
 function applyOverrides(cfg, overrides) {
-  // overrides: ['a.b=c', 'x.y=2']
   for (const ov of overrides) {
     const eq = ov.indexOf('=');
     if (eq === -1) continue;
@@ -102,7 +116,7 @@ async function cmdSelect(args) {
     }
     // Use deterministic time (noon on dateKey) for age calculation so same seed = same output
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run);
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run, cadenceByFeed());
     const rng = mulberry32(seed);
     const trace = run.want('trace') ? (kind, data) => run.event(kind, data, 'trace') : undefined;
     const samplingCfg = {
@@ -158,7 +172,7 @@ async function cmdSimulate(args) {
   try {
     const fittedResult = await ensureFitted(store, cfg, { persist: false, run, cutoffDate: args.date });
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now, run);
+    const candidates = prepareCandidates(store, cfg, fittedResult, args.date, now, run, cadenceByFeed());
     const { simulate } = await import('./simulate.js');
     const result = simulate(candidates, cfg.sampling, cfg.runs ?? 200, cfg.seed ?? 1);
     console.log(JSON.stringify(result, null, 2));
@@ -263,7 +277,7 @@ async function cmdPool(args) {
     }
     // Use deterministic time (noon on dateKey) for age calculation
     const now = new Date(args.date + 'T12:00:00.000Z');
-    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run);
+    const candidates = prepareCandidates(store, cfg, fitted, args.date, now, run, cadenceByFeed());
     
     // Compute V scores using the same config as sampling
     const samplingCfg = cfg.sampling || {};

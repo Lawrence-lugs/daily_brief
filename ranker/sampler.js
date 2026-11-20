@@ -22,7 +22,9 @@ export function shuffle(arr, rng) {
  * logistic repeat recovery. Never shown => no penalty.
  */
 export function value(c, cfg) {
-  const age = Math.max(0, c.age_days);
+  // Freshness is measured in feed cycles (see ranker/age.js). Feeds without a
+  // cadence_days are daily, so age_units === age_days and this is unchanged.
+  const age = Math.max(0, c.age_units ?? c.age_days);
 
   const fresh = cfg.freshness?.model === "exponential"
     ? Math.exp(-Math.LN2 * age / cfg.halfLifeDays)

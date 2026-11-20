@@ -5,6 +5,7 @@ Pure functions, no I/O. Behaviour matches the Python original.
 Item fields used:
   rel          float in (0,1]  base relevance
   age_days     float >= 0      computed by caller at selection time
+  age_units    float >= 0      optional: age in feed cycles; preferred over age_days when present
   subtopic     str
   times_shown  int
   rejected     int
@@ -32,12 +33,17 @@ function penalty(item, cfg) {
   return Math.pow(cfg.shown_decay, item.times_shown ?? 0) * Math.pow(cfg.rejected_decay, item.rejected ?? 0);
 }
 
+/** Age in the unit the legacy scorer uses: feed cycles when known, else days. */
+function ageOf(item) {
+  return item.age_units ?? item.age_days;
+}
+
 export function greedyScore(item, cfg) {
-  return item.rel * freshness(item.age_days, cfg) * penalty(item, cfg);
+  return item.rel * freshness(ageOf(item), cfg) * penalty(item, cfg);
 }
 
 export function exploreWeight(item, cfg) {
-  return item.rel * Math.pow(freshness(item.age_days, cfg), cfg.explore_gamma) * penalty(item, cfg);
+  return item.rel * Math.pow(freshness(ageOf(item), cfg), cfg.explore_gamma) * penalty(item, cfg);
 }
 
 function draw(pool, cfg, rng) {
@@ -128,5 +134,6 @@ export function pickReserves(candidates, takenIds, k, cfg, minimumTypes = null) 
 }
 
 export function kindOf(item, cfg) {
-  return item.age_days > cfg.archive_after_days ? 'archive' : 'fresh';
+  const age = item.age_units ?? item.age_days;
+  return age > cfg.archive_after_days ? 'archive' : 'fresh';
 }

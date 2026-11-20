@@ -36,6 +36,15 @@ test('greedyScore: monotonic in rel, penalized by age/shown/rejected', () => {
   assert.ok(greedyScore(item({ rejected: 3 }), cfg) < greedyScore(base, cfg));
 });
 
+test('greedyScore: uses age_units when present (feed cycles beat calendar days)', () => {
+  const cfg = { ...DEFAULTS };
+  const oldJournal = item({ age_days: 60, age_units: 2 });
+  const sameAgeDaily = item({ age_days: 60 });
+  assert.ok(greedyScore(oldJournal, cfg) > greedyScore(sameAgeDaily, cfg));
+  // one cycle old == one day old for the legacy scorer too
+  assert.equal(greedyScore(item({ age_days: 60, age_units: 1 }), cfg), greedyScore(item({ age_days: 1 }), cfg));
+});
+
 test('exploreWeight: penalizes age less aggressively than greedy', () => {
   const cfg = { ...DEFAULTS };
   const young = item({ age_days: 1 });
@@ -135,4 +144,13 @@ test('kindOf: archive after archive_after_days, fresh otherwise', () => {
   assert.equal(kindOf(item({ age_days: 7 }), cfg), 'fresh');
   assert.equal(kindOf(item({ age_days: 7.01 }), cfg), 'archive');
   assert.equal(kindOf(item({ age_days: 30 }), cfg), 'archive');
+});
+
+test('kindOf: prefers age_units (feed cycles) when present', () => {
+  const cfg = { ...DEFAULTS, archive_after_days: 7 };
+  // 60 calendar days, but only 2 monthly cycles => fresh
+  assert.equal(kindOf(item({ age_days: 60, age_units: 2 }), cfg), 'fresh');
+  assert.equal(kindOf(item({ age_days: 60, age_units: 8 }), cfg), 'archive');
+  // 0 units on a same-day journal item, even if the true age is large
+  assert.equal(kindOf(item({ age_days: 25, age_units: 0 }), cfg), 'fresh');
 });

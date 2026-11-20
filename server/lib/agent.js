@@ -8,6 +8,7 @@ result applier (applyEditorMulti, applyEditor).
 import { readFileSync, appendFileSync, existsSync as _existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { isPlaced } from './labels.js';
 
 const KEY_FILE = path.join(homedir(), '.config', 'openrouter.key');
 
@@ -200,7 +201,10 @@ function clip(v, n) {
 
 export function buildUserMessage(deskTitle, n, cands, today, keepCap = null) {
   const slim = cands.map(c => ({
-    id: c.id, kind: c.kind, subtopic: c.subtopic, source: c.source,
+    id: c.id, kind: c.kind,
+    // The legacy keyword label means nothing to the editor; only send a real one.
+    ...(isPlaced(c.subtopic) ? { subtopic: c.subtopic } : {}),
+    source: c.source,
     source_type: c.source_type ?? 'commentary',
     age_days: Math.round(c.age_days * 10) / 10,
     title: String(c.title ?? '').slice(0, 220),
@@ -222,7 +226,8 @@ export function buildUserMessageMulti(desks, n, candsByDesk, today, keepCap = nu
     const deskDesc = d.description ? ` — ${d.description}` : '';
     const cands = candsByDesk[deskKey] || [];
     const slim = cands.map(c => ({
-      id: c.id, desk: deskKey, kind: c.kind, subtopic: c.subtopic,
+      id: c.id, desk: deskKey, kind: c.kind,
+      ...(isPlaced(c.subtopic) ? { subtopic: c.subtopic } : {}),
       source: c.source, source_type: c.source_type ?? 'commentary',
       age_days: Math.round(c.age_days * 10) / 10,
       title: String(c.title ?? '').slice(0, 220),
@@ -289,7 +294,7 @@ export function applyEditorMulti(selectedByDesk, result, n) {
         if (have.has(c.id) || rej.has(c.id)) continue;
         stories.push({ ...c, headline: c.title.slice(0, 140),
           blurb: (c.snippet ?? '').slice(0, 320) || 'No summary available.',
-          why_care: '', tags: [c.subtopic], significance: 1, summarized: false });
+          why_care: '', tags: isPlaced(c.subtopic) ? [c.subtopic] : [], significance: 1, summarized: false });
       }
     }
     stories.splice(n);
@@ -343,7 +348,7 @@ export function applyEditor(cands, result, n) {
       if (have.has(c.id) || rej.has(c.id)) continue;
       stories.push({ ...c, headline: c.title.slice(0, 140),
         blurb: (c.snippet ?? '').slice(0, 320) || 'No summary available.',
-        why_care: '', tags: [c.subtopic], significance: 1, summarized: false });
+        why_care: '', tags: isPlaced(c.subtopic) ? [c.subtopic] : [], significance: 1, summarized: false });
     }
   }
   stories.splice(n);

@@ -5,7 +5,7 @@ import { wardCut, weightedMedoid } from './agglo.js';
 import { buildInterests, topDistances } from './interests.js';
 import { authorKey, authorKeys, encode } from './features.js';
 import { SparseBayesLogReg, auc } from './model.js';
-import { selectBrief, mulberry32 } from './sampler.js';
+import { selectBrief, mulberry32, value } from './sampler.js';
 import { assertVec, DIM, normalize } from './vec.js';
 import { codeHashes, openRun, resolveLevel } from './debuglog.js';
 import { readFileSync, rmSync } from 'node:fs';
@@ -253,6 +253,21 @@ const CFG = { epsilon: 0.25, halfLifeDays: 7, freshness: { model: 'logistic', st
   dedupe: { hardWindowDays: 2, t0: 7, scale: 2 }, explore: { gamma: 0.5, floor: 0.01 },
   stories_per_desk: 5, reserve_per_desk: 2 };
 const mk = (n, core, base) => Array.from({ length: n }, (_, i) => ({ id: `${core ? 'c' : 's'}${i}`, p: 0.2 + 0.05 * (i % 8), age_days: i, days_since_shown: null, cluster: base + (i % 3), core, desk: core ? 'primary' : 'science' }));
+
+test('value: freshness is measured in feed cycles when age_units is present', () => {
+  const cfg = { halfLifeDays: 30, freshness: { model: 'exponential' }, shown_decay: 0.05, dedupe: { t0: 7, scale: 2 } };
+  const base = { p: 0.4, days_since_shown: null, times_shown: 0 };
+  // Last month's issue (1 month at a 30d cadence) == yesterday's arXiv post.
+  const lastIssue = value({ ...base, age_days: 31, age_units: 1 }, cfg);
+  const yesterdaysPost = value({ ...base, age_days: 1 }, cfg);
+  assert.ok(Math.abs(lastIssue - yesterdaysPost) < 1e-12);
+  // ...and it is worth much more than a 31-day-old daily item.
+  assert.ok(lastIssue > value({ ...base, age_days: 31 }, cfg));
+  // 88 days at a 30d cadence is 2 cycles: still fresher than a week-old daily item.
+  assert.ok(value({ ...base, age_days: 88, age_units: 2 }, cfg) > value({ ...base, age_days: 7 }, cfg));
+  // No age_units => unchanged behaviour.
+  assert.equal(value({ ...base, age_days: 5 }, cfg), value({ ...base, age_days: 5, age_units: 5 }, cfg));
+});
 
 test('selectBrief: per-desk cap, no dupes, round-robin spreads clusters within desk', () => {
   const cands = [...mk(30, true, 0), ...mk(30, false, 10)];

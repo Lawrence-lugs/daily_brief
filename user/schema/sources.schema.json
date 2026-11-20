@@ -29,6 +29,7 @@
                 "content_type": { "type": "string" },
                 "api_key_env": { "type": "string" },
                 "lookback_days": { "type": "integer", "minimum": 1, "maximum": 365 },
+                "cadence_days": { "type": "integer", "minimum": 1, "maximum": 365, "description": "How often this feed publishes, in days. Freshness is scored in cycles of this length: floor(age_days / cadence_days). Omit for daily feeds (arXiv, news). Use 30 for a monthly journal, 90 for a quarterly one." },
                 "max_records": { "type": "integer", "minimum": 1, "maximum": 200 },
                 "max_pages": { "type": "integer", "minimum": 1, "maximum": 10 },
                 "source_id": { "type": "string" },
@@ -48,7 +49,8 @@
               "weight": { "type": "number", "minimum": 0 },
               "type": { "type": "string" },
               "default_subtopic": { "type": ["string", "null"] },
-              "kind": { "type": "string" }
+              "kind": { "type": "string" },
+              "cadence_days": { "type": "integer", "minimum": 1, "maximum": 365, "description": "How often this feed publishes, in days. Freshness is scored in cycles of this length: floor(age_days / cadence_days). Omit for daily feeds (arXiv, news). Use 30 for a monthly journal, 90 for a quarterly one." }
             }
           }
         }

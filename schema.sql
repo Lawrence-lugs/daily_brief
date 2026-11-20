@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS candidate_pool (
   title        TEXT NOT NULL,
   snippet      TEXT NOT NULL DEFAULT '',
   published    TEXT,
-  source       TEXT NOT NULL,
+  source       TEXT NOT NULL,                        -- display name (OpenAlex: the venue)
+  feed         TEXT,                                 -- spec name from sources.json (cadence key)
   source_type  TEXT NOT NULL DEFAULT 'commentary',   -- newslike | paperlike | researchlike | commentary
   subtopic     TEXT NOT NULL,
   desk         TEXT NOT NULL,

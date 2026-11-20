@@ -122,7 +122,7 @@ Key design principles:
 python src/brief.py
   │
   ├─► fetch_all()                 fetch RSS/arXiv/HN/etc. (HTTP cache: ~/.cache/daily_brief, 6 h TTL)
-  ├─► classify()                  keyword → subtopic + desk + rel  (off-topic items dropped)
+  ├─► classify()                  keyword → subtopic + desk + rel  (never drops; unplaced items keep subtopic 'unclassified' / desk 'misc')
   ├─► db.upsert_pool()            candidate_pool upsert + item_meta authors
   ├─► db.prune_pool()             drop items older than pool.max_age_days
   ├─► SELECTION (engine = config.ranker.engine)
@@ -202,8 +202,10 @@ Obsidian (obsidian/daily-brief.md)
 
 1. **Fetch**: `fetch_all()` gathers raw items from RSS/arXiv/HN/API feeds. Each item is deduplicated by 12-hex
    SHA1 prefix of its canonical URL.
-2. **Classify**: `classify()` matches keywords → assigns `subtopic`, `desk`, `rel`. Off-topic items are dropped
-   (the keyword gate stays even for the LR engine).
+2. **Classify**: `classify()` matches keywords → assigns `subtopic`, `desk`, `rel` and
+   never drops anything: every fetched item is admitted to the pool. Items the keyword groups cannot place are
+   stored as `subtopic='unclassified'`, `desk='misc'` with the minimum `rel`. `rel` is only a ranker feature now;
+   the fitted model is the selector.
 3. **Upsert**: `db.upsert_pool()` writes `candidate_pool` rows and `item_meta` (authors survive pool pruning).
 4. **Select**: Either the legacy keyword engine (Python) or the LR engine (Node ranker CLI) picks items per desk
    with mode (`greedy`/`explore`/`reserve`).

@@ -113,6 +113,33 @@ Identical training rows/labels/test split in both conditions; only the medoids (
 
 Excluding liked items from clustering **improved** fitted AUC (~0.05) — the opposite of naive expectation. Liked items are recent/personally-salient and pull medoids toward recent tastes, but the chronological holdout is future-dated, so those medoids generalize poorly. Perfect samples are durable anchors. Caveat: test set is small (n≈50); re-run on other dates to confirm significance.
 
+## Freshness: `cadence_days` and feed cycles
+
+A day is not the same unit for every feed. Each entry in `sources.json` (`feeds.api.*` and `feeds.rss`) may set `cadence_days` — an integer ≥ 1, default **1 (daily)**. Freshness is then scored in feed cycles, not days:
+
+```
+age_units = floor(age_days / cadence_days)      # ranker/age.js
+V = p * exp(-ln2 * age_units / halfLifeDays) * dedupe * shownPenalty
+```
+
+- `age_days` stays the **true** age: pruning (`pool.max_age_days`), statistics and the stats cards all use real days. `age_units` sits beside it (`ranker/pipeline.js` candidates, `brief.js` pool items) and drives `value()` (`ranker/sampler.js`) plus `kindOf` (`server/lib/selection.js`).
+- One consequence to keep in mind: **`halfLifeDays` now counts cycles.** At 30 with a 120-day pool window, a monthly journal only spans units 0–4, so freshness is a within-feed tiebreaker for journals and the prune window is the real gate. If journals ever dominate a desk, the lever is a per-feed half-life in issues — not a smaller `cadence_days` (which barely moves the 0–4 range).
+- New column `candidate_pool.feed` holds the **sources.json spec name**. This exists because OpenAlex sets `source` to the venue (`IEEE Journal of Solid-State Circuits`), which is not a config key. Fetchers stamp `item.feed = spec.name` (`server/lib/fetch/fetcher.js`, both the API-detail and `fetchAll` paths); `upsertPool` writes it and backfills NULLs via `COALESCE(candidate_pool.feed, excluded.feed)`; `db.connect()`'s try-ALTER loop adds the column.
+- Values in use: monthly IEEE journals (OpenAlex JSSC/TCAS-I/JETCAS/TCASAI and their RSS TOCs) 30; IEEE conference proceedings (ISSCC, VLSI, CICC, ESSCIRC, A-SSCC, RFIC) 90; ACM transactions 60; ACM Queue 45; CACM 30; Nature 7; Semantic Scholar and Xplore Early Access 14; SemiAnalysis/Next Platform 7; Chips and Cheese 14; arXiv, Hacker News and daily news sites omit it (default 1).
+- The values live in `user/defaults/sources.json` **and** in the live `<dataDir>/sources.json` — the defaults only seed a fresh data dir. `simulate/config/sources.json` is a separate copy for the Python tooling.
+
+## Pool admission: `classify()` is enrichment, not a gate
+
+**Nothing is filtered out of the pool.** `classify()` (`server/lib/brief.js`) used to `return null` for items without ≥2 keyword hits, and both call sites (`brief.main` and the `--refresh-api-feeds` worker) skipped those items — plus `deletePool()` retroactively removed already-stored rows that stopped classifying. That is gone: every fetched item is admitted.
+
+- Placement is unchanged for items the keyword groups recognise (≥2 hits, or a `hint` naming a keyword group).
+- Everything else is stored as `subtopic='unclassified'`, `desk='misc'`, `rel = 0.3 × source weight` (the minimum of the legacy formula). The markers live in `server/lib/labels.js` (`UNPLACED_SUBTOPIC`, `UNPLACED_DESK`, `isPlaced()`) and are re-exported from `brief.js`; they are in their own module because `brief.js` imports `agent.js`, so `agent.js` cannot import them back.
+- `subtopic` has exactly **one** functional consumer: the legacy keyword engine's per-desk filter (`brief.js` → `pool.filter(p => subTopics.includes(p.subtopic))` and `selection.js pickDesk`). The LR path never reads it — `prepareCandidates` takes desk from the nearest cluster. `candidate_pool.desk` is write-only for the same reason. Everywhere else `subtopic` is display metadata (`stories.subtopic`, search facet, story meta).
+- The marker is therefore stripped from the new-model surface: `agent.js` omits `subtopic` from the LLM candidate payload and writes `tags: []` for unplaced items, and `progress.js normalizeItem` does the same for live previews. Do not let `'unclassified'` into a prompt, a tag list or a facet bucket.
+- `rel` remains a ranker feature (`ranker/features.js`) but is no longer an admission test. The fitted model is the selector.
+- Consequence: the pool now holds the full candidate stream (measured on the live config: RSS 1453/1453 admitted vs 426/1453 before; OpenAlex 149/149 vs 80/149). `ensureEmbeddings` embeds every pool item, so expect a one-off embedding burst after the change and a larger (but bounded by `pool.max_age_days`) pool afterwards.
+- Do not reintroduce keyword-based admission. If noise becomes a problem, the lever is the model/clustering or a source-specific filter in `sources.json` — not the keyword table.
+
 ## Perfect-sample attributes: `core` vs `representative`
 
 These two boolean fields on perfect samples (`user/defaults/perfect_samples.json`, `user/schema/perfect_samples.schema.json`) serve different purposes, and only one is still behaviorally active.

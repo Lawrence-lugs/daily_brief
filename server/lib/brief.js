@@ -8,7 +8,7 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 
-import { connect, tx, loadPool, loadLikedIds, upsertPool, deletePool, prunePool,
+import { connect, tx, loadPool, loadLikedIds, upsertPool, prunePool,
   sameDayCounts, appendBrief } from './db.js';
 import { pickDesk, pickReserves, kindOf, DEFAULTS as SELECTION_DEFAULTS } from './selection.js';
 import { LLM, LLMUnavailable, buildUserMessageMulti, applyEditorMulti, applyEditor, setDebugLog } from './agent.js';
@@ -28,6 +28,7 @@ import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
 // Ranker (LR engine) imports — called in-process instead of spawning node ranker/cli.js
 import { Store as RankerStore } from '../../ranker/store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates } from '../../ranker/pipeline.js';
+import { ageUnits, cadenceFor, cadenceMapFromSources } from '../../ranker/age.js';
 import { mulberry32, selectBrief as rankerSelectBrief } from '../../ranker/sampler.js';
 import { makeBackside, poolCountsByCluster } from '../../ranker/backside.js';
 import { fromBlob } from '../../ranker/vec.js';
@@ -89,6 +90,21 @@ function termRegex(term) {
   return p;
 }
 
+/** Marker labels for items the keyword groups cannot place. Shared with
+ * agent.js (see labels.js); re-exported so callers keep importing from here. */
+import { UNPLACED_SUBTOPIC, UNPLACED_DESK } from './labels.js';
+export { UNPLACED_SUBTOPIC, UNPLACED_DESK };
+
+/**
+ * Enrich an item with `subtopic`, `desk` and `rel`, and ALWAYS admit it.
+ *
+ * This used to be the pool gate (`return null` dropped off-topic items before
+ * upsert). It no longer rejects anything: `rel` here is only the legacy keyword
+ * score (still a ranker feature), and the fitted model is the real selector.
+ * Items with no keyword signal are labelled `unclassified`/`misc` and get the
+ * minimum `rel`, so they sit in the pool without displacing classified items
+ * in the keyword desk buckets.
+ */
 export function classify(item, keywords, subtopicToDesk) {
   const title = String(item.title ?? '').toLowerCase();
   const body = String(item.snippet ?? '').toLowerCase();
@@ -103,14 +119,19 @@ export function classify(item, keywords, subtopicToDesk) {
   }
   const hint = item.hint;
   if (hint && hint in keywords) scores[hint] = (scores[hint] ?? 0) + 1.0;
-  if (!Object.keys(scores).length) return null;
-  const sub = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
-  const hits = scores[sub];
-  const onlyHint = hint === sub && hits <= 1.0;
-  const kw = onlyHint ? 0.3 : Math.min(1.0, hits / 4);
-  if (!hint && hits < 2) return null;
-  item.subtopic = sub;
-  item.desk = subtopicToDesk[sub];
+
+  const sub = Object.keys(scores).length
+    ? Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b)
+    : null;
+  const hits = sub ? scores[sub] : 0;
+  // A single stray term (or nothing at all) is not placement.
+  const placed = sub !== null && (hits >= 2 || hint === sub);
+  // Unchanged legacy formula, so the `rel` feature keeps its distribution.
+  const onlyHint = placed && hint === sub && hits <= 1.0;
+  const kw = placed ? (onlyHint ? 0.3 : Math.min(1.0, hits / 4)) : 0;
+
+  item.subtopic = placed ? sub : (hint || UNPLACED_SUBTOPIC);
+  item.desk = placed ? (subtopicToDesk[sub] ?? UNPLACED_DESK) : UNPLACED_DESK;
   item.rel = Math.round(Math.max(0.05, Math.min(1.0, item.weight * (0.3 + 0.7 * kw))) * 10000) / 10000;
   return item;
 }
@@ -119,6 +140,7 @@ export function classify(item, keywords, subtopicToDesk) {
 
 export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
   const rankerCfg = { ...(cfg.ranker ?? {}), perfect_samples_file: resolve(dataDir(), cfg.ranker?.perfect_samples_file ?? 'perfect_samples.json') };
+  const cadenceMap = cadenceMapFromSources(src);
   const store = new RankerStore(dbPath(cfg));
   try {
     await ensureEmbeddings(store, rankerCfg, { persist: true });
@@ -126,7 +148,7 @@ export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
     if (!fitted.interests) throw new Error('interests not built');
 
     const nowSelect = new Date(`${dateKey}T12:00:00.000Z`);
-    const candidates = prepareCandidates(store, rankerCfg, fitted, dateKey, nowSelect, run);
+    const candidates = prepareCandidates(store, rankerCfg, fitted, dateKey, nowSelect, run, cadenceMap);
 
     const rng = mulberry32(seed ?? Date.now());
     const samplingCfg = {
@@ -178,6 +200,7 @@ export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
           mergedItem[k] = rankerItem[k] ?? null;
         }
         mergedItem.age_days = ageDays(mergedItem, now);
+        mergedItem.age_units = ageUnits(mergedItem.age_days, cadenceFor(cadenceMap, mergedItem.feed));
         mergedItem.kind = kindOf(mergedItem, { ...SELECTION_DEFAULTS, ...(cfg.selection ?? {}) });
         merged.push(mergedItem);
       }
@@ -235,11 +258,7 @@ export async function main(flags = {}) {
       const items = await refreshApiFeeds(cfg, src, {
         onResults: (results) => recordApiFeedRun(dataDir(), results, { source: 'brief' }),
       });
-      const classified = [];
-      for (const it of items) {
-        const c = classify(it, cfg.keywords ?? {}, subtopicToDesk);
-        if (c) classified.push(c);
-      }
+      const classified = items.map((it) => classify(it, cfg.keywords ?? {}, subtopicToDesk));
       const now = new Date();
       upsertPool(conn, classified, now);
       prunePool(conn, now, maxAge);
@@ -273,19 +292,18 @@ export async function main(flags = {}) {
     }
     const raw = await fetchAll(cfg, src);
     const seen = {};
-    const dropped = new Set();
     for (const it of raw) {
+      // Enrichment only: every fetched item is admitted to the pool.
       const c = classify(it, cfg.keywords ?? {}, subtopicToDesk);
-      if (!c) { dropped.add(it.id); continue; }
       if (!seen[c.id] || c.rel > seen[c.id].rel) seen[c.id] = c;
     }
     const classified = Object.values(seen);
     const added = upsertPool(conn, classified, now);
-    deletePool(conn, [...dropped].filter(id => !seen[id]));
     prunePool(conn, now, maxAge);
-    log(`classified ${classified.length}/${raw.length} items, ${added} new in pool`);
+    log(`classify: admitted ${classified.length}/${raw.length} items, ${added} new in pool`);
   }
 
+  const cadenceMap = cadenceMapFromSources(src);
   let pool = loadPool(conn);
   if (!pool.length) {
     log('pool is empty (all sources failed?)');
@@ -300,6 +318,7 @@ export async function main(flags = {}) {
     p.times_shown = Math.max(0, p.times_shown - (sdShown[p.id] ?? 0));
     p.rejected = Math.max(0, p.rejected - (sdRej[p.id] ?? 0));
     p.age_days = ageDays(p, now);
+    p.age_units = ageUnits(p.age_days, cadenceFor(cadenceMap, p.feed));
   }
 
   // Exclude liked/saved

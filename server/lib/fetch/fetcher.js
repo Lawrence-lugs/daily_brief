@@ -301,6 +301,7 @@ export async function fetchApiFeedsDetailed(cfg, src, {
     const t0 = Date.now();
     try {
       const got = await fn(f, spec, { now });
+      for (const it of got) it.feed = spec.name;
       result.ok = true;
       result.itemCount = got.length;
       result.items = got;
@@ -348,6 +349,9 @@ export async function fetchAll(cfg, src) {
   async function run(label, fn, spec) {
     try {
       const got = await fn(f, spec);
+      // Tag every item with its feed spec name: OpenAlex reports the venue as `source`,
+      // so this is the only handle back to the sources.json entry (and its cadence_days).
+      for (const it of got) it.feed = spec.name;
       return [label, got, null];
     } catch (e) {
       return [label, [], `${e.constructor.name}: ${e.message}`];

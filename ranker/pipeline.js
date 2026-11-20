@@ -7,6 +7,7 @@ import { SparseBayesLogReg, MODELS, auc, logLoss } from './model.js';
 import { encode } from './features.js';
 import { topDistances } from './interests.js';
 import { assertVec } from './vec.js';
+import { ageUnits, cadenceFor } from './age.js';
 import { codeHashes, NULL_RUN } from './debuglog.js';
 import { resolve } from 'node:path';
 import { defaultDataDir } from '../user/datadir.js';
@@ -349,8 +350,9 @@ export async function ensureFitted(store, cfg, { persist = true, force = false, 
  * @param {{interests, model}} fitted
  * @param {string} dateKey - YYYY-MM-DD
  * @param {Date} now
+ * @param {Map<string, number>} [cadenceByFeed] - feed name -> cadence_days (see age.js)
  */
-export function prepareCandidates(store, cfg, { interests, model }, dateKey, now, run = NULL_RUN) {
+export function prepareCandidates(store, cfg, { interests, model }, dateKey, now, run = NULL_RUN, cadenceByFeed = null) {
   const { dim } = embeddingOf(cfg);
   const pool = store.getPool();
   const embeddings = store.getAllEmbeddings();
@@ -390,9 +392,10 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
     // Nearest cluster
     const { cid } = topDistances(interests, emb.vec, 1)[0];
     const core = interests.clusters[cid]?.core ?? false;
-    // Age in days
+    // Age in days, and in feed cycles (records the calendar, scores the rhythm)
     const firstSeen = item.first_seen ? Date.parse(item.first_seen) : null;
     const ageDays = Math.max(0, (now - (pubDate || firstSeen || now)) / 86400000);
+    const ageUnitsV = ageUnits(ageDays, cadenceFor(cadenceByFeed, item.feed));
     // Days since shown
     let daysSinceShown = null;
     const last = lastShown.get(item.id);
@@ -422,6 +425,8 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
       source_type: item.source_type,
       p: pred.p,
       age_days: ageDays,
+      age_units: ageUnitsV,
+      feed: item.feed ?? null,
       days_since_shown: daysSinceShown,
       times_shown: item.times_shown ?? 0,
       cluster: cid,

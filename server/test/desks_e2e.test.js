@@ -104,7 +104,7 @@ test('desks e2e: config validation warns on orphan keyword group', async () => {
 // ---------------------------------------------------------------------------
 
 test('desks e2e: classify maps keyword matches to desks via subtopicToDesk', async () => {
-  const { classify } = await import('../lib/brief.js');
+  const { classify, UNPLACED_SUBTOPIC, UNPLACED_DESK } = await import('../lib/brief.js');
   const { loadDesksConfig } = await import('../lib/config.js');
   const { DESKS, subtopicToDesk } = loadDesksConfig(join(ROOT, 'user', 'defaults'));
   const cfg = loadJson('user/defaults/config.json');
@@ -130,9 +130,12 @@ test('desks e2e: classify maps keyword matches to desks via subtopicToDesk', asy
     assert.equal(c.desk, 'science');
   }
 
-  // No keyword match -> null.
-  assert.equal(classify({ title: 'completely unrelated story', snippet: 'nothing here', weight: 1.0 },
-    cfg.keywords, subtopicToDesk), null);
+  // No keyword match -> admitted, but unplaced (previously rejected).
+  const unplaced = classify({ title: 'completely unrelated story', snippet: 'nothing here', weight: 1.0 },
+    cfg.keywords, subtopicToDesk);
+  assert.equal(unplaced.subtopic, UNPLACED_SUBTOPIC);
+  assert.equal(unplaced.desk, UNPLACED_DESK);
+  assert.equal(unplaced.rel, 0.3);
 
   // Hint boost assigns desk even on a single hit.
   const hinted = classify({ title: 'x', snippet: 'y', weight: 1.0, hint: 'neuro' }, cfg.keywords, subtopicToDesk);
@@ -141,7 +144,7 @@ test('desks e2e: classify maps keyword matches to desks via subtopicToDesk', asy
 });
 
 test('desks e2e: unassigned subtopic classifies but gets no desk (warning case)', async () => {
-  const { classify } = await import('../lib/brief.js');
+  const { classify, UNPLACED_DESK } = await import('../lib/brief.js');
   const { loadDesksConfig } = await import('../lib/config.js');
   const { mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
@@ -158,7 +161,9 @@ test('desks e2e: unassigned subtopic classifies but gets no desk (warning case)'
     const c = classify({ title: 'quantum computing', snippet: '', weight: 1.0 },
       { dse: ['transformer'], orphan: ['quantum'] }, subtopicToDesk);
     assert.equal(c.subtopic, 'orphan');
-    assert.equal(c.desk, undefined); // unassigned -> no desk (would land in misc bucket)
+    // Unassigned subtopics fall back to the misc desk (was undefined, which
+    // candidate_pool cannot store since desk is NOT NULL).
+    assert.equal(c.desk, UNPLACED_DESK);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

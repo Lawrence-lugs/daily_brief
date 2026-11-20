@@ -19,3 +19,6 @@ dist/
 docs/_site/
 test-results/
 playwright-report/
+
+# Agents
+.hier

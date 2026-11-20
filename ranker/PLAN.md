@@ -48,7 +48,10 @@ $$V = S\cdot e^{-\lambda A}\cdot L(\text{days since shown};t_0,s)$$
 3. **Cross-fitting** (`trainer.js`): liked items build the medoids, so their own $d_1\approx0$ leaks the label. Features of each example come from medoids built without that fold's liked items (K=5). Serving uses the full medoids.
 4. **`stop` vs `constrained`**: spec = `stop`. Risk: two near-duplicate perfect samples stop the merge very early and leave dozens of singleton "interests". The refit log must print cluster count, `stopHeight` and a size histogram. If it looks shredded, set `interests.mode = "constrained"` (never merges two clusters that each hold a perfect sample, but keeps merging the rest).
 5. **Desk mapping**: `primary` = core clusters (round robin), `science` = everything else. The desk titles still come from `sources.json`; you may want to retitle them.
-6. **Keyword gate stays**: `classify()` still drops off-topic items before they enter the pool, so embeddings never see them. Only the *sorting/scoring/sampling* changes.
+6. **Keyword gate removed**: `classify()` no longer drops anything. Every fetched item enters the pool, so the
+   embeddings (and the model) see the full candidate stream. Items the legacy keyword groups cannot place are
+   stored as `subtopic='unclassified'` / `desk='misc'` with the minimum `rel` (0.3 × source weight). `rel` stays a
+   model feature but is no longer an admission test; changing the keyword table can no longer delete pool rows.
 7. **Dropped**: `minimum_types` (newslike>=1, paperlike>=2). Type is now only a model feature. Add a quota back in `sampler.js` if the brief becomes all papers.
 8. **LLM no longer samples**: for `engine=lr`, the editor sees only the picks (not the reserves). Reserves are only used by `apply_editor` to backfill rejections. Needs a prompt tweak (phase 6).
 9. **A/B**: same-day regeneration supersedes the earlier brief (`counted=0`) and carries likes forward. So running keyword then lr on the same day is allowed, but counters/`training_examples` follow the last one. Fine for a temporary comparison.

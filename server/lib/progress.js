@@ -2,6 +2,7 @@
 // Story cards are rendered SERVER-side with the same templates as the real page (renderStory), so the
 // preview cards are pixel-identical to the final ones and the client needs no card templating.
 import { esc } from './render.js';
+import { isPlaced } from './labels.js';
 
 /** progress item (raw or edited) -> the story shape renderStory expects. story_id is '' on purpose:
  *  nothing is in the DB yet, so like/save/flip are disabled client-side (.is-preview). */
@@ -12,7 +13,9 @@ export function normalizeItem(it) {
     headline: it.headline || it.title || '',
     blurb: it.blurb || it.snippet || 'No summary available.',
     why_care: it.why_care ?? '',
-    tags: Array.isArray(it.tags) && it.tags.length ? it.tags : [it.subtopic].filter(Boolean),
+    tags: Array.isArray(it.tags) && it.tags.length
+      ? it.tags
+      : (isPlaced(it.subtopic) ? [it.subtopic] : []),
     summarized: !!it.summarized,
     kind: it.kind ?? 'fresh',
     age_days: Number(it.age_days) || 0,

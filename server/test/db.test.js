@@ -82,6 +82,21 @@ test('upsertPool / loadPool: inserts new, updates rel on conflict, sets id field
   assert.equal(loadPool(db)[0].rel, 0.9);
 });
 
+test('upsertPool: stores the feed name and backfills it on conflict', () => {
+  const db = freshDb();
+  const now = new Date('2026-01-01T12:00:00Z');
+  const base = { url: 'http://x/j1', title: 'J1', snippet: 'S', published: null, source: 'IEEE Journal of Solid-State Circuits', subtopic: 'ams', desk: 'primary', rel: 0.5 };
+  // First write has no feed (a row fetched before `feed` existed).
+  upsertPool(db, [{ ...base, id: 'j1' }], now);
+  assert.equal(loadPool(db)[0].feed, null);
+  // The next fetch knows the spec name and fills the hole.
+  upsertPool(db, [{ ...base, id: 'j1', feed: 'OpenAlex — IEEE JSSC' }], now);
+  assert.equal(loadPool(db)[0].feed, 'OpenAlex — IEEE JSSC');
+  // A later write must not overwrite it with null.
+  upsertPool(db, [{ ...base, id: 'j1' }], now);
+  assert.equal(loadPool(db)[0].feed, 'OpenAlex — IEEE JSSC');
+});
+
 test('loadLikedIds: returns liked/saved item ids', () => {
   const db = freshDb();
   const bid = addBriefRow(db, '2026-01-01');

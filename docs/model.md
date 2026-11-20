@@ -194,7 +194,15 @@ For each candidate item:
 1. **Score:** $S = \text{model.p}$ (like probability from the probit-approximated predictive).
 2. **Value:**
    $$V = S \cdot e^{-\lambda A} \cdot L(\text{days since shown})$$
-   where $\lambda = \ln 2 / \text{halfLifeDays}$ (default 7), and
+   where $\lambda = \ln 2 / \text{halfLifeDays}$ (default 30) and **$A$ is the item's age in feed cycles, not in days**.
+
+   Feeds publish at different rhythms, so a day is not the same unit everywhere. Each feed entry in `sources.json` may carry `cadence_days` (integer ≥ 1, default 1 = daily). The pipeline computes
+
+   $$A = \text{age\_units} = \left\lfloor \frac{\text{age\_days}}{\text{cadence\_days}} \right\rfloor$$
+
+   so a monthly journal's current issue is 0 units old (as fresh as today's arXiv post), last month's issue is 1 unit (as fresh as yesterday's arXiv post), and so on. With the default cadence, `age_units === age_days` and nothing changes. `age_days` is still recorded unchanged (pruning, statistics and the pool window use true days); `halfLifeDays` therefore counts *cycles*, so a monthly journal inside the 120-day pool window spans only units 0–4 and freshness acts as a within-feed tiebreaker rather than a gate. `kind` (`fresh` / `archive`, `server/lib/selection.js:kindOf`) uses the same units. The pool's `feed` column stores the sources.json spec name so an item can be mapped back to its cadence (OpenAlex reports the venue as `source`, which is not a config key). Helpers: `ranker/age.js`.
+
+   Then
    $$L = \text{dedupe(days since shown)} = \frac{1}{1 + e^{-(d - t_0)/\text{scale}}}$$
    with $t_0=7$, $\text{scale}=2$. The hard window (`hardWindowDays`, default 2) is applied separately:
    items shown within `hardWindowDays` are **filtered out before scoring** in `selectBrief`, not zeroed by the dedupe function.
