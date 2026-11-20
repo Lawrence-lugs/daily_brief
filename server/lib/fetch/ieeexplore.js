@@ -89,9 +89,11 @@ export function mapIEEEArticle(article, spec) {
   const title = String(article?.title ?? article?.article_title ?? '').trim();
   const articleNumber = article?.article_number == null ? '' : String(article.article_number);
   const doi = String(article?.doi ?? '').trim().replace(/^https?:\/\/doi\.org\//i, '');
-  const url = articleNumber
-    ? 'https://ieeexplore.ieee.org/document/' + encodeURIComponent(articleNumber)
-    : (doi ? 'https://doi.org/' + doi : (article?.abstract_url ?? article?.html_url ?? ''));
+  const url = doi
+    ? 'https://doi.org/' + doi
+    : (articleNumber
+      ? 'https://ieeexplore.ieee.org/document/' + encodeURIComponent(articleNumber)
+      : (article?.abstract_url ?? article?.html_url ?? ''));
   if (!title || !url) return null;
 
   const abstract = String(article.abstract ?? '').trim();

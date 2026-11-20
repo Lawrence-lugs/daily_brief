@@ -30,7 +30,9 @@
                 "api_key_env": { "type": "string" },
                 "lookback_days": { "type": "integer", "minimum": 1, "maximum": 365 },
                 "max_records": { "type": "integer", "minimum": 1, "maximum": 200 },
-                "max_pages": { "type": "integer", "minimum": 1, "maximum": 10 }
+                "max_pages": { "type": "integer", "minimum": 1, "maximum": 10 },
+                "source_id": { "type": "string" },
+                "per_page": { "type": "integer", "minimum": 1, "maximum": 100 }
               }
             }
           }
