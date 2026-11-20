@@ -59,7 +59,7 @@ test('buildIEEEQueryUrl requires exactly one publication selector', () => {
 
 test('mapIEEEArticle maps metadata, nested authors, nested keywords, hint, and publication date', () => {
   const item = mapIEEEArticle(article(123), spec);
-  assert.equal(item.url, 'https://ieeexplore.ieee.org/document/123');
+  assert.equal(item.url, 'https://doi.org/10.1109/JSSC.2026.123');
   assert.equal(item.title, 'A measured circuit paper 123');
   assert.equal(item.published, '2026-11-10T00:00:00.000Z');
   assert.deepEqual(item.authors, ['Ada Lovelace', 'Alan Turing']);
@@ -91,7 +91,7 @@ test('fetchIEEEItems fetches a rolling insertion-date window and paginates', asy
     apiKey: 'test-key', now: new Date('2026-11-15T14:00:00Z'),
   });
   assert.equal(items.length, 3);
-  assert.deepEqual(items.map(x => x.url), [1, 2, 3].map(n => 'https://ieeexplore.ieee.org/document/' + n));
+  assert.deepEqual(items.map(x => x.url), [1, 2, 3].map(n => 'https://doi.org/10.1109/JSSC.2026.' + n));
   assert.equal(urls.length, 2);
   assert.equal(throttles, 2);
   for (const url of urls) {
