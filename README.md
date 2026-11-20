@@ -77,27 +77,29 @@ The Electron window and the Obsidian iframe both load `http://127.0.0.1:4873/`, 
 brief and the same like/save marks**. The server is started once and reused by every entry point;
 closing the Electron window stops only a server that Electron itself started, never a pre-existing one.
 
-## IEEE Xplore Metadata API (optional)
+## OpenAlex scholarly sources (default)
 
-The source configuration retains the existing JSSC, TCAS-I, JETCAS, and TCASAI TOC RSS feeds. It adds Metadata API queries for Early Access papers from those publications and recent ISSCC, VLSI Circuits, CICC, ESSCIRC, A-SSCC, and RFIC proceedings.
+OpenAlex is the default scholarly metadata provider for the circuit-design venues. No account, institutional affiliation, or API key is required for ordinary use. The source list is venue-scoped, with one request per publication/source ID so high-volume journals do not crowd proceedings out of a combined result page.
 
-The Metadata API requires an IEEE-issued API key. Register at https://developer.ieee.org/ and store the key in `IEEE_XPLORE_API_KEY`; do not commit it to the repository.
+The default queries use a rolling 90-day publication-date window, sort newest first, and request up to 100 works per venue. This is deliberate: OpenAlex's free API does not expose its created/updated-date sync filters, so the rolling publication window is a best-effort discovery strategy rather than a complete change stream. Each source can be tuned with `lookback_days`, `per_page`, and `max_pages` in `sources.json`.
+
+An optional free API key increases the daily usage budget. Set `OPENALEX_API_KEY` in the environment; anonymous operation continues to work without it.
 
 ```powershell
-$env:IEEE_XPLORE_API_KEY = "your-key"
+$env:OPENALEX_API_KEY = "your-key"
 npm run brief -- --refresh-api-feeds
 ```
 
 ```sh
-export IEEE_XPLORE_API_KEY="your-key"
+export OPENALEX_API_KEY="your-key"
 npm run brief -- --refresh-api-feeds
 ```
 
-Queries use a 30-day overlapping insertion-date window, request up to 200 records per page, and cap each publication at three pages by default. Repeated refreshes are safe because IEEE document URLs are stable and the candidate pool deduplicates by URL-derived ID. The API key is sent to IEEE as a query parameter and must be kept secret.
+IEEE Xplore remains optional Early Access enrichment for JSSC, TCAS-I, JETCAS, and TCASAI. It is only queried when `IEEE_XPLORE_API_KEY` is configured; the OpenAlex source list already covers the corresponding journals and conference proceedings.
 
-New data directories receive the updated defaults automatically. For an existing installation, merge `feeds.api.ieeexplore` from `user/defaults/sources.json` into the active `sources.json`, and merge the `ams` keyword/subtopic additions from `user/defaults/config.json` into the active `config.json`.
+For existing installations, merge `feeds.api.openalex` from `user/defaults/sources.json` into the active `sources.json` and merge the additional `ams` terms from `user/defaults/config.json` into the active `config.json`. The previous IEEE conference API queries can be removed; the four Early Access queries may be retained as optional enrichment.
 
-IEEE must approve API-key access, and its API terms govern what content may be retrieved and displayed. Confirm that your deployment and audience are covered before enabling this source on a publicly accessible instance. The API returns metadata/abstracts, not full text.
+OpenAlex returns bibliographic metadata and reconstructed abstracts, not publisher full text. The OpenAlex record's `created_date` is retained on transient fetched items for diagnostics, but the existing candidate-pool schema continues to use publication date and first-seen date for ranking.
 ## Selection Engines
 
 Two selection engines are available via `config.ranker.engine` or `--engine` flag:

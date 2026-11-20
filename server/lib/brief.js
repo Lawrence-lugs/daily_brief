@@ -21,6 +21,7 @@ import { fetchAll, refreshApiFeeds, setCacheResolver , iterFeedSpecs } from './f
 import { startApiRefreshWorker } from './api_refresh.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
 import './fetch/ieeexplore.js'; // side-effect: registers IEEE Xplore API fetcher
+import './fetch/openalex.js'; // side-effect: registers OpenAlex API fetcher
 import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
 
 // Ranker (LR engine) imports — called in-process instead of spawning node ranker/cli.js
