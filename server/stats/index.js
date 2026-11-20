@@ -8,6 +8,7 @@ import { loadConfig } from '../../user/config.js';
 import { Store } from '../../ranker/store.js';
 import { NULL_RUN } from '../../ranker/debuglog.js';
 import { sourceHash as feedsSourceHash, generate as feedsGenerate } from './cards/feeds.js';
+import { sourceHash as apiFeedsSourceHash, generate as apiFeedsGenerate } from './cards/api_feeds.js';
 import { sourceHash as pvHistSourceHash, generate as pvHistGenerate } from './cards/pv_hist.js';
 import { sourceHash as lrMetricsSourceHash, generate as lrMetricsGenerate } from './cards/lr_metrics.js';
 import { sourceHash as pcaClustersSourceHash, generate as pcaClustersGenerate } from './cards/pca_clusters.js';
@@ -19,6 +20,7 @@ export const RESTRICTED_PREFIX = '/api/restricted';
 
 const CARDS = {
   feeds: { sourceHash: feedsSourceHash, generate: feedsGenerate },
+  api_feeds: { sourceHash: apiFeedsSourceHash, generate: apiFeedsGenerate },
   pv_hist: { sourceHash: pvHistSourceHash, generate: pvHistGenerate },
   lr_metrics: { sourceHash: lrMetricsSourceHash, generate: lrMetricsGenerate },
   pca_clusters: { sourceHash: pcaClustersSourceHash, generate: pcaClustersGenerate },
@@ -52,14 +54,16 @@ export async function getStats(cardId, dataDir = defaultDataDir()) {
 }
 
 /** POST /api/restricted/stats/:cardId/generate -> stored card object. Throws on error (caller sets status). */
-export async function generateStats(cardId, dataDir = defaultDataDir()) {
+export async function generateStats(cardId, dataDir = defaultDataDir(), options = {}) {
   const card = CARDS[cardId];
   if (!card) throw Object.assign(new Error('unknown stats card'), { status: 404 });
   if (generating.has(cardId)) throw Object.assign(new Error('a generation is already running for this card'), { status: 409 });
   generating.add(cardId);
   try {
+    const payload = await card.generate(dataDir, options);
+    // Hash after generate: some cards (API health, LR metrics) write the inputs
+    // their sourceHash covers, so hashing first would mark them outdated at once.
     const currentSourceHash = await card.sourceHash(dataDir);
-    const payload = await card.generate(dataDir);
     return writeCard(cardId, { sourceHash: currentSourceHash, payload }, dataDir);
   } finally {
     generating.delete(cardId);

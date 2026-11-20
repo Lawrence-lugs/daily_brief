@@ -195,6 +195,32 @@ export class MockServer {
     this.installRoutes();
   }
 
+  apiFeedsPayload() {
+    return {
+      days: [
+        { date: '2026-11-18', source: 'brief', at: '2026-11-18T08:00:00Z', durationMs: 61000, providerCounts: { openalex: 80, semanticscholar: 12, ieeexplore: 0 }, totalItems: 92, ok: 5, failed: 1, skipped: 1 },
+        { date: '2026-11-19', source: 'brief', at: '2026-11-19T08:00:00Z', durationMs: 58000, providerCounts: { openalex: 95, semanticscholar: 10, ieeexplore: 0 }, totalItems: 105, ok: 5, failed: 1, skipped: 1 },
+        { date: '2026-11-20', source: 'live', at: '2026-11-20T10:00:00Z', durationMs: 54000, providerCounts: { openalex: 87, semanticscholar: 11, ieeexplore: 0 }, totalItems: 98, ok: 5, failed: 1, skipped: 1 },
+      ],
+      providers: [
+        { key: 'openalex', name: 'OpenAlex' },
+        { key: 'semanticscholar', name: 'Semantic Scholar' },
+        { key: 'ieeexplore', name: 'IEEE Xplore' },
+      ],
+      latest: {
+        date: '2026-11-20', source: 'live', at: '2026-11-20T10:00:00Z', durationMs: 54000,
+        feeds: [
+          { name: 'OpenAlex — IEEE JSSC', fetcher: 'openalex', provider: 'OpenAlex', ok: true, skipped: false, itemCount: 87, error: null, ms: 1200 },
+          { name: 'IEEE Xplore — JSSC Early Access', fetcher: 'ieeexplore', provider: 'IEEE Xplore', ok: false, skipped: true, itemCount: 0, error: 'missing IEEE_XPLORE_API_KEY', ms: 0 },
+          { name: 'OpenAlex — CICC', fetcher: 'openalex', provider: 'OpenAlex', ok: false, skipped: false, itemCount: 0, error: 'HTTP 500', ms: 800 },
+        ],
+        ok: 1, failed: 1, skipped: 1,
+      },
+      windowDays: 30,
+      recordedDays: 3,
+    };
+  }
+
   installRoutes() {
     const { page } = this;
     page.route('**/*', (route, request) => this.handle(route, request));
@@ -300,6 +326,18 @@ export class MockServer {
           currentSourceHash: 'abc123',
         });
       }
+      if (cardId === 'api_feeds') {
+        return this.json(route, 200, {
+          card: {
+            cardId: 'api_feeds',
+            generatedAt: '2026-11-20T10:00:00.000Z',
+            sourceHash: 'api123',
+            payload: this.apiFeedsPayload(),
+          },
+          outdated: false,
+          currentSourceHash: 'api123',
+        });
+      }
       // Any other card: not generated yet.
       return this.json(route, 200, { card: null, outdated: true, currentSourceHash: 'x' });
     }
@@ -308,10 +346,12 @@ export class MockServer {
     const mStatsGen = pathname.match(/^\/api\/restricted\/stats\/([^/]+)\/generate$/);
     if (mStatsGen && method === 'POST') {
       const cardId = mStatsGen[1];
-      this.statsGenerateCalls.push({ cardId });
+      this.statsGenerateCalls.push({ cardId, live: sp.get('live') === '1' });
       let payload = {};
       if (cardId === 'lr_metrics') {
         payload = { cutoffDate: '2026-11-01', tags: [{ tag: 'leaf-mt:q8', prior: { auc: 0.5, logLoss: 0.69 }, keyword: { auc: 0.88, logLoss: 0.38 }, fitted: { auc: 0.70, logLoss: 0.37 } }] };
+      } else if (cardId === 'api_feeds') {
+        payload = this.apiFeedsPayload();
       } else if (cardId === 'clusters') {
         payload = { nClusters: 2, clusters: [
           { cluster: 0, medoid: 'ps:1', medoidTitle: 'Sample paper', likedCount: 3, poolCount: 4, size: 7 },

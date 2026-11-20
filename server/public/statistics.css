@@ -89,6 +89,7 @@ html.dark {
   padding: 0.35rem 0.5rem;
   text-align: left;
 }
+.stat-body td { overflow-wrap: anywhere; }
 .stat-body th { background: var(--stat-btn-bg); color: var(--stat-card-fg); }
 .stat-body tr:nth-child(even) td { background: #faf9f6; }
 html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
@@ -112,8 +113,11 @@ html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
   margin-top: 0.75rem;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
-.stat-generate {
+.stat-generate, .stat-live {
   background: var(--stat-btn-bg);
   color: var(--stat-card-fg);
   border: 1px solid var(--stat-card-line);
@@ -123,16 +127,19 @@ html.dark .stat-body tr:nth-child(even) td { background: #151f2b; }
   cursor: pointer;
   font-family: inherit;
 }
-.stat-generate:disabled {
+.stat-live { background: transparent; }
+.stat-generate:disabled, .stat-live:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.stat-generate:hover:not(:disabled) {
+.stat-generate:hover:not(:disabled), .stat-live:hover:not(:disabled) {
   background: var(--stat-btn-hover);
   border-color: var(--stat-accent);
 }
-.stat-generate:focus-visible { outline: 2px solid var(--stat-accent); }
+.stat-generate:focus-visible, .stat-live:focus-visible { outline: 2px solid var(--stat-accent); }
 
 .plotly-graph-div { width: 100%; height: 300px; }
 .stat-card[data-card="pca_clusters"] { max-height: none; }
+.stat-card[data-card="api_feeds"] { max-height: none; }
 #plot-pca { height: 400px; }
+#plot-api-feeds { height: 240px; }

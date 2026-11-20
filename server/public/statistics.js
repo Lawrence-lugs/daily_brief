@@ -75,6 +75,7 @@ if (tb) tb.onclick = () => {
 
 const RENDERERS = {
   feeds: renderFeeds,
+  api_feeds: renderApiFeeds,
   pv_hist: renderPvHist,
   lr_metrics: renderLrMetrics,
   pca_clusters: renderPcaClusters,
@@ -139,26 +140,37 @@ function renderCard(el, id, data) {
   else body.textContent = '(no renderer for ' + id + ')';
 }
 
-async function onGenerate(el) {
+function setCardBusy(el, busy) {
+  el.querySelectorAll('.stat-action button').forEach((button) => {
+    button.disabled = busy;
+  });
+}
+
+async function onGenerate(el, { live = false } = {}) {
   const id = el.dataset.card;
-  const btn = el.querySelector('.stat-generate');
   const body = el.querySelector('.stat-body');
-  btn.disabled = true;
-  body.textContent = 'Generating…';
+  setCardBusy(el, true);
+  body.textContent = live
+    ? 'Fetching API feeds… this can take a minute.'
+    : 'Generating…';
   try {
-    const res = await fetch(generateUrl(id), { method: 'POST', headers: { 'X-Brief-Client': '1' } });
+    const res = await fetch(generateUrl(id) + (live ? '?live=1' : ''), {
+      method: 'POST',
+      headers: { 'X-Brief-Client': '1' },
+    });
     if (!res.ok) {
       let errMsg = `Error ${res.status}`;
       try { const e = await res.json(); if (e.error) errMsg = e.error; } catch {}
       body.textContent = errMsg;
-      btn.disabled = false;
+      setCardBusy(el, false);
       return;
     }
     const data = await res.json();
     renderCard(el, id, { card: data, outdated: false, currentSourceHash: data.sourceHash });
+    setCardBusy(el, false);
   } catch (e) {
     body.textContent = e.message || 'Generation failed';
-    btn.disabled = false;
+    setCardBusy(el, false);
   }
 }
 
@@ -166,6 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-card]').forEach((el) => loadCard(el));
   document.querySelectorAll('.stat-generate').forEach((btn) => {
     btn.addEventListener('click', () => onGenerate(btn.closest('[data-card]')));
+  });
+  document.querySelectorAll('.stat-live').forEach((btn) => {
+    btn.addEventListener('click', () => onGenerate(btn.closest('[data-card]'), { live: true }));
   });
 });
 
@@ -196,6 +211,64 @@ function renderFeeds(body, payload) {
   }
   html += '</tbody></table>';
   body.innerHTML = html;
+}
+
+function renderApiFeeds(body, payload) {
+  const days = payload?.days ?? [];
+  const providers = payload?.providers ?? [];
+
+  if (!days.length) {
+    body.textContent = 'No API runs recorded yet. Run a brief or click Test APIs now.';
+    return;
+  }
+
+  const latest = payload.latest;
+  if (!latest || !(latest.feeds ?? []).length) {
+    body.textContent = 'No API feeds configured.';
+    return;
+  }
+
+  const dates = days.map((day) => day.date.slice(5));
+  let html = '<div id="plot-api-feeds" class="plotly-graph-div"></div>';
+  html += `<div class="caption" style="margin-top:0.35rem;font-size:0.8rem">Items returned per provider per recorded run (sum across feeds). Showing ${days.length} recorded day${days.length === 1 ? '' : 's'}.</div>`;
+
+  const feeds = [...(latest.feeds ?? [])].sort((a, b) => {
+    const rank = (feed) => (feed.ok && !feed.skipped ? 0 : feed.skipped ? 1 : 2);
+    return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
+  });
+  html += `<div class="caption" style="margin-top:0.75rem;font-size:0.85rem;color:var(--stat-muted)">Latest run: ${escapeHtml(latest.date)} (${escapeHtml(latest.source)}) — ${latest.ok} ok, ${latest.failed} failed, ${latest.skipped} skipped.</div>`;
+  html += '<table><thead><tr><th>Status</th><th>Items</th><th>Feed</th><th>Note</th></tr></thead><tbody>';
+  for (const feed of feeds) {
+    const flag = feed.ok && !feed.skipped ? '✅' : feed.skipped ? '⚠️' : '❌';
+    const note = feed.error ? escapeHtml(feed.error) : '';
+    html += `<tr><td>${flag}</td><td>${feed.itemCount ?? 0}</td><td>${escapeHtml(feed.name)}</td><td>${note}</td></tr>`;
+  }
+  html += '</tbody></table>';
+
+  body.innerHTML = html;
+
+  if (typeof Plotly === 'undefined') {
+    const plot = body.querySelector('#plot-api-feeds');
+    if (plot) plot.textContent = 'Chart library unavailable.';
+    return;
+  }
+
+  const traces = providers.map((provider) => ({
+    type: 'bar',
+    name: provider.name,
+    x: dates,
+    y: days.map((day) => day.providerCounts?.[provider.key] ?? 0),
+    customdata: days.map((day) => day.date),
+    hovertemplate: '%{customdata}<br>' + escapeHtml(provider.name) + ': %{y} items<extra></extra>',
+  }));
+
+  Plotly.newPlot('plot-api-feeds', traces, themedLayout({
+    barmode: 'group',
+    margin: { l: 44, r: 12, t: 8, b: 56 },
+    xaxis: { type: 'category', tickangle: -45 },
+    yaxis: { title: { text: 'Items returned' }, rangemode: 'tozero' },
+    legend: { orientation: 'h', y: -0.3 },
+  }), { displayModeBar: false });
 }
 
 function renderPvHist(body, payload) {

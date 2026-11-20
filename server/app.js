@@ -213,7 +213,8 @@ export function createApp({ root, port, onShutdown, dataDir, basePath: optBasePa
         }
         if ((m = routePath.match(/^\/api\/restricted\/stats\/([^/]+)\/generate$/))) {
           try {
-            const stored = await generateStats(m[1], dbDir);
+            const live = url.searchParams.get('live') === '1';
+            const stored = await generateStats(m[1], dbDir, { live });
             return json(res, 200, stored);
           } catch (e) {
             return json(res, e.status ?? 500, { error: e.message });

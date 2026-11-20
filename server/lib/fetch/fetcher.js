@@ -36,13 +36,15 @@ export class Throttler {
 }
 
 export class Fetcher {
-  constructor(cfg) {
+  constructor(cfg, { noCache = false } = {}) {
     this.cfg = cfg;
+    this.noCache = noCache;
     this._throttle = new Throttler(cfg.api_delay_s ?? 0);
     this._cacheDir = cacheDir();
     mkdir(this._cacheDir, { recursive: true }).catch(() => {});
   }
   async get(url, useCache = true, headers = null) {
+    if (this.noCache) useCache = false;
     const hash = crypto.createHash('sha1').update(url).digest('hex');
     const cacheFile = join(this._cacheDir, hash + '.txt');
     const ttl = (this.cfg.cache_ttl_hours ?? 6) * 3600 * 1000;
@@ -187,27 +189,107 @@ export function* iterFeedSpecs(feeds) {
   }
 }
 
-export async function refreshApiFeeds(cfg, src) {
-  const f = new Fetcher(cfg.fetch);
-  const items = [];
-  for (const spec of iterFeedSpecs(src.feeds ?? {})) {
+export const API_PROVIDER_NAMES = {
+  openalex: 'OpenAlex',
+  semanticscholar: 'Semantic Scholar',
+  ieeexplore: 'IEEE Xplore',
+};
+
+export function apiProviderName(key) {
+  return API_PROVIDER_NAMES[key] ?? key;
+}
+
+function apiFetcherKey(spec) {
+  return spec.fetcher || String(spec.source ?? '').toLowerCase().replace(/\s+/g, '_');
+}
+
+/**
+ * Fetch every configured API feed, keeping one result per spec.
+ *
+ * Unlike refreshApiFeeds(), this does not throw on individual feed failures and
+ * keeps the item count/error for diagnostics (the statistics API-health card).
+ * @returns {Promise<Array<{
+ *   name: string, fetcher: string, provider: string,
+ *   ok: boolean, skipped: boolean, itemCount: number,
+ *   items: Array, error: string|null, errorName: string|null, envVar: string|null, ms: number
+ * }>>}
+ */
+export async function fetchApiFeedsDetailed(cfg, src, {
+  now = new Date(),
+  env = process.env,
+  noCache = false,
+  makeFetcher = () => new Fetcher(cfg?.fetch ?? {}, { noCache }),
+} = {}) {
+  const f = makeFetcher();
+  const results = [];
+
+  for (const spec of iterFeedSpecs(src?.feeds ?? {})) {
     if (spec.kind !== 'api') continue;
-    const key = spec.fetcher || String(spec.source ?? '').toLowerCase().replace(/\s+/g, '_');
-    if (spec.api_key_env && !process.env[spec.api_key_env]) {
-      console.log('API skipped ' + spec.name + ': set ' + spec.api_key_env + ' to enable');
+    const key = apiFetcherKey(spec);
+    const result = {
+      name: spec.name ?? key,
+      fetcher: key,
+      provider: apiProviderName(key),
+      ok: false,
+      skipped: false,
+      itemCount: 0,
+      items: [],
+      error: null,
+      errorName: null,
+      envVar: spec.api_key_env ?? null,
+      ms: 0,
+    };
+
+    if (spec.api_key_env && !env[spec.api_key_env]) {
+      result.skipped = true;
+      result.error = 'missing ' + spec.api_key_env;
+      results.push(result);
       continue;
     }
+
     const fn = API_FETCHERS[key];
     if (!fn) {
-      console.warn(`no api fetcher registered for ${key}; skipping ${spec.name}`);
+      result.skipped = true;
+      result.error = 'no fetcher registered for ' + key;
+      results.push(result);
       continue;
     }
+
+    const t0 = Date.now();
     try {
-      const got = await fn(f, spec);
-      items.push(...got);
-      console.log(`API refreshed ${spec.name}: ${got.length} items`);
+      const got = await fn(f, spec, { now });
+      result.ok = true;
+      result.itemCount = got.length;
+      result.items = got;
     } catch (e) {
-      console.warn(`API source ${spec.name} failed (${e.constructor.name}: ${e.message})`);
+      result.error = e?.message ?? String(e);
+      result.errorName = e?.constructor?.name ?? 'Error';
+    } finally {
+      result.ms = Date.now() - t0;
+    }
+    results.push(result);
+  }
+
+  return results;
+}
+
+export async function refreshApiFeeds(cfg, src, { onResults, ...options } = {}) {
+  const results = await fetchApiFeedsDetailed(cfg, src, options);
+  if (typeof onResults === 'function') {
+    try { await onResults(results); }
+    catch (e) { console.warn(`could not record API feed results: ${e.message}`); }
+  }
+
+  const items = [];
+  for (const r of results) {
+    if (r.skipped) {
+      console.log('API skipped ' + r.name + ': '
+        + (r.envVar ? 'set ' + r.envVar + ' to enable' : r.error));
+    } else if (r.ok) {
+      items.push(...r.items);
+      console.log(`API refreshed ${r.name}: ${r.itemCount} items`);
+    } else {
+      console.warn(`API source ${r.name} failed (${r.errorName}: ${r.error})`);
     }
   }
   console.log('API background refresh complete');

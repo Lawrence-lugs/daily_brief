@@ -18,6 +18,7 @@ import { log, warn, setLogFile, LOG_FILE } from './util.js';
 import { loadDesksConfig } from './config.js';
 import { loadConfig } from '../../user/config.js';
 import { fetchAll, refreshApiFeeds, setCacheResolver , iterFeedSpecs } from './fetch/fetcher.js';
+import { recordApiFeedRun } from './api_feed_history.js';
 import { startApiRefreshWorker } from './api_refresh.js';
 import './fetch/semanticscholar.js'; // side-effect: registers S2 API fetcher
 import './fetch/ieeexplore.js'; // side-effect: registers IEEE Xplore API fetcher
@@ -231,7 +232,9 @@ export async function main(flags = {}) {
   // --- background API refresh mode ---
   if (flags.refreshApiFeeds) {
     try {
-      const items = await refreshApiFeeds(cfg, src);
+      const items = await refreshApiFeeds(cfg, src, {
+        onResults: (results) => recordApiFeedRun(dataDir(), results, { source: 'brief' }),
+      });
       const classified = [];
       for (const it of items) {
         const c = classify(it, cfg.keywords ?? {}, subtopicToDesk);

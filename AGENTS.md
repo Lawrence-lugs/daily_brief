@@ -53,6 +53,12 @@ daily_brief/                      # project root
 - Each config file has a **Form** view (jedison) and a **JSON** view backed by a plain `<textarea>` (no editor dependency). Invalid JSON blocks switching back to Form and blocks Save; a **Format** button pretty-prints. The JSON view is per file.
 - `POST /api/config/:file/reset` restores `user/defaults/<file>` through `saveConfig()` (validate → backup → atomic write → cache invalidation). The UI requires a two-step, verbose confirmation and refreshes the editor from the returned default data.
 
+## Statistics: API feed health (`api_feeds`)
+
+- Card: `server/stats/cards/api_feeds.js`; renderer: `renderApiFeeds` in `server/public/statistics.js`; template card in `server/templates/statistics.html`.
+- History: `<dataDir>/stats/api_feeds_history.json`, one snapshot per UTC day (last 60 days, last-writer-wins). Written by the brief's detached `--refresh-api-feeds` worker (`server/lib/brief.js` → `refreshApiFeeds(..., { onResults })` → `recordApiFeedRun`) and by the card's **Test APIs now** action (`source: "live"`).
+- The chart groups item counts by API provider (`openalex`, `semanticscholar`, `ieeexplore`). The latest-run table shows per-feed ok / failed / skipped (e.g. missing `IEEE_XPLORE_API_KEY`). Live tests only count results; they do not upsert into `candidate_pool`.
+
 ## Contract: where experiment-specific code lives
 
 **Experiment-specific helper scripts live in `simulate/experiments/`, NOT in `ranker/` or the main build.**

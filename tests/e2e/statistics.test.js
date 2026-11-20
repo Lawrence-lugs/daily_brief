@@ -15,16 +15,17 @@ test.describe('statistics page', () => {
     await page.click('#sb-statistics', { force: true });
     await expect(page).toHaveURL(/\/statistics/);
     await page.waitForSelector('#stats-grid');
-    await expect(page.locator('.stat-card')).toHaveCount(5);
+    await expect(page.locator('.stat-card')).toHaveCount(6);
   });
 
-  test('four cards are present, each with a Generate button', async ({ page }) => {
+  test('six cards are present, each with a Generate button', async ({ page }) => {
     const mock = new MockServer(page);
     await page.goto(`${baseUrl}/statistics`);
     await page.waitForSelector('#stats-grid');
 
     const cards = [
       ['feeds', 'Feed health'],
+      ['api_feeds', 'API feed health'],
       ['pv_hist', 'p / V score histograms'],
       ['lr_metrics', 'LR model metrics'],
       ['pca_clusters', 'Clustering (UMAP)'],
@@ -35,8 +36,8 @@ test.describe('statistics page', () => {
       await expect(card).toBeVisible();
       await expect(card.locator('h2')).toHaveText(title);
       await expect(card.locator('.stat-generate')).toBeVisible();
-      if (cardId === 'lr_metrics') {
-        // Mock returns pre-generated data for lr_metrics.
+      if (cardId === 'lr_metrics' || cardId === 'api_feeds') {
+        // Mock returns pre-generated data for these cards.
         await expect(card.locator('.stat-body')).not.toHaveText('Not generated yet');
       } else {
         await expect(card.locator('.stat-body')).toContainText('Not generated yet');
@@ -57,6 +58,36 @@ test.describe('statistics page', () => {
     await expect(card.locator('.stat-meta')).toContainText('Generated');
     await expect(mock.statsGenerateCalls).toHaveLength(1);
     expect(mock.statsGenerateCalls[0].cardId).toBe('lr_metrics');
+  });
+
+  test('API feed card renders the chart summary and latest run table', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/statistics`);
+    await page.waitForSelector('[data-card="api_feeds"]');
+
+    const card = page.locator('[data-card="api_feeds"]');
+    await expect(card.locator('.stat-body')).toContainText('Latest run: 2026-11-20');
+    await expect(card.locator('.stat-body')).toContainText('OpenAlex — IEEE JSSC');
+    await expect(card.locator('.stat-body')).toContainText('missing IEEE_XPLORE_API_KEY');
+    await expect(card.locator('.stat-body')).toContainText('HTTP 500');
+  });
+
+  test('API feed card Generate refreshes history; Test APIs now sends live=1', async ({ page }) => {
+    const mock = new MockServer(page);
+    await page.goto(`${baseUrl}/statistics`);
+    await page.waitForSelector('[data-card="api_feeds"]');
+
+    const card = page.locator('[data-card="api_feeds"]');
+    await card.locator('.stat-generate').click();
+    await expect.poll(() => mock.statsGenerateCalls.length).toBe(1);
+    expect(mock.statsGenerateCalls[0]).toEqual({ cardId: 'api_feeds', live: false });
+    await expect(card.locator('.stat-generate')).toBeEnabled();
+    await expect(card.locator('.stat-body')).toContainText('Latest run: 2026-11-20');
+
+    await card.locator('.stat-live').click();
+    await expect.poll(() => mock.statsGenerateCalls.length).toBe(2);
+    expect(mock.statsGenerateCalls[1]).toEqual({ cardId: 'api_feeds', live: true });
+    await expect(card.locator('.stat-live')).toBeEnabled();
   });
 
   test('generate request goes to /api/restricted/ path', async ({ page }) => {
