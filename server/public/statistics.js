@@ -356,6 +356,22 @@ function renderLrMetrics(body, payload) {
   body.innerHTML = html;
 }
 
+// Hover labels for the clustering plot: the title comes first (clipped when
+// long), then metadata such as the group and cluster. Perfect-sample ids (ps:N)
+// are metadata too, so they go at the very end instead of replacing the title.
+const HOVER_TITLE_MAX = 72;
+
+function clipTitle(title, max = HOVER_TITLE_MAX) {
+  const text = String(title ?? '');
+  return text.length > max ? text.slice(0, max).trimEnd() + '...' : text;
+}
+
+function hoverLabel(title, id, parts) {
+  const meta = [...parts];
+  if (String(id ?? '').startsWith('ps:')) meta.push(String(id));
+  return `${clipTitle(title)} (${meta.join(', ')})`;
+}
+
 function renderPcaClusters(body, payload) {
   const { points, medoids, k, explainedVariance } = payload;
   const v1 = explainedVariance && explainedVariance[0] != null ? (explainedVariance[0] * 100).toFixed(1) : null;
@@ -370,7 +386,7 @@ function renderPcaClusters(body, payload) {
     return {
       type: 'scatter', mode: 'markers', name: 'cluster ' + cid,
       x: pts.map((pt) => pt.x), y: pts.map((pt) => pt.y),
-      text: pts.map((pt) => escapeHtml(pt.title) + ' (' + escapeHtml(pt.group) + ')'),
+      text: pts.map((pt) => escapeHtml(hoverLabel(pt.title, pt.id, [pt.group]))),
       hoverinfo: 'text', marker: { size: 6 },
     };
   });
@@ -378,14 +394,14 @@ function renderPcaClusters(body, payload) {
   traces.unshift({
     type: 'scatter', mode: 'markers', name: 'pool',
     x: poolPts.map((pt) => pt.x), y: poolPts.map((pt) => pt.y),
-    text: poolPts.map((pt) => escapeHtml(pt.title) + ' (pool, cluster ' + pt.cluster + ')'),
+    text: poolPts.map((pt) => escapeHtml(hoverLabel(pt.title, pt.id, ['pool', 'cluster ' + pt.cluster]))),
     hoverinfo: 'text', marker: { size: 5, color: '#9ca3af', opacity: 0.6 },
   });
   traces.push({
     type: 'scatter', mode: 'markers+text', name: 'medoids',
     x: medoids.map((m) => m.x), y: medoids.map((m) => m.y),
     text: medoids.map((m) => 'C' + m.cluster), textposition: 'top center',
-    hovertext: medoids.map((m) => escapeHtml(m.title) + ' (medoid, ' + m.size + ' items)'), hoverinfo: 'text',
+    hovertext: medoids.map((m) => escapeHtml(hoverLabel(m.title, m.id, ['medoid', m.size + ' items']))), hoverinfo: 'text',
     marker: { symbol: 'x', size: 14, color: currentPlotTheme().marker },
   });
   Plotly.newPlot('plot-umap', traces, themedLayout({

@@ -26,7 +26,7 @@ function openStore(dataDir) {
 function readPerfect(dataDir) {
   const cfg = loadConfig(dataDir, 'config.json') ?? {};
   try {
-    return JSON.parse(readFileSync(resolvePsFile(cfg.ranker ?? {}), 'utf8'));
+    return JSON.parse(readFileSync(resolvePsFile(cfg.ranker ?? {}, dataDir), 'utf8'));
   } catch {
     return [];
   }

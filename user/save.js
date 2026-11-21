@@ -46,6 +46,29 @@ export function assignPerfectSampleIds(samples) {
   return samples;
 }
 
+/** Ids that appear on more than one perfect sample.
+ *
+ * The form locks `id`, but the raw JSON view can still set it. Two samples
+ * sharing an id would share one `ps:<id>` embedding row (last writer wins), so
+ * duplicates are rejected instead of silently accepted.
+ *
+ * @param {Array<object>} samples
+ * @returns {Array<{id: string, indexes: number[]}>}
+ */
+export function duplicatePerfectSampleIds(samples) {
+  if (!Array.isArray(samples)) return [];
+  const byId = new Map();
+  samples.forEach((row, i) => {
+    if (!row || typeof row !== 'object' || typeof row.id !== 'string' || row.id === '') return;
+    const seen = byId.get(row.id);
+    if (seen) seen.push(i);
+    else byId.set(row.id, [i]);
+  });
+  return [...byId.entries()]
+    .filter(([, indexes]) => indexes.length > 1)
+    .map(([id, indexes]) => ({ id, indexes }));
+}
+
 /** Save a config file for fileName in dataDir.
  * @param {string} dataDir   per-user data directory
  * @param {string} fileName  one of EDITABLE_FILES
@@ -64,6 +87,19 @@ export function saveConfig(dataDir, fileName, newData) {
     const result = validate(schema, normalized);
     if (!result.valid) {
       return { ok: false, errors: result.errors };
+    }
+  }
+
+  if (fileName === 'perfect_samples.json') {
+    const duplicates = duplicatePerfectSampleIds(normalized);
+    if (duplicates.length > 0) {
+      return {
+        ok: false,
+        errors: duplicates.map(({ id, indexes }) => ({
+          path: indexes.map((i) => `[${i}].id`).join(', '),
+          message: `duplicate id "${id}" — every perfect sample needs its own id (it keys its embedding as ps:${id})`,
+        })),
+      };
     }
   }
 

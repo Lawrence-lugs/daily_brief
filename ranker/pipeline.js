@@ -14,9 +14,9 @@ import { defaultDataDir } from '../user/datadir.js';
 
 const DATA_DIR = defaultDataDir();
 
-export function resolvePsFile(cfg) {
+export function resolvePsFile(cfg, dataDir = DATA_DIR) {
   const psFile = cfg.perfect_samples_file || 'perfect_samples.json';
-  return psFile && !pathIsAbsolute(psFile) ? resolve(DATA_DIR, psFile) : psFile;
+  return psFile && !pathIsAbsolute(psFile) ? resolve(dataDir, psFile) : psFile;
 }
 function pathIsAbsolute(p) {
   return p.startsWith('/') || (p.length > 1 && p[1] === ':') || p.startsWith('\\\\');

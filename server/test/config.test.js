@@ -197,3 +197,36 @@ test('saveConfig: rejects a non-string perfect-sample id', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('saveConfig: rejects duplicate perfect-sample ids from the JSON view', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ps-id-test-'));
+  try {
+    writeFileSync(join(dir, 'perfect_samples.json'), '[]');
+    const result = saveConfig(dir, 'perfect_samples.json', [
+      { id: '3', title: 'A', snippet: 'a', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+      { id: '1', title: 'B', snippet: 'b', type: 'paperlike', core: false, representative: false, desk: 'science' },
+      { id: '3', title: 'C', snippet: 'c', type: 'paperlike', core: false, representative: false, desk: 'science' },
+    ]);
+    assert.equal(result.ok, false);
+    assert.match(result.errors[0].message, /duplicate id "3"/);
+    // Nothing was written, so the stored file is untouched.
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, 'perfect_samples.json'), 'utf8')), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('saveConfig: accepts unique custom perfect-sample ids', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ps-id-test-'));
+  try {
+    writeFileSync(join(dir, 'perfect_samples.json'), '[]');
+    const result = saveConfig(dir, 'perfect_samples.json', [
+      { id: 'zigzag', title: 'A', snippet: 'a', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+      { id: '7', title: 'B', snippet: 'b', type: 'paperlike', core: false, representative: false, desk: 'science' },
+    ]);
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.deepEqual(result.data.map((r) => r.id), ['zigzag', '7']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
