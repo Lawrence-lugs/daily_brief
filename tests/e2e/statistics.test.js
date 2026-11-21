@@ -15,10 +15,10 @@ test.describe('statistics page', () => {
     await page.click('#sb-statistics', { force: true });
     await expect(page).toHaveURL(/\/statistics/);
     await page.waitForSelector('#stats-grid');
-    await expect(page.locator('.stat-card')).toHaveCount(6);
+    await expect(page.locator('.stat-card')).toHaveCount(7);
   });
 
-  test('six cards are present, each with a Generate button', async ({ page }) => {
+  test('seven cards are present, each with a Generate button', async ({ page }) => {
     const mock = new MockServer(page);
     await page.goto(`${baseUrl}/statistics`);
     await page.waitForSelector('#stats-grid');
@@ -30,6 +30,7 @@ test.describe('statistics page', () => {
       ['lr_metrics', 'LR model metrics'],
       ['pca_clusters', 'Clustering (UMAP)'],
       ['clusters', 'Cluster members'],
+      ['sessions', 'Unique sessions'],
     ];
     for (const [cardId, title] of cards) {
       const card = page.locator(`[data-card="${cardId}"]`);

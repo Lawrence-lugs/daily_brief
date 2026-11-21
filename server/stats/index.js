@@ -13,6 +13,7 @@ import { sourceHash as pvHistSourceHash, generate as pvHistGenerate } from './ca
 import { sourceHash as lrMetricsSourceHash, generate as lrMetricsGenerate } from './cards/lr_metrics.js';
 import { sourceHash as pcaClustersSourceHash, generate as pcaClustersGenerate } from './cards/pca_clusters.js';
 import { sourceHash as clustersSourceHash, generate as clustersGenerate } from './cards/clusters.js';
+import { sourceHash as sessionsSourceHash, generate as sessionsGenerate } from './cards/sessions.js';
 
 import { resolve } from 'node:path';
 
@@ -25,6 +26,7 @@ const CARDS = {
   lr_metrics: { sourceHash: lrMetricsSourceHash, generate: lrMetricsGenerate },
   pca_clusters: { sourceHash: pcaClustersSourceHash, generate: pcaClustersGenerate },
   clusters: { sourceHash: clustersSourceHash, generate: clustersGenerate },
+  sessions: { sourceHash: sessionsSourceHash, generate: sessionsGenerate },
 };
 
 // In-memory guard: a card can only generate once at a time (409 otherwise).

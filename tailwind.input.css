@@ -1,7 +1,7 @@
 /* Source for tailwind.css. Rebuild ONLY when you add or change utility classes in templates/ or
    brief.py:   powershell -File build_css.ps1
    Normal daily runs never touch this. */
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @source "./server/templates";
 @source "./server/public/client.js";
 
@@ -156,13 +156,13 @@
     inset -1px -1px 0 var(--glyph-hi);
 }
 
-/* Save: checkmark mask fitted to the middle square */
+/* Save: bookmark ribbon mask fitted to the middle square */
 .btn-save {
-  --check-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --bookmark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1.5h8v13L6 11.2 2 14.5z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='miter'/%3E%3C/svg%3E");
 }
 
 .btn-save[aria-pressed="true"] {
-  --check-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z' fill='black'/%3E%3C/svg%3E");
+  --bookmark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1h8v14L6 11.7 2 15z' fill='black'/%3E%3C/svg%3E");
 }
 
 .save-mark {
@@ -181,20 +181,20 @@
 .save-mark::before {
   content: "";
   display: block;
-  width: 1.2rem;
+  width: 0.95rem;
   height: 1.2rem;
   background: currentColor;
-  -webkit-mask: var(--check-off) center / contain no-repeat;
-          mask: var(--check-off) center / contain no-repeat;
+  -webkit-mask: var(--bookmark) center / contain no-repeat;
+          mask: var(--bookmark) center / contain no-repeat;
 }
 
-/* Like: bookmark ribbon mask fitted to the middle square */
+/* Like: Bootstrap star, outline when idle and filled when active */
 .btn-like {
-  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1.5h8v13L6 11.2 2 14.5z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='miter'/%3E%3C/svg%3E");
+  --star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.56.56 0 0 0-.163-.505L1.71 6.745l4.052-.576a.53.53 0 0 0 .393-.288L8 2.223l1.847 3.658a.53.53 0 0 0 .393.288l4.052.575-2.906 2.77a.56.56 0 0 0-.163.506l.694 3.957-3.686-1.894a.5.5 0 0 0-.461 0z' fill='black'/%3E%3C/svg%3E");
 }
 
 .btn-like[aria-pressed="true"] {
-  --ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M2 1h8v14L6 11.7 2 15z' fill='black'/%3E%3C/svg%3E");
+  --star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z' fill='black'/%3E%3C/svg%3E");
 }
 
 .like-mark {
@@ -213,11 +213,11 @@
 .like-mark::before {
   content: "";
   display: block;
-  width: 0.95rem;
+  width: 1.2rem;
   height: 1.2rem;
   background: currentColor;
-  -webkit-mask: var(--ribbon) center / contain no-repeat;
-          mask: var(--ribbon) center / contain no-repeat;
+  -webkit-mask: var(--star) center / contain no-repeat;
+          mask: var(--star) center / contain no-repeat;
 }
 
 /* ===== Generation panel: perceived-performance UI for brief generation =====

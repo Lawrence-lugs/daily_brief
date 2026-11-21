@@ -80,6 +80,7 @@ const RENDERERS = {
   lr_metrics: renderLrMetrics,
   pca_clusters: renderPcaClusters,
   clusters: renderClusters,
+  sessions: renderSessions,
 };
 
 const escapeHtml = (s) => String(s ?? '')
@@ -403,4 +404,57 @@ function renderClusters(body, payload) {
   }
   html += '</tbody></table>';
   body.innerHTML = html;
+}
+
+function renderSessions(body, payload) {
+  const {
+    sessions = [], nSessions = 0, totalLikes = 0, totalSaves = 0,
+    likeDist = { x: [], y: [] }, saveDist = { x: [], y: [] },
+  } = payload ?? {};
+
+  if (!nSessions) {
+    body.textContent = 'No sessions recorded yet.';
+    return;
+  }
+
+  let html = `<div class="caption" style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--stat-muted)">${nSessions} unique session${nSessions === 1 ? '' : 's'} — ${totalLikes} like${totalLikes === 1 ? '' : 's'}, ${totalSaves} save${totalSaves === 1 ? '' : 's'}. Showing up to ${sessions.length} most active.</div>`;
+  html += '<table><thead><tr><th>Session</th><th>Likes</th><th>Saves</th><th>Total</th></tr></thead><tbody>';
+  for (const s of sessions) {
+    html += `<tr><td><code>${escapeHtml(s.sessionId)}</code></td><td>${s.likes}</td><td>${s.saves}</td><td>${s.total}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  html += '<div id="plot-sessions" class="plotly-graph-div" style="margin-top:0.75rem"></div>';
+  html += '<div class="caption" style="margin-top:0.35rem;font-size:0.8rem">Sessions by number of likes or saves. Only sessions with at least one like or save are listed.</div>';
+  body.innerHTML = html;
+
+  if (typeof Plotly === 'undefined') {
+    body.querySelectorAll('.plotly-graph-div').forEach((plot) => {
+      plot.textContent = 'Chart library unavailable.';
+    });
+    return;
+  }
+
+  const categories = [...new Set([...likeDist.x, ...saveDist.x])].sort((a, b) => a - b);
+
+  Plotly.newPlot('plot-sessions', [
+    {
+      type: 'bar', name: 'Likes', x: likeDist.x, y: likeDist.y,
+      hovertemplate: '%{x} like(s): %{y} session(s)<extra></extra>',
+    },
+    {
+      type: 'bar', name: 'Saves', x: saveDist.x, y: saveDist.y,
+      hovertemplate: '%{x} save(s): %{y} session(s)<extra></extra>',
+    },
+  ], themedLayout({
+    barmode: 'group',
+    margin: { l: 44, r: 12, t: 8, b: 52 },
+    xaxis: {
+      type: 'category',
+      categoryorder: 'array',
+      categoryarray: categories.map(String),
+      title: { text: 'Likes or saves per session', standoff: 8 },
+    },
+    yaxis: { title: { text: 'Sessions' }, rangemode: 'tozero', dtick: 1 },
+    legend: { orientation: 'h', y: -0.28 },
+  }), { displayModeBar: false });
 }

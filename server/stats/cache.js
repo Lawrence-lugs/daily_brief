@@ -5,7 +5,7 @@ import { writeFileSync, renameSync, existsSync, readFileSync, unlinkSync, mkdirS
 import { join } from 'node:path';
 import { defaultDataDir } from '../../user/datadir.js';
 
-const CARD_IDS = new Set(['feeds', 'api_feeds', 'pv_hist', 'lr_metrics', 'pca_clusters', 'clusters']);
+const CARD_IDS = new Set(['feeds', 'api_feeds', 'pv_hist', 'lr_metrics', 'pca_clusters', 'clusters', 'sessions']);
 
 /** Resolve the stats directory, creating it if needed. */
 function statsDir(dataDir) {
