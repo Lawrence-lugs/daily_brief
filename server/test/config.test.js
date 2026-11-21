@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadDesksConfig } from '../lib/config.js';
-import { resetConfig } from '../../user/save.js';
+import { resetConfig, saveConfig } from '../../user/save.js';
 import { readFileSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -139,6 +139,60 @@ test('resetConfig: rejects unknown config files', () => {
     const result = resetConfig(dir, 'nope.json');
     assert.equal(result.ok, false);
     assert.match(result.errors[0].message, /unknown config file/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('saveConfig: stamps ids on perfect samples added through the editor', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ps-id-test-'));
+  try {
+    writeFileSync(join(dir, 'perfect_samples.json'), JSON.stringify([
+      { id: '1', title: 'A', snippet: 'a', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+    ]));
+    const rows = [
+      { title: 'B', snippet: 'b', type: 'paperlike', core: false, representative: false, desk: 'science' },
+      { id: '1', title: 'A', snippet: 'a', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+      { title: 'C', snippet: 'c', type: 'newslike', core: false, representative: true, desk: 'science' },
+    ];
+    const result = saveConfig(dir, 'perfect_samples.json', rows);
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.deepEqual(result.data.map((r) => r.id), ['2', '1', '3']);
+
+    const written = JSON.parse(readFileSync(join(dir, 'perfect_samples.json'), 'utf8'));
+    assert.deepEqual(written, result.data);
+    // id stays the first key so the file remains easy to scan.
+    assert.equal(Object.keys(written[0])[0], 'id');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('saveConfig: reuses deleted perfect-sample ids but never duplicates one', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ps-id-test-'));
+  try {
+    writeFileSync(join(dir, 'perfect_samples.json'), '[]');
+    const rows = [
+      { id: '2', title: 'B', snippet: 'b', type: 'paperlike', core: false, representative: false, desk: 'science' },
+      { title: 'New', snippet: 'n', type: 'paperlike', core: false, representative: false, desk: 'science' },
+      { title: 'Newer', snippet: 'm', type: 'paperlike', core: false, representative: false, desk: 'science' },
+    ];
+    const result = saveConfig(dir, 'perfect_samples.json', rows);
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.deepEqual(result.data.map((r) => r.id), ['2', '1', '3']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('saveConfig: rejects a non-string perfect-sample id', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ps-id-test-'));
+  try {
+    const result = saveConfig(dir, 'perfect_samples.json', [
+      { id: 7, title: 'A', snippet: 'a', type: 'paperlike', core: true, representative: true, desk: 'primary' },
+    ]);
+    assert.equal(result.ok, false);
+    assert.match(result.errors[0].message, /expected type string/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

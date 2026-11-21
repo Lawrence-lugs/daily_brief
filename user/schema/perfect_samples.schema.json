@@ -1,12 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "title": "perfect_samples.json",
+  "description": "Hand-picked exemplars of what the brief should surface. They seed the interest clusters (Ward medoids) and act as durable anchors next to liked items.",
   "type": "array",
   "items": {
     "type": "object",
+    "title": "Perfect sample {{i1}}",
     "required": ["id", "title", "snippet", "type", "core", "representative", "desk"],
     "properties": {
-      "id": { "type": "string", "title": "ID" },
+      "id": {
+        "type": "string",
+        "title": "ID",
+        "x-titleIconClass": "bi bi-lock",
+        "readOnly": true,
+        "description": "Machine key, not user-editable: embeddings are stored under ps:<id>, the fit cache hashes it, and cluster medoids are reported by it, so it must stay stable across saves. New items receive the next free number when you save."
+      },
       "title": { "type": "string", "title": "Title" },
       "snippet": { "type": "string", "title": "Snippet" },
       "type": { "type": "string", "enum": ["paperlike", "newslike", "commentary"], "title": "Type" },

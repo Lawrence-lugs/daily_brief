@@ -75,7 +75,7 @@ export function handleConfigRoutes(req, res, routePath, dataDir) {
       if (!result.ok) {
         return json(res, 400, { error: 'validation failed', details: result.errors });
       }
-      return json(res, 200, { ok: true, backup: result.backup, note: 'saved; applies on next run' });
+      return json(res, 200, { ok: true, backup: result.backup, data: result.data, note: 'saved; applies on next run' });
     });
     return true;
   }

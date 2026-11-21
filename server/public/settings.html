@@ -338,6 +338,10 @@
     color: var(--settings-muted);
     font-size: .75rem;
   }
+  /* The panel header already prints the file's schema description, so drop
+     Jedison's copy at the root of the form to avoid showing it twice.
+     Jedison sets display:block inline on descriptions, hence !important. */
+  .settings-editor .jedi-editor-card-body > .jedi-description { display: none !important; }
   .settings-editor .jedi-children-slot { min-width: 0; }
   .settings-editor .jedi-editor-card {
     margin: 0 0 12px;
@@ -392,6 +396,21 @@
   .settings-editor input:disabled,
   .settings-editor select:disabled,
   .settings-editor textarea:disabled { opacity: .6; cursor: not-allowed; }
+  /* Machine-managed values (perfect_samples.json `id`): visible for reference,
+     but locked so they cannot be edited. These need !important because the
+     generic control rule above is more specific. */
+  .settings-editor input[readonly],
+  .settings-editor textarea[readonly] {
+    border-style: dashed !important;
+    background: transparent !important;
+    color: var(--settings-muted) !important;
+    cursor: default;
+  }
+  .settings-editor input[readonly]:focus,
+  .settings-editor textarea[readonly]:focus {
+    border-color: var(--settings-line) !important;
+    box-shadow: none !important;
+  }
   .settings-editor .jedi-messages-slot:empty { display: none; }
   .settings-editor .jedi-messages-slot { color: var(--settings-error); font-size: .75rem; }
   .settings-editor .jedi-btn {
@@ -1568,14 +1587,13 @@ async function loadFile(fileName, index) {
       });
       const result = await response.json();
       if (response.ok) {
-        ui.data = value;
+        // The server may stamp machine-managed fields (perfect-sample ids), so
+        // trust the returned data over what was submitted.
+        const saved = result.data ?? value;
+        ui.data = saved;
         // Keep both views in sync after a successful save.
-        if (ui.mode === 'json' && instances[fileName]) {
-          instances[fileName].setValue(value, false);
-        }
-        if (ui.mode === 'form') {
-          ui.json.value = JSON.stringify(value, null, 2);
-        }
+        if (instances[fileName]) instances[fileName].setValue(saved, false);
+        ui.json.value = JSON.stringify(saved, null, 2);
         showToast(fileName + ' saved. Applies on next brief generation.');
         ui.save.textContent = 'Saved';
         setTimeout(() => {
