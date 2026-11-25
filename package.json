@@ -13,11 +13,12 @@
     "serve": "node server/index.js",
     "stop": "node server/stop.js",
     "brief": "node scripts/run_brief.js",
+    "experiment:desk-fill": "node simulate/experiments/desk_fill.js",
     "feedaudit": "node server/stats/cards/audit_feeds.mjs",
     "app": "electron electron/main.cjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "test": "node --test server/test/*.test.js",
+    "test": "node --test server/test/*.test.js ranker/test/slow_desk.test.js simulate/experiments/desk_fill.test.js",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

@@ -155,6 +155,19 @@
         "sampling": {
           "type": "object",
           "properties": {
+            "slowDesks": {
+              "type": "object", "title": "Slow desk selection by desk ID",
+              "additionalProperties": {
+                "type": "object", "required": ["minValue", "repeatWeight"],
+                "properties": {
+                  "minValue": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "repeatWeight": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "rollover": { "type": "boolean" },
+                  "includeSnippet": { "type": "boolean" },
+                  "titleTerms": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+                }
+              }
+            },
             "meanCutoff": { "type": "boolean", "title": "Mean cutoff" },
             "epsilon": { "type": "number", "minimum": 0, "maximum": 1 },
             "halfLifeDays": { "type": "number", "minimum": 0 },

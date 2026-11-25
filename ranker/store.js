@@ -30,8 +30,9 @@ const SQL = {
                WHERE b.date < ? GROUP BY s.item_id`,
   trainingRows: `
     SELECT t.item_id, t.source_type, MIN(t.date) AS date,
-           MAX(CASE WHEN t.liked=1 OR t.saved=1 THEN 1 ELSE 0 END) AS y, m.authors
+           MAX(CASE WHEN t.liked=1 OR t.saved=1 THEN 1 ELSE 0 END) AS y, m.authors, t.source, p.feed
       FROM training_examples t LEFT JOIN item_meta m ON m.item_id=t.item_id
+     LEFT JOIN candidate_pool p ON p.item_id=t.item_id
      WHERE t.date <= ?
      GROUP BY t.item_id ORDER BY date, t.item_id`,
   pool: `SELECT p.*, m.authors FROM candidate_pool p LEFT JOIN item_meta m ON m.item_id=p.item_id ORDER BY p.item_id`,
@@ -56,6 +57,9 @@ export class Store {
     this.db = new DatabaseSync(dbPath);
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;');
     this.db.exec(readFileSync(SCHEMA_FILE, 'utf8'));
+    if (!this.db.prepare("SELECT 1 FROM pragma_table_info('candidate_pool') WHERE name='feed'").get()) {
+      this.db.exec('ALTER TABLE candidate_pool ADD COLUMN feed TEXT');
+    }
     // Migration v3→v4: copy stranded like/save data from stories columns to new likes/saves tables.
     const hasLikedCol = this.db.prepare("SELECT 1 FROM pragma_table_info('stories') WHERE name='liked'").get();
     if (hasLikedCol && !this.db.prepare("SELECT 1 FROM ranker_state WHERE key='migrated_likes_v4'").get()) {
@@ -113,6 +117,13 @@ export class Store {
     return this.stmts.likedWithDates.all(cutoffDate, cutoffDate).map((r) => ({ item_id: r.item_id, liked_date: r.liked_date }));
   }
 
+  // Prior edition membership for rolling desks. Same-day regenerations count.
+  previousEdition(dateKey) {
+    return this.db.prepare(`SELECT item_id, desk, position, mode FROM stories
+      WHERE brief_id = (SELECT brief_id FROM briefs WHERE date <= ?
+        ORDER BY date DESC, generated_at DESC, brief_id DESC LIMIT 1)`).all(dateKey);
+  }
+
   // Get last shown date for each item (before dateKey)
   getLastShown(dateKey) {
     return this.stmts.lastShown.all(dateKey).map((r) => ({
@@ -126,6 +137,8 @@ export class Store {
     return this.stmts.trainingRows.all(cutoffDate ?? '9999-12-31').map((r) => ({
       item_id: r.item_id,
       source_type: r.source_type,
+      source: r.source,
+      feed: r.feed,
       date: r.date,
       y: r.y,
       authors: JSON.parse(r.authors ?? '[]'),

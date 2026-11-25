@@ -48,16 +48,56 @@ export function value(c, cfg) {
 }
 
 /** One epsilon-greedy draw. Explore weights are V^gamma (flattened) so low scorers keep a real chance. */
+function drawExplore(pool, cfg, rng) {
+  const w = pool.map((c) => Math.pow(Math.max(c.V, cfg.explore.floor), cfg.explore.gamma));
+  let r = rng() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return i; }
+  return pool.length - 1;
+}
+
 export function draw(pool, cfg, rng) {
-  if (rng() < cfg.epsilon) {
-    const w = pool.map((c) => Math.pow(Math.max(c.V, cfg.explore.floor), cfg.explore.gamma));
-    let r = rng() * w.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return { i, mode: 'explore' }; }
-    return { i: pool.length - 1, mode: 'explore' };
-  }
+  if (rng() < cfg.epsilon) return { i: drawExplore(pool, cfg, rng), mode: 'explore' };
   let bi = 0;
   for (let i = 1; i < pool.length; i++) if (pool[i].V > pool[bi].V) bi = i;
   return { i: bi, mode: 'greedy' };
+}
+
+// Stable sort: editorial order among new stories, prior edition order among incumbents.
+export function rollingOrder(a, b) {
+  return Number(!!a.carried) - Number(!!b.carried) ||
+    (a.carried ? a.previousPosition - b.previousPosition : 0);
+}
+
+// Slow desks may exhaust a whole journal issue in a few editions. Compare
+// recoverable repeats and fresh items on the same scale before allocating slots.
+function selectSlowDesk(pool, desk, policy, cfg, rng) {
+  const repeatCfg = { ...cfg, shown_decay: policy.repeatWeight };
+  const ranked = pool.map(c => {
+    const carried = policy.rollover && c.previousDesk === desk;
+    const V = value({ ...c, days_since_shown: carried ? null : c.days_since_shown,
+      times_shown: carried ? 1 : Math.min(1, c.times_shown ?? 0) }, repeatCfg);
+    return { ...c, desk, V, carried };
+  }).sort((a, b) => b.V - a.V);
+  const terms = (policy.titleTerms ?? []).map(term => ' ' + term.toLowerCase().trim() + ' ');
+  const eligible = ranked.filter(c => {
+    if (c.V < policy.minValue) return false;
+    const text = policy.includeSnippet ? c.title + ' ' + (c.snippet ?? '') : c.title;
+    const words = ' ' + (text ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ') + ' ';
+    return !terms.length || terms.some(term => words.includes(term));
+  });
+  const used = new Set();
+  const picks = [];
+  for (let i = 0; i < (cfg.stories_per_desk ?? 5); i++) {
+    const explore = rng() < cfg.epsilon;
+    const options = (explore ? ranked.filter(c => !c.carried) : eligible).filter(c => !used.has(c.id));
+    if (!options.length) continue;
+    const c = explore ? options[drawExplore(options, cfg, rng)] : options[0];
+    picks.push({ ...c, mode: explore ? 'explore' : 'greedy' });
+    used.add(c.id);
+  }
+  const reserves = eligible.filter(c => !used.has(c.id)).slice(0, cfg.reserve_per_desk ?? 25);
+  picks.sort(rollingOrder);
+  return [...picks, ...reserves.map(c => ({ ...c, mode: 'reserve' }))];
 }
 
 /**
@@ -71,7 +111,8 @@ export function draw(pool, cfg, rng) {
 export function selectBrief(cands, cfg, rng, trace) {
   const draws = [];
   if (trace) { const base = rng; rng = () => { const v = base(); draws.push(v); return v; }; }
-  let kept = cands.filter((c) => c.days_since_shown == null || c.days_since_shown >= cfg.dedupe.hardWindowDays);
+  let kept = cands.filter((c) => c.days_since_shown == null || c.days_since_shown >= cfg.dedupe.hardWindowDays ||
+    (cfg.slowDesks?.[c.desk]?.rollover && c.previousDesk === c.desk));
   const hardWindowRemoved = cands.length - kept.length;
   let meanP = null;
   let meanCutoffDropped = 0;
@@ -107,6 +148,11 @@ export function selectBrief(cands, cfg, rng, trace) {
 
   const result = {};
   for (const [desk, pool] of byDesk) {
+    const policy = cfg.slowDesks?.[desk];
+    if (policy) {
+      result[desk] = selectSlowDesk(pool, desk, policy, cfg, rng);
+      continue;
+    }
     // Round-robin over clusters within this desk (random cluster order for the day).
     const byCluster = new Map();
     for (const c of pool) {

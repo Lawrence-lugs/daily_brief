@@ -14,6 +14,8 @@ from simulate.experiments.sacred_runner import ex as compare_ex
 from simulate.experiments.sweep_runner import ex as sweep_ex
 from simulate.experiments.monte_carlo_runner import ex as monte_carlo_ex
 from simulate.experiments.ablation_runner import ex as ablation_ex
+from simulate.experiments.desk_fill import ex as desk_fill_ex
+from simulate.experiments.slow_desk_replay import ex as slow_desk_ex
 from simulate.experiments.clustering_ablation import ex as clustering_ablation_ex
 
 
@@ -155,7 +157,31 @@ def main():
         help="Run without any sacred observer (no run persisted)",
     )
 
+    p_slow = subparsers.add_parser("slow-desk-replay", help="Replay the merged MicroLab snapshot")
+    p_slow.add_argument("--db", required=True)
+    p_slow.add_argument("--profile", default="user/ulab_settings")
+    p_slow.add_argument("--sources", default="user/defaults/sources.json")
+    p_slow.add_argument("--sql-url")
+    p_slow.add_argument("--unobserved", action="store_true")
+
+    p_fill = subparsers.add_parser("desk-fill", help="Compare selector settings on an offline deployment snapshot")
+    p_fill.add_argument("--db", required=True)
+    p_fill.add_argument("--config", required=True)
+    for option in ("sources", "samples", "spec", "judgments", "sql-url"):
+        p_fill.add_argument("--" + option)
+    p_fill.add_argument("--unobserved", action="store_true")
+
     args = parser.parse_args()
+    if args.command == "desk-fill":
+        _configure_observer(desk_fill_ex, args.sql_url, args.unobserved)
+        desk_fill_ex.run(config_updates={"db_path": args.db, "config_path": args.config,
+                                        "sources": args.sources, "samples": args.samples,
+                                        "spec": args.spec, "judgments": args.judgments})
+        return
+    if args.command == "slow-desk-replay":
+        _configure_observer(slow_desk_ex, args.sql_url, args.unobserved)
+        slow_desk_ex.run(config_updates={"db_path": args.db, "profile": args.profile, "sources": args.sources})
+        return
 
     # Route each command through its Sacred experiment
     if args.command in ("compare", "sacred"):

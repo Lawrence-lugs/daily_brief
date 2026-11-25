@@ -5,7 +5,9 @@
 // so bump `ENCODING_VERSION` when you change an extractor's behaviour).
 import { topDistances } from './interests.js';
 
-export const ENCODING_VERSION = 1;
+import { circuitJournal } from './journal.js';
+
+export const ENCODING_VERSION = 2;
 
 const strip = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -33,6 +35,11 @@ export function authorKeys(authors, { head = 3, tail = 2, threshold = 5 } = {}) 
 export const EXTRACTORS = {
   bias: () => [['b', 1]],
   type: (it) => [[`t:${it.source_type || 'commentary'}`, 1]],
+  feed: it => (it.feed || it.source) ? [[`feed:${it.feed || it.source}`, 1]] : [],
+  journal: (it) => {
+    const venue = circuitJournal(it);
+    return venue ? [['circuitJournal', 1], [`journal:${venue}`, 1]] : [];
+  },
   author: (it, ctx) => {
     const ks = authorKeys(it.authors, ctx?.authorCfg);
     return ks.map((k) => [`a:${k}`, 1 / Math.sqrt(ks.length)]);   // many-author papers must not dominate

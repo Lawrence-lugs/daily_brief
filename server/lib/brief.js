@@ -29,7 +29,7 @@ import { defaultDataDir, seedDataDir } from '../../user/datadir.js';
 import { Store as RankerStore } from '../../ranker/store.js';
 import { ensureEmbeddings, ensureFitted, prepareCandidates } from '../../ranker/pipeline.js';
 import { ageUnits, cadenceFor, cadenceMapFromSources } from '../../ranker/age.js';
-import { mulberry32, selectBrief as rankerSelectBrief } from '../../ranker/sampler.js';
+import { mulberry32, rollingOrder, selectBrief as rankerSelectBrief } from '../../ranker/sampler.js';
 import { makeBackside, poolCountsByCluster } from '../../ranker/backside.js';
 import { fromBlob } from '../../ranker/vec.js';
 
@@ -176,6 +176,7 @@ export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
     for (const [desk, items] of Object.entries(out)) {
       result[desk] = items.map(c => ({
         id: c.id, mode: c.mode, p: c.p, V: c.V, cluster: c.cluster, core: c.core,
+        carried: c.carried, previousPosition: c.previousPosition,
         ...backside(c),
       }));
     }
@@ -192,6 +193,8 @@ export async function selectLr(dateKey, seed, cfg, src, pool, now, run) {
         }
         const mergedItem = { ...poolItem };
         mergedItem.mode = rankerItem.mode;
+        mergedItem.carried = rankerItem.carried;
+        mergedItem.previousPosition = rankerItem.previousPosition;
         mergedItem.p = rankerItem.p;
         mergedItem.V = rankerItem.V;
         mergedItem.cluster = rankerItem.cluster;
@@ -470,6 +473,7 @@ export async function main(flags = {}) {
       // back to raw selection for this desk instead of destructuring undefined.
       [stories, rejected, deck] = applyEditor(selected[desk] ?? [], null, nStories);
     }
+    if (cfg.ranker?.sampling?.slowDesks?.[desk]?.rollover && eng === 'lr') stories.sort(rollingOrder);
     prog.deskEdited(desk, stories, deck);
     run.event('editor', {
       desk, llm_answered: result !== null,

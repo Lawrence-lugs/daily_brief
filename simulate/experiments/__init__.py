@@ -10,6 +10,8 @@ from simulate.experiments.sacred_runner import ex as compare_ex, INPUT_RESOURCES
 from simulate.experiments.sweep_runner import ex as sweep_ex
 from simulate.experiments.monte_carlo_runner import ex as monte_carlo_ex
 from simulate.experiments.ablation_runner import ex as ablation_ex
+from simulate.experiments.desk_fill import ex as desk_fill_ex
+from simulate.experiments.slow_desk_replay import ex as slow_desk_ex
 from simulate.experiments.clustering_ablation import ex as clustering_ablation_ex
 
 __all__ = [
@@ -23,5 +25,7 @@ __all__ = [
     "monte_carlo_ex",
     "ablation_ex",
     "clustering_ablation_ex",
+    "slow_desk_ex",
+    "desk_fill_ex",
     "INPUT_RESOURCES",
 ]
