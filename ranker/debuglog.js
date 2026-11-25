@@ -17,7 +17,7 @@ export const LEVELS = { summary: 1, detail: 2, trace: 3 };
 const CODE_FILES = {
   model: ['model.js'],
   trainer: ['trainer.js'],
-  features: ['features.js'],
+  features: ['features.js', 'journal.js'],
   interests: ['interests.js', 'agglo.js'],
 };
 

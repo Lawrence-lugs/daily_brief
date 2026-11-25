@@ -1,4 +1,5 @@
 // Pipeline functions: embeddings, fitting, candidate preparation.
+import { journalFrontMatter } from './journal.js';
 import { embedTexts, textOf, textHash, embeddingOf } from './embedder.js';
 import { SQL } from './store.js';
 import { createHash } from 'node:crypto';
@@ -357,6 +358,8 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
   const pool = store.getPool();
   const embeddings = store.getAllEmbeddings();
   const embById = new Map(embeddings.map((e) => [e.item_id, e]));
+  const previous = new Map((cfg.sampling?.slowDesks ? store.previousEdition(dateKey) : [])
+    .filter(r => r.mode === 'greedy').map(r => [r.item_id, r]));
   const lastShown = new Map(store.getLastShown(dateKey).map((r) => [r.item_id, r.last]));
 
   // Exclude items the user has ever liked or saved from re-selection.
@@ -367,6 +370,7 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
   let missingEmb = 0;
   let likedDropped = 0;
   for (const item of pool) {
+    if (cfg.features.includes('journal') && journalFrontMatter(item)) continue;
     if (likedIds.has(item.id)) {
       likedDropped++;
       run.event('drop', { id: item.id, reason: 'liked' }, 'detail');
@@ -422,6 +426,9 @@ export function prepareCandidates(store, cfg, { interests, model }, dateKey, now
     candidates.push({
       id: item.id,
       title: item.title,
+      snippet: item.snippet,
+      previousDesk: previous.get(item.id)?.desk,
+      previousPosition: previous.get(item.id)?.position,
       source_type: item.source_type,
       p: pred.p,
       age_days: ageDays,

@@ -101,7 +101,8 @@
       "bias",
       "type",
       "author",
-      "medoid"
+      "medoid",
+      "journal"
     ],
     "authors": {
       "head": 3,
@@ -143,6 +144,8 @@
             "match": "t:",
             "prec": 2
           },
+          { "match": "circuitJournal", "mean": 1, "prec": 1 },
+          { "match": "journal:", "prec": 4 },
           {
             "match": "a:",
             "prec": 3
@@ -169,6 +172,80 @@
     },
     "sampling": {
       "meanCutoff": true,
+      "slowDesks": {
+        "analog_mixed_signal": {
+          "rollover": true,
+          "includeSnippet": true,
+          "minValue": 0.12,
+          "repeatWeight": 0.8,
+          "titleTerms": [
+            "adc",
+            "dac",
+            "converter",
+            "converters",
+            "amplifier",
+            "amplifiers",
+            "oscillator",
+            "pll",
+            "analog front end",
+            "voltage reference",
+            "regulator",
+            "phase locked",
+            "sar",
+            "readout circuit",
+            "transimpedance",
+            "delta sigma",
+            "bandgap",
+            "phase interpolator",
+            "gate driver",
+            "analog to digital",
+            "digital to analog",
+            "filter circuit",
+            "low dropout",
+            "time to digital",
+            "charge pump"
+          ]
+        },
+        "rf_wireless": {
+          "rollover": true,
+          "includeSnippet": false,
+          "minValue": 0.12,
+          "repeatWeight": 0.8,
+          "titleTerms": [
+            "mmwave amplifier",
+            "millimeter wave circuit",
+            "rectenna",
+            "rectifier",
+            "antenna design",
+            "integrated antenna",
+            "transceiver",
+            "transceivers",
+            "rf transmitter",
+            "uwb transmitter",
+            "ku band",
+            "wireless transmitter",
+            "vswr",
+            "receiver front end",
+            "image reject",
+            "mixer first",
+            "wake up receiver",
+            "rf receiver",
+            "ir uwb",
+            "backscatter",
+            "microwave circuit",
+            "dbm",
+            "rf cmos",
+            "power conversion efficiency",
+            "power amplifier",
+            "rf energy",
+            "impedance matching",
+            "mixer",
+            "frequency synthesizer",
+            "phased array",
+            "low noise amplifier"
+          ]
+        }
+      },
       "epsilon": 0.2,
       "halfLifeDays": 30,
       "freshness": {
